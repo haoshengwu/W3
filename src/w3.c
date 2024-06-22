@@ -6,11 +6,20 @@ to crete the 3D emc3 mesh. The main aims are:
 Contact: haosheng.wu@polito.it
 */
 
-#include <iostream>
-using namespace std;
+#include <stdio.h>
+#include "input.h"
 
-int main()
-{
-      cout << "Welcome to W3" << endl;
-      return 0;
+int main(){
+  
+  printf("Welcome to W3 project!\n");
+  
+  printf("If there is problem, please conatact haosheng.wu@polito.it\n");
+  
+  InputPara w3_input;
+  
+  init_inputpara(&w3_input);
+  
+  print_inputpara(&w3_input);
+
+  return 0;
 }
