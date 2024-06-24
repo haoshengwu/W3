@@ -7,11 +7,13 @@ Contact: haosheng.wu@polito.it
 */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "input.h"
+#include "equilibrium.h"
 
 int main(){
   
-  printf("Welcome to W3 project!\n");
+  printf("Welcome to W3!\n");
   
   printf("If there is problem, please conatact haosheng.wu@polito.it\n");
   
@@ -20,6 +22,16 @@ int main(){
   init_inputpara(&w3_input);
   
   print_inputpara(&w3_input);
+
+  Equilibrium dtt_example;
+  
+  init_equilibrium(&dtt_example);
++ 
+  read_equilib_geqdsk(&dtt_example,w3_input.equilibrium_file);
+  
+  print_equilibrium(&dtt_example);
+  
+  free_equilibrium(&dtt_example);
 
   return 0;
 }

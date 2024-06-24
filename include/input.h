@@ -10,7 +10,8 @@
 
 typedef struct {
 
-  char equlibrium_file[50];
+  char equilibrium_file[50];
+  char topology_type[20];
 
 }  InputPara;
 
@@ -18,3 +19,4 @@ void init_inputpara(InputPara* input);
 void print_inputpara(InputPara* input);
 
 #endif
+
