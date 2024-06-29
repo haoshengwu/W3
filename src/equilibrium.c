@@ -12,12 +12,6 @@ static int check_xpt_levels(const Equilibrium *equilib,int cx1,int cy1,int cx2,i
 static void calculate_xpt_level(XPointTest xpt);
 static int calculate_xpt_center(Equilibrium *equilib, XPointTest xpt);
 
-int max(double a, double b) {
-    return (a > b) ? a : b;
-}
-int min(double a, double b) {
-    return (a > b) ? a : b;
-}
 
 //refer to DivGep [void CalcEquilValues(Equil eq)]
 void calculate_equi_values(Equilibrium *equilib)
@@ -194,14 +188,15 @@ void find_Xpoint(Equilibrium *equilib, const double *est_pos)
           xp->cx2 = xpC->cx2;
           xp->cy1 = xpC->cy1;
           xp->cy2 = xpC->cy2;
-          printf("r range: %.8lf, %.8lf\n", equilib->r[xp->cx1], equilib->r[xp->cx2]);
-          printf("z range: %.8lf, %.8lf\n", equilib->z[xp->cy1], equilib->z[xp->cy2]);
+          xp->lvlMin = xpC->lvlMin;
+          xp->lvlMax = xpC->lvlMax;
         }
       }
     }
   }
 
   calculate_xpt_level(xp);
+  // printf("calculate_xpt_level: %.8lf\n",xp->level);
   
  if(calculate_xpt_center(equilib,xp))
   {
@@ -210,6 +205,9 @@ void find_Xpoint(Equilibrium *equilib, const double *est_pos)
 
   printf("crx1: %i, crx2: %i, cry1: %i, cry2: %i\n", xp->cx1, xp->cx2, xp->cy1, xp->cy2);
   printf("The X-point is R: %.8lf, Z: %.8lf\n", xp->centerX, xp->centerY);
+  printf("r range: %.8lf, %.8lf\n", equilib->r[xp->cx1], equilib->r[xp->cx2]);
+  printf("z range: %.8lf, %.8lf\n", equilib->z[xp->cy1], equilib->z[xp->cy2]);
+  printf("value: %.8lf\n", xp->level);
 
   // store the value in equlib structure
   equilib->Xpoint_num = 1;
@@ -242,6 +240,7 @@ static int check_xpt_rectangular(const Equilibrium *equilib, const XPointTest xp
   while (n < 6)
   {
     lvl = equilib->psi[x][y];
+    
 
     ox = x;
     oy = y;
@@ -334,7 +333,16 @@ static int check_xpt_rectangular(const Equilibrium *equilib, const XPointTest xp
   }
 
   xpt->lvlMin = max(p[0].lvl, p[2].lvl);
+  printf("p[0].lvl: %.8lf\n", p[0].lvl);
+  printf("p[2].lvl: %.8lf\n", p[2].lvl);
+  printf("xpt->lvlMin: %.8lf\n", xpt->lvlMin);
+  printf("\n");
+
   xpt->lvlMax = min(p[1].lvl, p[3].lvl);
+  printf("p[1].lvl: %.8lf\n", p[1].lvl);
+  printf("p[3].lvl: %.8lf\n", p[3].lvl);
+  printf("xpt->lvlMmax: %.8lf\n", xpt->lvlMax);
+  printf("\n");
 
   for (i = 0; i < 4; i++)
     xpt->minMax[i] = p[i];
@@ -411,9 +419,12 @@ static int check_point_in_rectangular(const double pos[], const Equilibrium *equ
     
 }
 
-// calculate psi value
+//calculate psi value
+
 static void calculate_xpt_level(XPointTest xpt)
 {
+  printf("calculate_xpt_level: xpt->lvlMin: %.8lf\n", xpt->lvlMin);
+  printf("calculate_xpt_level: xpt->lvlMax: %.8lf\n", xpt->lvlMax);
   xpt->level = (xpt->lvlMin + xpt->lvlMax)/2;
 }
 
@@ -439,13 +450,15 @@ static int calculate_xpt_center(Equilibrium *equilib, XPointTest xpt)
     else assert(0);
 
     lvl1=EqCorrCell(equilib,x,y,xpt->level);
-
+    
+    // printf("xpt->level: %.8lf\n", xpt->level);
     if ((lvl-xpt->level)*(lvl1-xpt->level)<0) {
       xs[n]=equilib->r[ox]+(equilib->r[x]-equilib->r[ox])*(xpt->level-lvl)/(lvl1-lvl);
       ys[n]=equilib->z[oy]+(equilib->z[y]-equilib->z[oy])*(xpt->level-lvl)/(lvl1-lvl);
 /*      AddSource(a,xs[n],ys[n]); */
       n++;
     }
+
     if (x==xpt->cx1 && y==xpt->cy1 && n==0) break;
   }
 
