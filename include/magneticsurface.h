@@ -25,8 +25,12 @@ struct _MagneticSurfaceSegment
 };
 
 struct _SurfCell {
-  double x[4],y[4];
+  // r and z coordinates of the intersection points for the four boundaries of a cell.
+  double x[4],y[4]; 
+  // n is the total intersection number, 
+  // f indicates the situations, there is total 16 situations. [need double check]
   int n,f;
+  // indicates the boundary numberi. e.g. d[0] = 2 meanse the first intersection point is at the 'CS_YM = 2' boundary. 
   int d[4];
 };
 
@@ -36,7 +40,6 @@ struct _XY {
 typedef struct _XY* XY;
 
 typedef struct _MagneticSurfaceSegment* MagneticSurfaceSegment;
-
 
 void calc_surf_data(const Equilibrium *equlib,int cx,int cy,double level,struct _SurfCell* sc,int sx,int sy);
 

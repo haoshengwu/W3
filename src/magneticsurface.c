@@ -36,7 +36,7 @@ void calc_surf_data(const Equilibrium *equlib,int cx,int cy,double level,struct 
   sc->n = sc->f = 0;
   if (cx<0 || cy<0 || cx>=sx-1 || cy>=sy-1) 
   {
-    printf("cx or cy is out of range");
+    printf("cx or cy is out of range\n");
     return;
   }
   // currently use EqCorrCell, should be consist with DG use EqCorrCellEx
@@ -108,9 +108,11 @@ int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int n
     return -1;
   }
   d = sc.d[0];
+
+
   do {
     // out put the intersection points, later will be change
-    printf("%lf %lf\n", sc.x[0], sc.y[0]);
+    printf("%lf %lf\n", sc.x[d], sc.y[d]);
     if (d==CS_YM) cy--;
     if (d==CS_YP) cy++;
     if (d==CS_XM) cx--;
@@ -146,7 +148,7 @@ int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int n
   do
   {
     // out put the intersection points, later will be change
-    printf("%lf %lf\n", sc.x[0], sc.y[0]);
+    printf("%lf %lf\n", sc.x[d], sc.y[d]);
     if (d==CS_YM) cy--;
     if (d==CS_YP) cy++;
     if (d==CS_XM) cx--;
