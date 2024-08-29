@@ -27,7 +27,7 @@ void calculate_equi_values(Equilibrium *equilib)
     }
 }
 
-double EqCorrCell(Equilibrium *equilib,int cx,int cy,double level) 
+double EqCorrCell(const Equilibrium *equilib,int cx,int cy,double level) 
 {
   double a;
   a = equilib->psi[cx][cy];
@@ -333,16 +333,16 @@ static int check_xpt_rectangular(const Equilibrium *equilib, const XPointTest xp
   }
 
   xpt->lvlMin = max(p[0].lvl, p[2].lvl);
-  printf("p[0].lvl: %.8lf\n", p[0].lvl);
-  printf("p[2].lvl: %.8lf\n", p[2].lvl);
-  printf("xpt->lvlMin: %.8lf\n", xpt->lvlMin);
-  printf("\n");
+  // printf("p[0].lvl: %.8lf\n", p[0].lvl);
+  // printf("p[2].lvl: %.8lf\n", p[2].lvl);
+  // printf("xpt->lvlMin: %.8lf\n", xpt->lvlMin);
+  // printf("\n");
 
   xpt->lvlMax = min(p[1].lvl, p[3].lvl);
-  printf("p[1].lvl: %.8lf\n", p[1].lvl);
-  printf("p[3].lvl: %.8lf\n", p[3].lvl);
-  printf("xpt->lvlMmax: %.8lf\n", xpt->lvlMax);
-  printf("\n");
+  // printf("p[1].lvl: %.8lf\n", p[1].lvl);
+  // printf("p[3].lvl: %.8lf\n", p[3].lvl);
+  // printf("xpt->lvlMmax: %.8lf\n", xpt->lvlMax);
+  // printf("\n");
 
   for (i = 0; i < 4; i++)
     xpt->minMax[i] = p[i];

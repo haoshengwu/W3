@@ -15,3 +15,9 @@ int VIntersect(double x1,double y1,double x2,double y2,
 #ifndef max
 #define max(x,y) ((x)>(y) ? (x) : (y))
 #endif
+#ifndef inrange_s
+#define inrange_s(a,b1,b2) ((a)<max((b1),(b2)) && (a)>min((b1),(b2)))
+#endif
+#ifndef swap
+#define swap(x,y) ((x)+=(y),(y)=(x)-(y),(x)-=(y))
+#endif

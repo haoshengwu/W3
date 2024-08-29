@@ -1,0 +1,53 @@
+#ifndef _magneticsurface_h
+#define _magneticsurface_h
+
+#define CSF_YP    0x1
+#define CSF_YM    0x2
+#define CSF_XM    0x4
+#define CSF_XP    0x8
+
+#define CS_YP    0
+#define CS_XP    1
+#define CS_YM    2
+#define CS_XM    3
+
+
+
+#define POINTS_LIMIT 2000 // the maxium number of points in a magnetic surface to store the positions.
+
+struct _MagneticSurfaceSegment
+{
+    double psi_level;
+    double r[POINTS_LIMIT];
+    double z[POINTS_LIMIT];
+    int close;
+    int intersetion_num;
+};
+
+struct _SurfCell {
+  double x[4],y[4];
+  int n,f;
+  int d[4];
+};
+
+struct _XY {
+  double x,y;
+};
+typedef struct _XY* XY;
+
+typedef struct _MagneticSurfaceSegment* MagneticSurfaceSegment;
+
+
+void calc_surf_data(const Equilibrium *equlib,int cx,int cy,double level,struct _SurfCell* sc,int sx,int sy);
+
+int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int nw,int nh);
+
+void cal_magnetic_surface(const Equilibrium *equlib, const double psi_level, MagneticSurfaceSegment segment);
+
+void cal_separatrix(const Equilibrium *equlib, const XPointTest xpt, int index);
+
+void write_magnetic_surface(const MagneticSurfaceSegment segment, char *filename);
+
+
+
+#endif

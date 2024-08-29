@@ -6,7 +6,7 @@ TARGET = build/w3
 SRCDIR = src
 INCLUDEDIR = include
 
-SRCS = $(SRCDIR)/w3.c $(SRCDIR)/input.c $(SRCDIR)/equilibrium.c  $(SRCDIR)/calc.c
+SRCS = $(SRCDIR)/w3.c $(SRCDIR)/input.c $(SRCDIR)/equilibrium.c  $(SRCDIR)/calc.c $(SRCDIR)/magneticsurface.c
 OBJS = $(SRCS:.c=.o)
 
 all: $(TARGET)
@@ -14,7 +14,7 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-src/w3.o: src/w3.c include/input.h include/equilibrium.h 
+src/w3.o: src/w3.c include/input.h include/equilibrium.h include/magneticsurface.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 src/input.o: src/input.c include/input.h
@@ -24,6 +24,9 @@ src/equilibrium.o: src/equilibrium.c include/equilibrium.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 src/calc.o: src/calc.c include/calc.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+src/magneticsurface.o: src/magneticsurface.c include/magneticsurface.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(SRCDIR)/%.o: $(SRCDIR)/%.c

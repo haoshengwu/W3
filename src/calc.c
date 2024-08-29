@@ -4,6 +4,7 @@
 /* Return -1 on non-intersection, 0 on intersection */
 /* (x1,y1,x2,y2) is the first segment, and (x3,y3,x4,y4) is the second.
    *ar and *br are how far along the intersection is on each segment. */
+
 int VIntersect(double x1,double y1,double x2,double y2, \
 double x3,double y3,double x4,double y4,double* ar,double* br) 
 {

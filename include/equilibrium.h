@@ -70,5 +70,6 @@ void print_equilibrium(const Equilibrium* equilib);  // print the size of equili
 
 void free_equilibrium(Equilibrium* equilib);         // free dynamic memory
 
+double EqCorrCell(const Equilibrium *equilib,int cx,int cy,double level);
 //void find_X_point(const Equilibrium* equilib, const double estimate[2], double accurate[2]); 
 #endif
