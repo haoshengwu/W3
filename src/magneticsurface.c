@@ -30,13 +30,12 @@
 
 void calc_surf_data(const Equilibrium *equlib,int cx,int cy,double level,struct _SurfCell* sc,int sx,int sy)
 {
-
   double a1, a2;
   int d;
   sc->n = sc->f = 0;
   if (cx<0 || cy<0 || cx>=sx-1 || cy>=sy-1) 
   {
-    printf("cx or cy is out of range\n");
+    printf("arriave at the boundary cx or cy is out of range\n");
     return;
   }
   // currently use EqCorrCell, should be consist with DG use EqCorrCellEx
@@ -178,12 +177,12 @@ int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int n
 // Refer to DivGeo [CalcSeparatrixLine] in [xpoint.c]
 // idx indicates which point is the start.
 // A X-point have four segments, the idx indicate which is the one used. 
-void cal_separatrix(const Equilibrium *equlib, const XPointTest xpt, int idx)
+void cal_separatrix_line(const Equilibrium *equlib, const XPointTest xpt, int idx)
 {
   
   int n,x,y,ox,oy;
-//  struct _SurfCell sc;
-//  XY xy,xy1,xy0;
+  // struct _SurfCell sc;
+  // XY xy,xy1,xy0;
 
 // check the xpt positions
   assert(xpt->cx1 > 0);
@@ -211,11 +210,25 @@ void cal_separatrix(const Equilibrium *equlib, const XPointTest xpt, int idx)
     if (inrange_s(xpt->level,EqCorrCell(equlib,ox,oy,xpt->level),EqCorrCell(equlib,x,y,xpt->level)))
       if (n++==idx) break;
 
-    //if (x==xpt->cx1 && y==xpt->cy1) {/* puts("1"); */return NULL;}
+    if (x==xpt->cx1 && y==xpt->cy1) 
+    {/* puts("1"); */ printf("please check x-point");}
   }
 
+  // here x and y is the cell number, not the point number.
+  //
+  //      |   cell  | 
+  //---------------------
+  //      |         |
+  // cell | X-point |  cell
+  //      |         |
+  //--------------------
+  //      |   cell  |
+  //
   if (x>ox) swap(x,ox);
   if (y>oy) swap(y,oy);
+  
+  // Again, adjust the cell number in different situation
+  // tracing not from the X-point rectangular, but from the neighbour cells.
 
   if (x==ox) 
   {
@@ -230,8 +243,9 @@ void cal_separatrix(const Equilibrium *equlib, const XPointTest xpt, int idx)
     assert(0);
   }
   
-    int i; 
+    int i;
+    printf("separatrix segment %d trancing\n", idx); 
     i = calc_surface_line(equlib,x,y,xpt->level,equlib->nw,equlib->nh);
-    printf("%d",i);
+    printf("the situation of line is: %d\n",i);
 
 }

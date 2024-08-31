@@ -11,6 +11,7 @@ Contact: haosheng.wu@polito.it
 #include "input.h"
 #include "equilibrium.h"
 #include "magneticsurface.h"
+#include "datastructure.h"
 
 int main(){
   
@@ -31,11 +32,10 @@ int main(){
   read_equilib_geqdsk(&dtt_example,w3_input.equilibrium_file);
   
   print_equilibrium(&dtt_example);
-
-  find_Xpoint(&dtt_example, w3_input.xpt_estimation);
+  XPointTest xp;
+  xp = find_Xpoint(&dtt_example, w3_input.xpt_estimation);
   
 
-  
   
   // for(int j = 0; j < 5; j++)
   // {
@@ -46,18 +46,41 @@ int main(){
   // {
   //   printf("z= %f\n", dtt_example.z[j]);
   // }
- 
-  // test magnetic surface line 
-  printf("psi is %lf\n",dtt_example.psi[120][120]);
-  printf("psi is %lf\n",dtt_example.psi[121][120]);
-  printf("psi is %lf\n",dtt_example.psi[120][121]);
-  printf("psi is %lf\n",dtt_example.psi[120][121]);
-  int test;
-  test = calc_surface_line(&dtt_example,120,120,-0.13,dtt_example.nw, dtt_example.nh);
-  printf("%d",test);
-  free_equilibrium(&dtt_example);
+  // test module
+  double value;
+  double x = 1872.5/1000;
+  double y = -1097.5/1000;
+  value = get_psi_from_rz(&dtt_example,x, y);
+  printf("psi at %lf %lf is %lf\n",x, y, value);
 
+  // test magnetic surface line 
+  printf("psi is %lf\n",dtt_example.psi[149][126]);
+  printf("psi is %lf\n",dtt_example.psi[150][126]);
+  printf("psi is %lf\n",dtt_example.psi[149][127]);
+  printf("psi is %lf\n",dtt_example.psi[150][127]);
   
+  //test separatrix
+  // cal_separatrix_line(&dtt_example,xp,3);
+  free(xp);
+  // int test;
+  // test = calc_surface_line(&dtt_example,120,120,-0.135,dtt_example.nw, dtt_example.nh);
+  // printf("%d",test);
+  free_equilibrium(&dtt_example);  
+
+  //test double linked list
+  double x1 = 1.0, y1 = 2.0;
+
+  DLListNode* ddl_ptr;
+  ddl_ptr = NULL;
+  ddl_ptr = create_DLListNode(x1,y1);
+  for (int i = 0; i < 10; i++)
+  {
+    x1 = x1 + i;
+    y1 = y1 + i;
+    ddl_ptr = insert_DLList_at_head(ddl_ptr,x1,y1);
+  }
+  print_DLList(ddl_ptr);
+  free_DLList(ddl_ptr);
 
   return 0;
 }

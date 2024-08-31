@@ -57,7 +57,6 @@ void init_equilibrium(Equilibrium *equilib)
 
 void print_equilibrium(const Equilibrium *equilib)
 {
-
   printf("Equilibrium size:\n");
   printf("nw: %i, nh: %i\n", equilib->nw, equilib->nh);
   printf("poloidal flux at magnetic axis is %.8lf Weber/rad\n", equilib->simag);
@@ -151,7 +150,7 @@ void read_equilib_geqdsk(Equilibrium *equilib, const char *geqdsk_file)
 
 }
 
-void find_Xpoint(Equilibrium *equilib, const double *est_pos)
+XPointTest find_Xpoint(Equilibrium *equilib, const double *est_pos)
 {
   // est_pos is the estimated postion est_pos[0] is R, est_pos[1] is Z. n is the size of est_pos
   // this algorithm is from DivGeo FindXPointRects and FindXPointCenter xpoint.h and xpoint.c files.
@@ -213,9 +212,64 @@ void find_Xpoint(Equilibrium *equilib, const double *est_pos)
   equilib->Xpoint_num = 1;
   equilib->Xpoint_pos[0] = xp->centerX;
   equilib->Xpoint_pos[1] = xp->centerY;
-
+  
+  return xp; // !!!DO NOT free xp and xpC
   free(xpC);
-  free(xp);
+  // free(xp);
+}
+
+// x is the r coordinate, y is the z coordinate, we assume x,y is not any apoint of equilibrium
+double get_psi_from_rz(const Equilibrium *equilib, double x, double y)
+{
+  // value is the psi at the point (x,y)
+  double value;
+  if( x > equilib->r[equilib->nw - 1] || x < equilib->r[0])
+  {
+    printf("the position of x: %lf is out of r range\n", x);
+    return NAN;
+  }
+
+  if( y > equilib->z[equilib->nh - 1] || y < equilib->z[0])
+  {
+    printf("the position of y: %lf is out of z range\n", y);
+    return NAN;
+  }
+  
+  // this is the cell number, not the point. the coresponding four corners are: (cx,cy), (cx+1,cy), (cx, cy+1), (cx+1, cy+1) 
+  int cx, cy;
+  
+  for (int j = 0; j < equilib->nh; j++)
+  {
+    if ( y > equilib->z[j] && y < equilib->z[j+1])
+    {
+      for (int i = 0; i < equilib->nw; i++)
+        {
+          if ( x > equilib->r[i] &&  x < equilib->r[i+1])
+          {
+            cx = i;
+            cy = j;
+            printf("the x: %lf, y: %lf in the cell cx: %d cy: %d\n",x,y,cx,cy);
+            break;
+          }
+        }
+    }
+  }
+  
+  // Bi-linear interpolation for the psi valuex according Kotov's [Generation of orthogonal full-device grid]
+  //psi(x,y) = psi[cx][cy] + a*(x-r[cx]) + b*(y-z[cy]) + c*(x-r[cx])*(y-z[cy])
+  double a,b,c;
+  double delta_r,delta_z;
+  delta_r = x - equilib->r[cx];
+  delta_z = y - equilib->z[cy];
+  // printf("%lf %lf\n",equilib->psi[cx][cy], equilib->psi[cx+1][cy]);
+  // printf("%lf %lf\n",delta_r, delta_z);
+
+  a = ( equilib->psi[cx+1][cy] - equilib->psi[cx][cy] ) / (equilib->r[cx+1] - equilib->r[cx] );
+  b = ( equilib->psi[cx][cy+1] - equilib->psi[cx][cy] ) / (equilib->z[cy+1] - equilib->z[cy] );
+  c = ( equilib->psi[cx+1][cy+1] + equilib->psi[cx][cy] - equilib->psi[cx+1][cy] - equilib->psi[cx][cy+1])/ \
+      (equilib->r[cx+1] - equilib->r[cx]) / (equilib->z[cy+1] - equilib->z[cy]);
+  value = equilib->psi[cx][cy] + a * delta_r + b*delta_z + c * delta_r * delta_z;
+  return value;
 }
 
 // refer to DivGeo source code [static int CheckXPointRect(Equil eq,XPointTest xpt)]
