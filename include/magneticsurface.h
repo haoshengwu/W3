@@ -1,5 +1,5 @@
-#ifndef _magneticsurface_h
-#define _magneticsurface_h
+#ifndef _MAGNETICSURFACE_H
+#define _MAGNETICSURFACE_H
 
 #define CSF_YP    0x1
 #define CSF_YM    0x2
@@ -47,7 +47,7 @@ int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int n
 
 void cal_magnetic_surface(const Equilibrium *equlib, const double psi_level, MagneticSurfaceSegment segment);
 
-void cal_separatrix(const Equilibrium *equlib, const XPointTest xpt, int index);
+void cal_separatrix_line(const Equilibrium *equlib, const XPointTest xpt, int index);
 
 void write_magnetic_surface(const MagneticSurfaceSegment segment, char *filename);
 

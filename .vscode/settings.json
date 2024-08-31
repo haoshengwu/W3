@@ -5,7 +5,8 @@
         "random": "c",
         "assert.h": "c",
         "string.h": "c",
-        "magneticsurface.h": "c"
+        "magneticsurface.h": "c",
+        "bitset": "c"
     },
     "C_Cpp.errorSquiggles": "disabled"
 }

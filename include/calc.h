@@ -1,5 +1,5 @@
-#ifndef _calc_h
-#define _calc_h
+#ifndef _CALC_h
+#define _CALC_h
 
 
 

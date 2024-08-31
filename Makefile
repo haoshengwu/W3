@@ -1,38 +1,29 @@
+# 编译器和编译选项
 CC = gcc
+CFLAGS = -Wall -Wextra -std=c11 -I$(INCLUDEDIR)
 
-CFLAGS = -Wall -Wextra -std=c11 -Iinclude
-
-TARGET = build/w3
+# 目标和目录
+TARGET = build/w3test
 SRCDIR = src
 INCLUDEDIR = include
 
-SRCS = $(SRCDIR)/w3.c $(SRCDIR)/input.c $(SRCDIR)/equilibrium.c  $(SRCDIR)/calc.c $(SRCDIR)/magneticsurface.c
+# 源文件和对象文件列表
+SRCS = $(wildcard $(SRCDIR)/*.c)
 OBJS = $(SRCS:.c=.o)
 
+# 默认目标
 all: $(TARGET)
 
+# 链接目标文件生成可执行文件
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-src/w3.o: src/w3.c include/input.h include/equilibrium.h include/magneticsurface.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-src/input.o: src/input.c include/input.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-src/equilibrium.o: src/equilibrium.c include/equilibrium.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-src/calc.o: src/calc.c include/calc.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-src/magneticsurface.o: src/magneticsurface.c include/magneticsurface.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
+# 通用规则：编译每个.c文件为.o文件
 $(SRCDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
+# 清理规则
 clean:
 	rm -f $(SRCDIR)/*.o $(TARGET)
 
-.PHONY: all clean		
+.PHONY: all clean
