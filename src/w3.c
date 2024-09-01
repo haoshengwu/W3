@@ -61,26 +61,52 @@ int main(){
   
   //test separatrix
   // cal_separatrix_line(&dtt_example,xp,3);
-  free(xp);
   // int test;
   // test = calc_surface_line(&dtt_example,120,120,-0.135,dtt_example.nw, dtt_example.nh);
   // printf("%d",test);
-  free_equilibrium(&dtt_example);  
 
   //test double linked list
-  double x1 = 1.0, y1 = 2.0;
+  // double x1 = 1.0, y1 = 2.0;
 
-  DLListNode* ddl_ptr;
-  ddl_ptr = NULL;
-  ddl_ptr = create_DLListNode(x1,y1);
-  for (int i = 0; i < 10; i++)
+  // DLListNode* ddl_ptr;
+  // ddl_ptr = NULL;
+  // ddl_ptr = create_DLListNode(x1,y1);
+  // for (int i = 0; i < 10; i++)
+  // {
+  //   x1 = x1 + i;
+  //   y1 = y1 + i;
+  //   insert_DLList_at_head(&ddl_ptr,x1,y1);
+  // }
+  // print_DLList(ddl_ptr);
+  
+
+//**********Test four lines of the separatrix tracing********************/
+
+  DLListNode* line_list[4]={NULL};
+  for (int i=0; i<4; i++)
   {
-    x1 = x1 + i;
-    y1 = y1 + i;
-    ddl_ptr = insert_DLList_at_head(ddl_ptr,x1,y1);
+    cal_separatrix_line(&dtt_example, xp, i, &(line_list[i]));
   }
-  print_DLList(ddl_ptr);
-  free_DLList(ddl_ptr);
+  write_DDList(line_list[0],"sep0");
+  write_DDList(line_list[1],"sep1");
+  write_DDList(line_list[2],"sep2");
+  write_DDList(line_list[3],"sep3");
+
+  for (int i=0; i<4; i++)
+  {
+    free_DLList(line_list[i]);
+  }
+
+//**********Test one line of the separatrix tracing**********************/
+  // DLListNode* line_list=NULL;
+  // cal_separatrix_line(&dtt_example, xp, 0,&(line_list));
+  // write_DDList(line_list,"sep0");
+  // free_DLList(line_list);
+//**********************************************************************/
+
+  free(xp);
+  free_equilibrium(&dtt_example);  
+
 
   return 0;
 }

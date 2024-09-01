@@ -14,8 +14,6 @@ void init_inputpara(InputPara* input){
   strcpy(input -> topology_type,"sinlge_null");
   input -> xpt_estimation[0] = 1.8617;  //  R coordinate
   input -> xpt_estimation[1] = -1.1622; //  Z coordinate
-
-
 }
 
 void print_inputpara(InputPara* input){

@@ -1,5 +1,5 @@
-#ifndef __EQUILIBRIUM_H_
-#define __EQUILIBRIUM_H_
+#ifndef EQUILIBRIUM_H_
+#define EQUILIBRIUM_H_
 
 //  Define the structure of equlibrium. Currently, it is assuemd the format is geqsk file.
 //  

@@ -1,9 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <math.h>
-#include "equilibrium.h"
-#include "calc.h"
 #include "magneticsurface.h"
 
 
@@ -19,7 +13,6 @@
 #define CS_XM    3
 
 
-
 #define EqXEx(eq,cx,_nw)\
   ((eq)->r[0]+((eq)->r[(eq)->nw-1]-(eq)->r[0])*(cx)/((_nw)-1))
 
@@ -27,7 +20,7 @@
   ((eq)->z[0]+((eq)->z[(eq)->nh-1]-(eq)->z[0])*(cy)/((_nh)-1))
 
 //This function calcuate the line for one cell, accroding DG [CalcSurfData in equil.c]
-
+//sx, and sy are the number of points, not the total cell number.
 void calc_surf_data(const Equilibrium *equlib,int cx,int cy,double level,struct _SurfCell* sc,int sx,int sy)
 {
   double a1, a2;
@@ -85,6 +78,7 @@ void calc_surf_data(const Equilibrium *equlib,int cx,int cy,double level,struct 
   return;
 };
 
+
 // This function is according to [CalcSurfaceLine] in DG. The input are: the starting cell number [cx,cy]
 // The level is the prescribe psi value. This function will trace the line which have the same psi [level]
 // In the future, it will be replaced by a file line tracer like FLARE and INGREID.
@@ -93,25 +87,36 @@ void calc_surf_data(const Equilibrium *equlib,int cx,int cy,double level,struct 
             0 = ok, surface not closed
             1 = ok, surface closed
 */
-
-int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int nw,int nh)
+// All the coordinate r,z of the points are stored in a double-lined list 'ptr_line_list'
+// nw and nh are total number of points, not the cell number.
+int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int nw,int nh, DLListNode** ptr_line_list)
 {
   struct _SurfCell sc;
   int oCx,oCy,d,closed=0;
   oCx = cx;
   oCy = cy;
+  DLListNode *endnode = NULL;
+
+
+  if ((*ptr_line_list) != NULL)
+  {
+    printf("!!!the DDListNod in not empty, are you sure????\n");
+  }
+
   calc_surf_data(equlib, cx, cy, level, &sc, nw, nh);
   if (sc.n!=2 && sc.n!=4) 
   {
     printf("in this cell cx:%d, cy:%d, there is no prescribed value %lf", cx,cy,level);
     return -1;
   }
-  d = sc.d[0];
 
+  d = sc.d[0];
 
   do {
     // out put the intersection points, later will be change
-    printf("%lf %lf\n", sc.x[d], sc.y[d]);
+    insert_DLList_at_head(ptr_line_list, sc.x[d], sc.y[d]);
+
+    // printf("%lf %lf\n", sc.x[d], sc.y[d]);
     if (d==CS_YM) cy--;
     if (d==CS_YP) cy++;
     if (d==CS_XM) cx--;
@@ -139,6 +144,9 @@ int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int n
   cx = oCx;
   cy = oCy;
   calc_surf_data(equlib, cx, cy, level, &sc, nw, nh);
+  
+  endnode = end_DLListNode(*ptr_line_list);
+  printf("debug: first endnode is %p, r: %lf, z: %lf\n", (void*)endnode, endnode->r,endnode->z);
 
   if (sc.n == 2)
     d = sc.d[1];
@@ -146,8 +154,11 @@ int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int n
     d = sc.d[0]^2;
   do
   {
+    insert_DLList_at_end(&endnode, sc.x[d], sc.y[d]);
+    printf("debug: the endnode is %p, r: %lf, z: %lf\n", (void*)endnode, endnode->r,endnode->z);
+
     // out put the intersection points, later will be change
-    printf("%lf %lf\n", sc.x[d], sc.y[d]);
+    // printf("%lf %lf\n", sc.x[d], sc.y[d]);
     if (d==CS_YM) cy--;
     if (d==CS_YP) cy++;
     if (d==CS_XM) cx--;
@@ -177,7 +188,7 @@ int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int n
 // Refer to DivGeo [CalcSeparatrixLine] in [xpoint.c]
 // idx indicates which point is the start.
 // A X-point have four segments, the idx indicate which is the one used. 
-void cal_separatrix_line(const Equilibrium *equlib, const XPointTest xpt, int idx)
+void cal_separatrix_line(const Equilibrium *equlib, const XPointTest xpt, int idx, DLListNode** ptr_line_list)
 {
   
   int n,x,y,ox,oy;
@@ -244,8 +255,8 @@ void cal_separatrix_line(const Equilibrium *equlib, const XPointTest xpt, int id
   }
   
     int i;
-    printf("separatrix segment %d trancing\n", idx); 
-    i = calc_surface_line(equlib,x,y,xpt->level,equlib->nw,equlib->nh);
+    printf("tracing the segment %d of separatrix:\n", idx); 
+    i = calc_surface_line(equlib, x, y, xpt->level, equlib->nw, equlib->nh, ptr_line_list);
     printf("the situation of line is: %d\n",i);
 
 }

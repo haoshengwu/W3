@@ -1,55 +1,95 @@
 #include "datastructure.h"
 
+//************** Double linked list related ******************//
 DLListNode* create_DLListNode(double r, double z)
 {
-  DLListNode* ptr = NULL;
+  
   DLListNode* new_node = malloc(sizeof(DLListNode));
   if (new_node == NULL){
     printf("Can not create new DLListNode, No memory avaible\n");
-    exit(1);
+    return NULL;
   }
   new_node->r = r;
   new_node->z = z;
   new_node->prev = NULL;
   new_node->next = NULL;
-  ptr = new_node;
-  return ptr;
+  return new_node;
 };
 
 // head is the head of the double linked list
-DLListNode* insert_DLList_at_head(DLListNode* head, double r, double z)
+void insert_DLList_at_head(DLListNode** ptr_head, double r, double z)
 {
   DLListNode* new_node = malloc(sizeof(DLListNode));
   if (new_node == NULL){
     printf("Can not insert DLListNode at head, No memory avaible\n");
     exit(1);
   }
-  new_node->r = r;
-  new_node->z = z;
-  new_node->prev = NULL;
-  new_node->next = head;
+    new_node->r = r;
+    new_node->z = z;
+    new_node->prev = NULL;
 
-  if( head != NULL)
+  if (*ptr_head == NULL)
   {
-    head->prev = new_node;
+      new_node->next = NULL;
   }
   else
   {
-    printf("The head of DLListNode is empty!\n");
+      new_node->next = (*ptr_head);
+      (*ptr_head)->prev = new_node;
+  }
+  *ptr_head = new_node;
+}
+
+
+// get the end node of a double linked list, becareful to use, because the DLL will updated!!!
+DLListNode* end_DLListNode(DLListNode* head)
+{
+  if (head == NULL)
+  {
+    printf("the Double linked list is emptry!\n");
+    return NULL;
+  }
+
+  while (head->next != NULL)
+  {
+    head = head->next;
+  }
+  return head;
+}
+
+// insert a point r,z to the end of double linked list and return new end node
+void insert_DLList_at_end(DLListNode** ptr_end, double r, double z)
+{
+  if (ptr_end == NULL || (*ptr_end) == NULL)
+  {
+    printf("the ptr_end or end node is emptry!\n");
     exit(1);
   }
-  return new_node;
+
+  DLListNode* new_node = malloc(sizeof(DLListNode));
+  
+  if (new_node == NULL){
+    printf("Can not insert DLListNode at end, No memory avaible\n");
+    exit(1);
+  }
+    new_node->r = r;
+    new_node->z = z;
+    new_node->next = NULL;
+    new_node->prev = (*ptr_end);
+    (*ptr_end)->next = new_node;
+    (*ptr_end) = new_node;
 }
 
 // free a double linked list
 void free_DLList(DLListNode* head)
 {
- DLListNode* tmp;
- while(head != NULL )
+ DLListNode* tmp = head;
+ DLListNode* next;
+ while(tmp != NULL )
  {
-    tmp = head->next;
-    free(head);
-    head = tmp;
+    next =tmp->next;
+    free(tmp);
+    tmp = next;
  }
 }
 
@@ -63,3 +103,25 @@ void print_DLList(DLListNode* head)
  }
  printf("Already print all value in the double linked list");
 }
+
+// write a double linked list to a file
+void write_DDList(DLListNode* head, const char* filename)
+{
+    FILE* file = fopen(filename, "w");
+    if (!file) 
+    {
+      fprintf(stderr, "Can not open %s\n", filename);
+      return;
+    }
+    
+    while (head !=NULL) 
+    {
+        // the unit is mm, it can be changed in the future
+        fprintf(file, "%lf  %lf\n", head->r*1000, head->z*1000);  
+        head = head->next;
+    }
+
+    fclose(file);
+    printf("write the values in %s\n", filename);
+}
+//*****************************************************************

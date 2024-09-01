@@ -1,5 +1,12 @@
-#ifndef _MAGNETICSURFACE_H
-#define _MAGNETICSURFACE_H
+#ifndef MAGNETICSURFACE_H
+#define MAGNETICSURFACE_H
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include "equilibrium.h"
+#include "calc.h"
+#include "datastructure.h"
 
 #define CSF_YP    0x1
 #define CSF_YM    0x2
@@ -37,17 +44,18 @@ struct _SurfCell {
 struct _XY {
   double x,y;
 };
+
 typedef struct _XY* XY;
 
 typedef struct _MagneticSurfaceSegment* MagneticSurfaceSegment;
 
 void calc_surf_data(const Equilibrium *equlib,int cx,int cy,double level,struct _SurfCell* sc,int sx,int sy);
 
-int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int nw,int nh);
+int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int nw,int nh, DLListNode** ptr_line_list);
 
 void cal_magnetic_surface(const Equilibrium *equlib, const double psi_level, MagneticSurfaceSegment segment);
 
-void cal_separatrix_line(const Equilibrium *equlib, const XPointTest xpt, int index);
+void cal_separatrix_line(const Equilibrium *equlib, const XPointTest xpt, int index, DLListNode** ptr_line_list );
 
 void write_magnetic_surface(const MagneticSurfaceSegment segment, char *filename);
 

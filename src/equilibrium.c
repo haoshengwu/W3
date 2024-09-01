@@ -146,7 +146,10 @@ void read_equilib_geqdsk(Equilibrium *equilib, const char *geqdsk_file)
   {
     equilib->z[j] = zleft + j * delta_z;
   }
+
   printf("r, z and psi is ok\n");
+
+  fclose(file);
 
 }
 
@@ -212,9 +215,9 @@ XPointTest find_Xpoint(Equilibrium *equilib, const double *est_pos)
   equilib->Xpoint_num = 1;
   equilib->Xpoint_pos[0] = xp->centerX;
   equilib->Xpoint_pos[1] = xp->centerY;
-  
-  return xp; // !!!DO NOT free xp and xpC
   free(xpC);
+  return xp; // !!!DO NOT forget free xp and xpC
+  
   // free(xp);
 }
 
