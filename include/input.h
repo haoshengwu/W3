@@ -1,5 +1,5 @@
-#ifndef INPUT_H__
-#define INPUT_H__
+#ifndef INPUT_H
+#define INPUT_H
 
 
 //  Define a class which contain all the input parameters:

@@ -1,6 +1,6 @@
 # 编译器和编译选项
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -I$(INCLUDEDIR)
+CC = icc
+CFLAGS = -Wall -Wextra -std=c11 -O0 -I$(INCLUDEDIR)
 
 # 目标和目录
 TARGET = build/w3test

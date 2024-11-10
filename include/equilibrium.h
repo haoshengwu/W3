@@ -1,5 +1,5 @@
-#ifndef EQUILIBRIUM_H_
-#define EQUILIBRIUM_H_
+#ifndef EQUILIBRIUM_H
+#define EQUILIBRIUM_H
 
 //  Define the structure of equlibrium. Currently, it is assuemd the format is geqsk file.
 //  
@@ -41,6 +41,8 @@ typedef struct {
   int  nh;    //  number of points along the Z coordinate .
   double simag;  //poloidal flux at magnetic axis. [Weber/rad]
   double sibry;  //poloidal flux at the plasma boundary [Weber/rad].
+  double rcenter; //R in meter of vacuum toroidal magnetic field BCENTR
+  double bcenter; //Vacuum toroidal magnetic field in Tesla at RCENTR
   double *r, *z;    //  R and Z coordinates, dynamic arrays [m].
   double **psi;      //  Psi value, dynamic arrays [m].
 

@@ -12,6 +12,7 @@ Contact: haosheng.wu@polito.it
 #include "equilibrium.h"
 #include "magneticsurface.h"
 #include "datastructure.h"
+#include "linetrace.h"
 
 int main(){
   
@@ -103,6 +104,17 @@ int main(){
   // write_DDList(line_list,"sep0");
   // free_DLList(line_list);
 //**********************************************************************/
+
+
+/*
+test magnetic field line calculation
+*/
+  Bfield_struct test_bfield;
+  initial_Bfield(&test_bfield);
+  create_Bfild(&test_bfield, &dtt_example);
+  psi_to_Bfield_rzplane(&dtt_example, test_bfield.Bfield_rzplane);
+  write_Bfield_rzplane(&test_bfield,"rfield","zfield","tfield");
+  free_Bfield(&test_bfield);
 
   free(xp);
   free_equilibrium(&dtt_example);  

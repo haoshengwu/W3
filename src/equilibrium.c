@@ -23,7 +23,7 @@ void calculate_equi_values(Equilibrium *equilib)
     for (j= 0; i < equilib->nh; j++)
     {
       equilib->minVal = min(equilib->minVal, equilib->psi[i][j]);
-      equilib->minVal = max(equilib->maxVal,equilib->psi[i][j]);
+      equilib->maxVal = max(equilib->maxVal,equilib->psi[i][j]);
     }
 }
 
@@ -40,6 +40,8 @@ void init_equilibrium(Equilibrium *equilib)
   equilib->nh = 0;
   equilib->simag = 0;
   equilib->sibry = 0;
+  equilib->rcenter = 0;
+  equilib->bcenter = 0;
   equilib->r = NULL;
   equilib->z = NULL;
   equilib->psi = NULL;
@@ -104,6 +106,8 @@ void read_equilib_geqdsk(Equilibrium *equilib, const char *geqdsk_file)
   equilib->nh = nh;
   equilib->simag = simag;
   equilib->sibry = sibry;
+  equilib->bcenter = bcentr;
+  equilib->rcenter = rcentr;
 
   // skip fpol, pres, ffprim, pprime, total number is 4 * nw, will be updated.
   for (int i = 0; i < 4 * equilib->nw; i++)
@@ -127,7 +131,8 @@ void read_equilib_geqdsk(Equilibrium *equilib, const char *geqdsk_file)
       fscanf(file, "%lf", &equilib->psi[i][j]);
     }
   }
-
+  printf("BCENTER: %lf\n",equilib->bcenter);
+  printf("RCENTER: %lf\n",equilib->rcenter);
   printf("finish reading geqdsk\n");
   // Allocate memmory and calculate r and z values.
 

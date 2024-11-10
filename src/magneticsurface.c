@@ -146,7 +146,7 @@ int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int n
   calc_surf_data(equlib, cx, cy, level, &sc, nw, nh);
   
   endnode = end_DLListNode(*ptr_line_list);
-  printf("debug: first endnode is %p, r: %lf, z: %lf\n", (void*)endnode, endnode->r,endnode->z);
+  //printf("debug: first endnode is %p, r: %lf, z: %lf\n", (void*)endnode, endnode->r,endnode->z);
 
   if (sc.n == 2)
     d = sc.d[1];
@@ -155,7 +155,7 @@ int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int n
   do
   {
     insert_DLList_at_end(&endnode, sc.x[d], sc.y[d]);
-    printf("debug: the endnode is %p, r: %lf, z: %lf\n", (void*)endnode, endnode->r,endnode->z);
+    //printf("debug: the endnode is %p, r: %lf, z: %lf\n", (void*)endnode, endnode->r,endnode->z);
 
     // out put the intersection points, later will be change
     // printf("%lf %lf\n", sc.x[d], sc.y[d]);
