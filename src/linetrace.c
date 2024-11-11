@@ -59,8 +59,9 @@ void psi_to_Bfield_rzplane(const Equilibrium *equilib, double ***Bfield_rzplane)
   {
     for(int j=0; j<equilib->nh; j++)
     {
-      Bfield_rzplane[i][j][0] = Bfield_rzplane[i][j][0] / PI / 2;
-      Bfield_rzplane[i][j][1] = Bfield_rzplane[i][j][1] / PI / 2;
+      swap(Bfield_rzplane[i][j][0],Bfield_rzplane[i][j][1]);
+      Bfield_rzplane[i][j][0] = Bfield_rzplane[i][j][0] / PI / 2 /equilib->r[i] ;
+      Bfield_rzplane[i][j][1] = Bfield_rzplane[i][j][1] / PI / 2 /equilib->r[i];
     }
   }
   double b0r0 = equilib->bcenter * equilib->rcenter;

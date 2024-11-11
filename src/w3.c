@@ -113,7 +113,7 @@ test magnetic field line calculation
   initial_Bfield(&test_bfield);
   create_Bfild(&test_bfield, &dtt_example);
   psi_to_Bfield_rzplane(&dtt_example, test_bfield.Bfield_rzplane);
-  write_Bfield_rzplane(&test_bfield,"rfield","zfield","tfield");
+  write_Bfield_rzplane(&test_bfield);
   free_Bfield(&test_bfield);
 
   free(xp);
