@@ -114,8 +114,43 @@ test magnetic field line calculation
   create_Bfild(&test_bfield, &dtt_example);
   psi_to_Bfield_rzplane(&dtt_example, test_bfield.Bfield_rzplane);
   write_Bfield_rzplane(&test_bfield);
-  free_Bfield(&test_bfield);
 
+  double delta_phi = 0.1;
+  int n=10;
+  int step = 360*5;
+  double** line = allocate_2d_array(step+1,3);
+  for (int i = 0; i <= step; i++) 
+  {
+    line[i] = malloc(3 * sizeof(double));  // Allocate each row
+  }
+  double r0 = 2.9;
+  double phi0 = 90;
+  double z0 = 0.16;
+  euler_method(r0,z0,phi0, delta_phi, step, &test_bfield,-1,1,line);
+
+  const char *filename1="euler_line_tracing";
+  FILE* file1 = fopen(filename1, "w");
+  for (int i=0; i<step+1; i++)
+  {
+      fprintf(file1, "%lf  %lf  %lf\n", line[i][0],line[i][1],line[i][2]);
+  }
+  fclose(file1);
+  printf("write the tracing line in %s\n", filename1);
+
+  const char *filename2="euler_line_tracing_xyz";
+  FILE* file2 = fopen(filename2, "w");
+  for (int i=0; i<step+1; i++)
+  {
+      double x;
+      double y;
+      rphi_to_XY(line[i][0],line[i][1],&x,&y);
+      fprintf(file2, "%lf  %lf  %lf\n", x,y,line[i][2]);
+  }
+  fclose(file2);
+  printf("write the tracing line in %s\n", filename2);
+
+  free_Bfield(&test_bfield);
+  free_2d_array(line);
   free(xp);
   free_equilibrium(&dtt_example);  
 

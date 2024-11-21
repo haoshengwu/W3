@@ -37,4 +37,19 @@ void print_DLList(DLListNode* head);
 // write a double linked list to a file
 void write_DDList(DLListNode* head, const char* title);
 
+
+/*
+Following are functions that allocate dynamic memory for 2D,3D,4D arrays
+*/
+
+// allocate dynamic 2D array and retunre the pointer
+double** allocate_2d_array(const int d1, const int d2);
+// free 2D array
+void free_2d_array(double **array);
+
+
+// allocate dynamic 2D array and retunre the pointer
+double*** allocate_3d_array(const int d1, const int d2, const int d3);
+// free 3D array
+void free_3d_array(double ***array);
 #endif

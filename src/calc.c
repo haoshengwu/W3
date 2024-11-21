@@ -1,4 +1,7 @@
 #include <stdlib.h>
+#include <math.h>
+#include "calc.h"
+
 
 // refer to DivGeo [calc.c]
 /* Return -1 on non-intersection, 0 on intersection */
@@ -22,28 +25,74 @@ double x3,double y3,double x4,double y4,double* ar,double* br)
   return 0;
 }
 
-void bilinear_coeff(const double** f, const double *x, const double *y,
-                   const int* nx, const int* ny,
-                   double*** coeff)
+void bilinear_coeff(double** f, double* x, double* y,
+                    const int nx, const int ny,
+                    double*** coeff)
 {
+    // 遍历每个网格单元，计算插值系数
+    for (int i = 0; i < nx - 1; i++) {
+        for (int j = 0; j < ny - 1; j++) {
+            double dx = x[i + 1] - x[i];
+            double dy = y[j + 1] - y[j];
+            double deltaxy = dx * dy;
 
-  for (int i=0; i < *nx-1; i++)
-    for (int j = 0; j < *ny-1; j++)
-    {
-      double deltaxy = (x[i+1]-x[i])*(y[j+1]-y[j]);
-      coeff[i][j][0] = (f[i][j]*x[i]*y[i] - f[i+1][j]*x[i]*y[j+1] \
-        - f[i][j+1]*x[i+1]*y[j] + f[i+1][j+1]*x[i]*y[j])/deltaxy;
-      
-      coeff[i][j][1] = (-f[i][j]*y[j+1] + f[i+1][j]*y[j+1] \
-                        + f[i][j+1]*y[j] - f[i+1][j+1]*y[j])/deltaxy;
-      
-      coeff[i][j][2] = (-f[i][j]*x[j+1] + f[i+1][j]*x[i]	\
-			+ f[i][j+1]*y[i+1] - f[i+1][j+1]*x[i])/deltaxy;
+            // 简化中间变量
+            double f00 = f[i][j], f10 = f[i+1][j];
+            double f01 = f[i][j+1], f11 = f[i+1][j+1];
 
-      coeff[i][j][3] = (f[i][j] - f[i+1][j] - f[i][j+1] \ 
-			+ f[i+1][j+1])/deltaxy;
+            // 计算插值系数
+            coeff[i][j][0] = (f00 * x[i+1] * y[j+1] - f10 * x[i] * y[j+1]
+                            - f01 * x[i+1] * y[j] + f11 * x[i] * y[j]) / deltaxy;
+
+            coeff[i][j][1] = (-f00 * y[j+1] + f10 * y[j+1]
+                             + f01 * y[j] - f11 * y[j]) / deltaxy;
+
+            coeff[i][j][2] = (-f00 * x[i+1] + f10 * x[i]
+                             + f01 * x[i+1] - f11 * x[i]) / deltaxy;
+
+            coeff[i][j][3] = (f00 - f10 - f01 + f11) / deltaxy;
     }
+}
+}
 
+void rphi_to_XY(const double r, const double phi, double *x, double *y)
+{
+  double phi_rad = (phi) * PI / 180.0;
+  *x = r * cos(phi_rad);
+  *y = r * sin(phi_rad);
+}
+
+int ifind(double x, double* t, int n, int inc) 
+{
+  // If x is less than or equal to the first element, return the first index
+  if (x <= t[0]) 
+  {
+    return 0; // Index in C is 0-based
+  }
+  // If x is greater than or equal to the last segment, return the last valid index
+  else if (x >= t[n - inc]) 
+  {
+    return n - 2 * inc; // Adjusted for 0-based indexing
+  } 
+  else 
+  {
+    int ifind = 0;
+    int j = n / inc; // Calculate the number of segments
+    // Binary search for the correct index
+    while (j - ifind > 1) 
+    {
+      int jp = (j + ifind) / 2; // Midpoint
+      if (x > t[inc * (jp - 1)]) 
+      {
+        ifind = jp; // Narrow the search to the upper half
+      } 
+      else 
+      {
+        j = jp; // Narrow the search to the lower half
+      }
+    }
+    return inc * (ifind - 1); // Adjust for the step size and 0-based indexing
+  }
 }
 
 

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "equilibrium.h"
 #include "calc.h"
+#include "datastructure.h"
 
 #define TOR_TURN 10
 #define TOR_RESOLUTION 0.1
@@ -15,9 +16,12 @@
 
 typedef struct
 {
+  double rcenter;
+  double bcenter;
   int nr;   // number or R point
   int nz_RZ;   // number of Z point
   int nphi; ;  // number of phi point
+ 
   double delta_phi; 
   double *r;
   double *z_RZ;
@@ -44,4 +48,7 @@ void free_Bfield(Bfield_struct* Bfiled);
 
 void write_Bfield_rzplane(Bfield_struct* Bfield);
 
+void euler_method(double r0, double z0, double phi0, double dphi, int step, 
+                  Bfield_struct* Bfield, double pol_dir, double tor_dir,
+                  double** output);
 #endif

@@ -125,3 +125,102 @@ void write_DDList(DLListNode* head, const char* filename)
     printf("write the values in %s\n", filename);
 }
 //*****************************************************************
+
+
+double **allocate_2d_array(const int d1, const int d2)
+{
+/*
+allocate dynamic 2D array and retunre the pointer
+d1: first dimension number
+d2: second dimenion number
+*/
+  if (d1 <= 0 || d2 <= 0)
+  {
+    fprintf(stderr, "Error: Invalid dimensions!\n");
+    return NULL;
+  }
+
+  double **array = (double **)malloc(d1 * sizeof(double *));
+  if (array == NULL)
+  {
+    fprintf(stderr, "Error: Memory allocation failed for pointer array!\n");
+    return NULL;
+  }
+
+  array[0] = (double *)malloc(d2*d1*sizeof(double));
+  if (array[0] == NULL)
+  {
+    fprintf(stderr, "Error: Memory allocation failed for pointer array[0]!\n");
+    return NULL;
+  }
+
+  for (int i = 0; i<d1; i++)
+  {
+    array[i] = array[0] + i*d2;
+  }
+  
+  return array;
+}
+
+void free_2d_array(double **array)
+{
+  free(array[0]);
+  free(array);
+} 
+
+double*** allocate_3d_array(const int d1, const int d2, const int d3)
+{
+/*
+allocate dynamic 2D array and retunre the pointer
+d1: first dimension number
+d2: second dimension number
+d3: third dimension number
+*/
+  if (d1 <= 0 || d2 <= 0 || d3 <= 0)
+  {
+    fprintf(stderr, "Error: Invalid dimensions!\n");
+    return NULL;
+  }
+
+  double ***array = (double ***)malloc(d1 * sizeof(double **));
+  if (array == NULL)
+  {
+    fprintf(stderr, "Error: Memory allocation failed for pointer array!\n");
+    return NULL;
+  }
+
+  array[0] = (double **)malloc(d2 * d1 * sizeof(double *));
+  if (array[0] == NULL)
+  {
+    fprintf(stderr, "Error: Memory allocation failed for pointer array array[0]!\n");
+    free(array);
+    return NULL;
+  }
+
+  array[0][0] = (double *)malloc(d3 * d2 * d1 * sizeof(double));
+  if (array[0][0] == NULL)
+  {
+    fprintf(stderr, "Error: Memory allocation failed for pointer array array[0][0]!\n");
+    free(array[0]); // Free the second dimension pointers
+    free(array);
+    return NULL;
+  }
+
+  for(int i=0; i<d1; i++)
+  {
+    array[i] = array[0] + i*d2;
+    for(int j=0; j<d2; j++)
+    {
+      array[i][j] = array[0][0] + (i*d2 + j)*d3;
+    }
+  }
+
+  return array;
+}
+
+void free_3d_array(double ***array)
+{
+  free(array[0][0]);
+  free(array[0]);
+  free(array);
+}

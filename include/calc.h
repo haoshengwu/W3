@@ -22,8 +22,11 @@ int VIntersect(double x1,double y1,double x2,double y2,
 #define swap(x,y) ((x)+=(y),(y)=(x)-(y),(x)-=(y))
 #endif
 
-void bilinear_coeff(const double **f, const double *x, const double *y,
-                   const int *nx, const int *ny, double ***coeff);
+void bilinear_coeff(double **f, double *x, double *y,
+                    const int nx, const int ny, double ***coeff);
+
+void rphi_to_XY(const double r, const double phi, double *x, double *y);
+int ifind(double x, double* t, int n, int inc);
 
 void derivation(const double *f, const double *x, const int nx, double *df);
 void derivation_2d(double **f, const double *x, const int nx,
