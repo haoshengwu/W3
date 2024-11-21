@@ -12,8 +12,12 @@ void init_inputpara(InputPara* input){
 
   strcpy(input -> equilibrium_file,"example.geqdsk");
   strcpy(input -> topology_type,"sinlge_null");
+  //for DTT
   input->xpt_estimation[0] = 1.8617;  //  R coordinate
   input->xpt_estimation[1] = -1.1622; //  Z coordinate
+  //for SPARC
+  //input->xpt_estimation[0] = 1.5417;  //  R coordinate
+  //input->xpt_estimation[1] = -1.1167; //  Z coordinate
 }
 
 void print_inputpara(InputPara* input){

@@ -30,10 +30,10 @@ typedef struct
   int nx;
   int ny;
   int nz_XYZ;
-  double ***x;
-  double ***y;
-  double ***z_XYZ;
-  double ****Bfield_xyz;
+//  double ***x;
+//  double ***y;
+//  double ***z_XYZ;
+//  double ****Bfield_xyz;
 } Bfield_struct;
 
 void initial_Bfield(Bfield_struct* Bfiled);
@@ -42,7 +42,6 @@ void create_Bfild(Bfield_struct* Bfield, const Equilibrium *equilib);
 
 void psi_to_Bfield_rzplane(const Equilibrium *equilib, double ***Bfield_rzplane);
 
-void Bfield_rzplane_to_xyz(const double ***Bfield_rzplane, double ****Bfield_xyz);
 
 void free_Bfield(Bfield_struct* Bfiled);
 

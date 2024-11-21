@@ -21,10 +21,10 @@ void initial_Bfield(Bfield_struct* Bfield)
   Bfield->nx = 0;
   Bfield->ny = 0;
   Bfield->nz_XYZ = 0;
-  Bfield->x = NULL;
-  Bfield->y = NULL;
-  Bfield->z_XYZ = NULL;
-  Bfield->Bfield_xyz = NULL;
+//  Bfield->x = NULL;
+//  Bfield->y = NULL;
+//  Bfield->z_XYZ = NULL;
+//  Bfield->Bfield_xyz = NULL;
 }
 
 void create_Bfild(Bfield_struct* Bfield, const Equilibrium *equilib)
@@ -47,16 +47,15 @@ void create_Bfild(Bfield_struct* Bfield, const Equilibrium *equilib)
     Bfield->z_RZ[j] = equilib->z[j];
   }
   
-  Bfield->Bfield_rzplane = (double ***)malloc(Bfield->nr * sizeof(double **));
-  Bfield->Bfield_rzplane[0] = (double **)malloc(Bfield->nr * Bfield->nz_RZ * sizeof(double *));
-  Bfield->Bfield_rzplane[0][0] = (double *)malloc(Bfield->nr * Bfield->nz_RZ * 3 * sizeof(double));
-  
-  for (int i = 0; i < Bfield->nr; i++) 
+  Bfield->Bfield_rzplane = allocate_3d_array(Bfield->nr,Bfield->nz_RZ,3);
+  for(int i = 0; i<equilib->nw; i++)
   {
-    Bfield->Bfield_rzplane[i] = Bfield->Bfield_rzplane[0] + i * Bfield->nz_RZ;
-    for (int j = 0; j < Bfield->nz_RZ; j++) 
+    for(int j=0; j<equilib->nh; j++)
     {
-      Bfield->Bfield_rzplane[i][j] = Bfield->Bfield_rzplane[0][0] + (i * Bfield->nz_RZ * 3) + (j * 3);
+      for(int k=0; k<3; k++)
+      {
+        Bfield->Bfield_rzplane[i][j][k] = 10.0;
+      }
     }
   }
 }
@@ -69,17 +68,19 @@ void psi_to_Bfield_rzplane(const Equilibrium *equilib, double ***Bfield_rzplane)
   {
     for(int j=0; j<equilib->nh; j++)
     {
+      // due to the magnetic filed equation
       swap(Bfield_rzplane[i][j][0],Bfield_rzplane[i][j][1]);
       // Do not forget -1 for Br!!!
-      Bfield_rzplane[i][j][0] = -Bfield_rzplane[i][j][0] / PI / 2 /equilib->r[i] ;
-      Bfield_rzplane[i][j][1] = Bfield_rzplane[i][j][1] / PI / 2 /equilib->r[i];
+      if (equilib->r[i] < MIN_R) equilib->r[i] = MIN_R;
+      Bfield_rzplane[i][j][0] = -Bfield_rzplane[i][j][0] / 2 /equilib->r[i];
+      Bfield_rzplane[i][j][1] = Bfield_rzplane[i][j][1] / 2 /equilib->r[i];
     }
   }
   double b0r0 = equilib->bcenter * equilib->rcenter;
   printf("debug: b0r0: %lf\n", b0r0);
   for(int i = 0; i<equilib->nw; i++)
   {
-    for(int j=0; j<equilib->nh; j++)
+    for(int j = 0; j<equilib->nh; j++)
     {
       if (equilib->r[i] < MIN_R) // To aviud unphysical values near R=0
       {
@@ -89,7 +90,6 @@ void psi_to_Bfield_rzplane(const Equilibrium *equilib, double ***Bfield_rzplane)
       {
         Bfield_rzplane[i][j][2] = b0r0 / equilib->r[i];
       }
-      
     }
   }
 }
@@ -101,10 +101,10 @@ void free_Bfield(Bfield_struct* Bfield)
   free(Bfield->Bfield_rzplane);
   free(Bfield->r);
   free(Bfield->z_RZ);
-  free(Bfield->x);
-  free(Bfield->y);
-  free(Bfield->z_XYZ);
-  free(Bfield->Bfield_xyz);
+//  free(Bfield->x);
+//  free(Bfield->y);
+//  free(Bfield->z_XYZ);
+//  free(Bfield->Bfield_xyz);
 }
 
 void write_Bfield_rzplane(Bfield_struct* Bfield)
@@ -118,6 +118,10 @@ void write_Bfield_rzplane(Bfield_struct* Bfield)
   tfilename = "Bfield_in_Tor";
   polfilename = "Bfield_in_Pol";
   
+  printf("***************************\n");
+  printf("debug\n");
+  printf("***************************\n");
+
   FILE* rfile = fopen(rfilename, "w");
   for (int i=0; i<Bfield->nr;i++)
   {
@@ -125,10 +129,15 @@ void write_Bfield_rzplane(Bfield_struct* Bfield)
     {
       fprintf(rfile, "%lf  %lf  %lf\n", \
       Bfield->r[i], Bfield->z_RZ[j], Bfield->Bfield_rzplane[i][j][0]);
+
     }
   }
   fclose(rfile);
   printf("write the field in R direction in %s\n", rfilename);
+
+  printf("***************************\n");
+  printf("debug\n");
+  printf("***************************\n");
 
   FILE* zfile = fopen(zfilename, "w");
   for (int i=0; i<Bfield->nr;i++)
@@ -141,7 +150,11 @@ void write_Bfield_rzplane(Bfield_struct* Bfield)
   }
   fclose(zfile);
   printf("write the field in Z direction in %s\n", zfilename);
- 
+
+  printf("***************************\n");
+  printf("debug\n");
+  printf("***************************\n");
+
   FILE* tfile = fopen(tfilename, "w");
   for (int i=0; i<Bfield->nr;i++)
   {
@@ -220,6 +233,7 @@ void euler_method(double r0, double z0, double phi0, double dphi, int step,
   double b0_tmp = Bfield->bcenter;
   double r0_tmp = Bfield->rcenter;
 
+
 //
   for (int i=1; i<step+1; i++)
   {
@@ -252,10 +266,13 @@ void euler_method(double r0, double z0, double phi0, double dphi, int step,
     double bphi_iijj = b0_tmp * r0_tmp / r_tmp;
     bphi_iijj = bphi_iijj * tor_dir;
     printf("debug bphi_iijj: %lf\n",bphi_iijj);
-
-    output[i][0] = output[i-1][0] + dphi*r_tmp*br_iijj/bphi_iijj;
+    
+  // please do not forget use arc instead of phi
+    double drad_tmp = dphi * PI / 180.0;
+    
+    output[i][0] = output[i-1][0] + r_tmp*drad_tmp*br_iijj/bphi_iijj*PI;
     output[i][1] = output[i-1][1] + dphi;
-    output[i][2] = output[i-1][2] + dphi*r_tmp*bz_iijj/bphi_iijj;
+    output[i][2] = output[i-1][2] + r_tmp*drad_tmp*bz_iijj/bphi_iijj*PI;
   }
 
 /*

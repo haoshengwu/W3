@@ -133,7 +133,19 @@ void read_equilib_geqdsk(Equilibrium *equilib, const char *geqdsk_file)
   }
   printf("BCENTER: %lf\n",equilib->bcenter);
   printf("RCENTER: %lf\n",equilib->rcenter);
+/*
+  for (int i=0; i<equilib->nw;i++)
+  {
+    for (int j=0; j< equilib->nh;j++)
+    {
+      printf("psi is: %lf\n",equilib->psi[i][j]);
+    }
+  }
+  printf("*********************\n");
   printf("finish reading geqdsk\n");
+  printf("*********************\n");
+*/
+
   // Allocate memmory and calculate r and z values.
 
   equilib->r = (double *)malloc(equilib->nw * sizeof(double));

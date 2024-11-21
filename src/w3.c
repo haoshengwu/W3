@@ -49,16 +49,16 @@ int main(){
   // }
   // test module
   double value;
-  double x = 1872.5/1000;
-  double y = -1097.5/1000;
+  double x = 1.534;
+  double y = -1.125;
   value = get_psi_from_rz(&dtt_example,x, y);
   printf("psi at %lf %lf is %lf\n",x, y, value);
 
   // test magnetic surface line 
-  printf("psi is %lf\n",dtt_example.psi[149][126]);
-  printf("psi is %lf\n",dtt_example.psi[150][126]);
-  printf("psi is %lf\n",dtt_example.psi[149][127]);
-  printf("psi is %lf\n",dtt_example.psi[150][127]);
+  //printf("psi is %lf\n",dtt_example.psi[149][126]);
+  //printf("psi is %lf\n",dtt_example.psi[150][126]);
+  //printf("psi is %lf\n",dtt_example.psi[149][127]);
+  //printf("psi is %lf\n",dtt_example.psi[150][127]);
   
   //test separatrix
   // cal_separatrix_line(&dtt_example,xp,3);
@@ -115,18 +115,37 @@ test magnetic field line calculation
   psi_to_Bfield_rzplane(&dtt_example, test_bfield.Bfield_rzplane);
   write_Bfield_rzplane(&test_bfield);
 
-  double delta_phi = 0.1;
-  int n=10;
-  int step = 360*5;
+
+/*
+test magnetic field line calculation
+*/
+  double delta_phi = 0.5;
+
+  /*
+  sparc value:
+  int step = 1008;
+  double r0 = 2.41;
+  */
+  /*
+  ddt core
+  int step = 504;
+  double r0 = 2.8;
+  */
+  /*
+  ddt SOL
+  int step = 720;
+  double r0 = 2.871;
+  */
+  int step = 720*3;
+  double r0 = 1.490;
+  double phi0 = 0;
+  double z0 = 0.0;
   double** line = allocate_2d_array(step+1,3);
   for (int i = 0; i <= step; i++) 
   {
     line[i] = malloc(3 * sizeof(double));  // Allocate each row
   }
-  double r0 = 2.9;
-  double phi0 = 90;
-  double z0 = 0.16;
-  euler_method(r0,z0,phi0, delta_phi, step, &test_bfield,-1,1,line);
+  euler_method(r0,z0,phi0, delta_phi, step, &test_bfield,1,1,line);
 
   const char *filename1="euler_line_tracing";
   FILE* file1 = fopen(filename1, "w");
