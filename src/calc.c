@@ -170,7 +170,6 @@ void derivation_2d(double **f, const double *x, const int nx,
 
     df[nx-1][ny-1][0] = (f[nx-1][ny-1] - f[nx-2][ny-1]) / (x[nx-1] - x[nx-2]);
     df[nx-1][ny-1][1] = (f[nx-1][ny-1] - f[nx-1][ny-2]) / (y[ny-1] - y[ny-2]);
-
 }
 
   

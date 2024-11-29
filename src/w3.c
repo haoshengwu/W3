@@ -13,6 +13,7 @@ Contact: haosheng.wu@polito.it
 #include "magneticsurface.h"
 #include "datastructure.h"
 #include "linetrace.h"
+#include "magneticfield.h"
 
 int main(){
   
@@ -109,6 +110,14 @@ int main(){
 /*
 test magnetic field line calculation
 */
+
+  MagFieldTorSys test_example;
+  init_mag_field_torsys(&test_example);
+  char* method = "central_2nd";
+  calc_mag_field_torsys(&dtt_example, &test_example, method);
+  write_mag_field_torsys(&test_example);
+  free_mag_field_torsys(&test_example);
+
   Bfield_struct test_bfield;
   initial_Bfield(&test_bfield);
   create_Bfild(&test_bfield, &dtt_example);
@@ -116,10 +125,11 @@ test magnetic field line calculation
   write_Bfield_rzplane(&test_bfield);
 
 
+
 /*
 test magnetic field line calculation
 */
-  double delta_phi = 0.5;
+  double delta_phi = 1;
 
   /*
   sparc value:
@@ -136,16 +146,32 @@ test magnetic field line calculation
   int step = 720;
   double r0 = 2.871;
   */
-  int step = 720*3;
-  double r0 = 1.490;
+  int step = 10;
+  double r0 = 2.871;
   double phi0 = 0;
   double z0 = 0.0;
   double** line = allocate_2d_array(step+1,3);
-  for (int i = 0; i <= step; i++) 
+  
+
+  euler_method(r0,z0,phi0, delta_phi, step, &test_bfield,1.0,1.0,line);
+
+// opposite direction
+  int step2 = 10;
+  double** line2 = allocate_2d_array(step2+1,3);
+  euler_method(r0,z0,phi0, -delta_phi, step2, &test_bfield,-1.0,-1.0,line2);
+
+  const char *filename3="euler_line_tracing_xyz_line2";
+  FILE* file3 = fopen(filename3, "w");
+  for (int i=0; i<step2+1; i++)
   {
-    line[i] = malloc(3 * sizeof(double));  // Allocate each row
+      double x;
+      double y;
+      rphi_to_XY(line2[i][0],line2[i][1],&x,&y);
+      fprintf(file3, "%lf  %lf  %lf\n", x,y,line2[i][2]);
   }
-  euler_method(r0,z0,phi0, delta_phi, step, &test_bfield,1,1,line);
+  fclose(file3);
+  printf("write the tracing line in %s\n", filename3);
+
 
   const char *filename1="euler_line_tracing";
   FILE* file1 = fopen(filename1, "w");
@@ -170,6 +196,7 @@ test magnetic field line calculation
 
   free_Bfield(&test_bfield);
   free_2d_array(line);
+  free_2d_array(line2);
   free(xp);
   free_equilibrium(&dtt_example);  
 

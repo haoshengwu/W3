@@ -40,7 +40,6 @@ void insert_DLList_at_head(DLListNode** ptr_head, double r, double z)
   *ptr_head = new_node;
 }
 
-
 // get the end node of a double linked list, becareful to use, because the DLL will updated!!!
 DLListNode* end_DLListNode(DLListNode* head)
 {

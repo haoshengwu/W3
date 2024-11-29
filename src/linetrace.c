@@ -72,8 +72,8 @@ void psi_to_Bfield_rzplane(const Equilibrium *equilib, double ***Bfield_rzplane)
       swap(Bfield_rzplane[i][j][0],Bfield_rzplane[i][j][1]);
       // Do not forget -1 for Br!!!
       if (equilib->r[i] < MIN_R) equilib->r[i] = MIN_R;
-      Bfield_rzplane[i][j][0] = -Bfield_rzplane[i][j][0] / 2 /equilib->r[i];
-      Bfield_rzplane[i][j][1] = Bfield_rzplane[i][j][1] / 2 /equilib->r[i];
+      Bfield_rzplane[i][j][0] = -Bfield_rzplane[i][j][0] / 2 /PI /equilib->r[i];
+      Bfield_rzplane[i][j][1] = Bfield_rzplane[i][j][1] / 2 /PI /equilib->r[i];
     }
   }
   double b0r0 = equilib->bcenter * equilib->rcenter;
@@ -233,6 +233,15 @@ void euler_method(double r0, double z0, double phi0, double dphi, int step,
   double b0_tmp = Bfield->bcenter;
   double r0_tmp = Bfield->rcenter;
 
+  double ***brz_field = allocate_3d_array(Bfield->nr,Bfield->nz_RZ,2);
+  for (int i=0; i<Bfield->nr;i++)
+  {
+    for(int j=0; j<Bfield->nz_RZ;j++)
+    {
+      brz_field[i][j][0] = Bfield->Bfield_rzplane[i][j][0];
+      brz_field[i][j][1] = Bfield->Bfield_rzplane[i][j][1];
+    }
+  }
 
 //
   for (int i=1; i<step+1; i++)
@@ -253,12 +262,16 @@ void euler_method(double r0, double z0, double phi0, double dphi, int step,
     double zz = z_tmp;
     printf("debug xx: %lf, yy: %lf\n",xx,zz);
 
-    double br_iijj = br_bilinear_coeff[ii][jj][0] + br_bilinear_coeff[ii][jj][1] * xx
-                     + br_bilinear_coeff[ii][jj][2]*zz + br_bilinear_coeff[ii][jj][3] * xx * zz;
+    double br_iijj, bz_iijj;
+
+    bilenar_2d(r_tmp, z_tmp, Bfield->nr, Bfield->r, Bfield->nz_RZ, Bfield->z_RZ, brz_field, &br_iijj, &bz_iijj);
+
+//    double br_iijj = br_bilinear_coeff[ii][jj][0] + br_bilinear_coeff[ii][jj][1] * xx
+//                     + br_bilinear_coeff[ii][jj][2]*zz + br_bilinear_coeff[ii][jj][3] * xx * zz;
     br_iijj = br_iijj * pol_dir;
     
-    double bz_iijj = bz_bilinear_coeff[ii][jj][0] + bz_bilinear_coeff[ii][jj][1] * xx
-                     + bz_bilinear_coeff[ii][jj][2]*zz + bz_bilinear_coeff[ii][jj][3] * xx * zz;
+//    double bz_iijj = bz_bilinear_coeff[ii][jj][0] + bz_bilinear_coeff[ii][jj][1] * xx
+//                    + bz_bilinear_coeff[ii][jj][2]*zz + bz_bilinear_coeff[ii][jj][3] * xx * zz;
     bz_iijj = bz_iijj * pol_dir;
     
     printf("debug br_iijj: %lf, bz_iijj: %lf\n",br_iijj,bz_iijj);
@@ -278,6 +291,7 @@ void euler_method(double r0, double z0, double phi0, double dphi, int step,
 /*
 !!! To do check whethe it is out of domain
 */
+  free_3d_array(brz_field);
   free_2d_array(br_tmp);
   free_2d_array(bz_tmp);
   free_3d_array(br_bilinear_coeff);

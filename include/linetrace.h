@@ -7,6 +7,7 @@
 #include "equilibrium.h"
 #include "calc.h"
 #include "datastructure.h"
+#include "mathbase.h"
 
 #define TOR_TURN 10
 #define TOR_RESOLUTION 0.1
@@ -41,7 +42,6 @@ void initial_Bfield(Bfield_struct* Bfiled);
 void create_Bfild(Bfield_struct* Bfield, const Equilibrium *equilib);
 
 void psi_to_Bfield_rzplane(const Equilibrium *equilib, double ***Bfield_rzplane);
-
 
 void free_Bfield(Bfield_struct* Bfiled);
 

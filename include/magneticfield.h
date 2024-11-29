@@ -1,0 +1,68 @@
+#ifndef MAGNETICFIELD_H
+#define MAGNETICFIELD_H
+
+
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include "equilibrium.h"
+#include "datastructure.h"
+#include "mathbase.h"
+//mininum R range used for calculate magnetic field to avoid zero value;
+#define MIN_R 0.1 // unit(meter)
+
+typedef struct{
+  int nr;
+  int nphi;  //currently not use
+  int nz;
+  double b0r0;
+  double dphi;
+  double *r;
+  double *phi; //currently not use
+  double *z;
+  //B_rz[i][j][0] is Br, B_rz[i][j][1] is Bz
+  double ***Brz;
+} MagFieldTorSys;
+
+/*
+follow define a algorithm to select different differential method
+*/
+typedef void (*diff_2d_fun)(int nx, double *x,  int ny, double *y, double **f, double ***df);
+
+typedef struct {
+  const char *name;
+  diff_2d_fun func;
+} DiffMethodEntry;
+
+diff_2d_fun get_diff_method(const char *name);
+
+/*
+follow define a algorithm to select different interpolate method
+*/
+typedef void (*intpl_2d_fun)(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
+                               double ***f, double *value1, double*value2);
+
+typedef struct {
+  const char *name;
+  intpl_2d_fun func;
+} InterpolateMethodEntry;
+
+intpl_2d_fun get_intpl_2d_method(const char *name);
+
+
+
+
+
+void init_mag_field_torsys(MagFieldTorSys *mag_field);
+void free_mag_field_torsys(MagFieldTorSys *mag_field);
+void calc_mag_field_torsys(Equilibrium *equ, MagFieldTorSys *mag_field, const char *method);
+
+double get_bt_torsys(MagFieldTorSys *mag_field, double r0);
+double get_brz_torsys(double r, double z, MagFieldTorSys*mag_field, const char *method);
+
+void write_mag_field_torsys(MagFieldTorSys *mag_field);
+void write_brz_torsys(MagFieldTorSys *mag_field);
+void write_bphi_torsys(MagFieldTorSys *mag_field);
+
+#endif
