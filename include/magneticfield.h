@@ -58,8 +58,8 @@ void init_mag_field_torsys(MagFieldTorSys *mag_field);
 void free_mag_field_torsys(MagFieldTorSys *mag_field);
 void calc_mag_field_torsys(Equilibrium *equ, MagFieldTorSys *mag_field, const char *method);
 
-double get_bt_torsys(MagFieldTorSys *mag_field, double r0);
-double get_brz_torsys(double r, double z, MagFieldTorSys*mag_field, const char *method);
+void get_bt_torsys(MagFieldTorSys *mag_field, const double r0, double *bt);
+void get_brz_torsys(MagFieldTorSys*mag_field, const double r, const double z, const char *method, double *br, double *bz);
 
 void write_mag_field_torsys(MagFieldTorSys *mag_field);
 void write_brz_torsys(MagFieldTorSys *mag_field);

@@ -143,3 +143,10 @@ void bicubic_2d(double target_x, double target_y, int nx, double *x,  int ny, do
   //TODO
   return;
 }
+
+void cubherm_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+                double ***f, double *value1, double *value2)
+{
+  //TODO
+  return;
+}

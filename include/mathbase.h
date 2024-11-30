@@ -22,7 +22,8 @@ void bilenar_2d(double target_x, double target_y, int nx, double *x,  int ny, do
                 double ***f, double *value1, double *value2);
 void bicubic_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
                 double ***f, double *value1, double *value2);
-
+void cubicherm_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+                double ***f, double *value1, double *value2);
 
 
 

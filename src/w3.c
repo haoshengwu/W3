@@ -14,6 +14,7 @@ Contact: haosheng.wu@polito.it
 #include "datastructure.h"
 #include "linetrace.h"
 #include "magneticfield.h"
+#include "ode.h"
 
 int main(){
   
@@ -111,68 +112,50 @@ int main(){
 test magnetic field line calculation
 */
 
-  MagFieldTorSys test_example;
-  init_mag_field_torsys(&test_example);
+  MagFieldTorSys test_magfield;
+  init_mag_field_torsys(&test_magfield);
   char* method = "central_2nd";
-  calc_mag_field_torsys(&dtt_example, &test_example, method);
-  write_mag_field_torsys(&test_example);
-  free_mag_field_torsys(&test_example);
-
-  Bfield_struct test_bfield;
-  initial_Bfield(&test_bfield);
-  create_Bfild(&test_bfield, &dtt_example);
-  psi_to_Bfield_rzplane(&dtt_example, test_bfield.Bfield_rzplane);
-  write_Bfield_rzplane(&test_bfield);
-
-
+  calc_mag_field_torsys(&dtt_example, &test_magfield, method);
+  write_mag_field_torsys(&test_magfield);
+  printf("debug1\n");
 
 /*
-test magnetic field line calculation
+test new structure for tracing
 */
-  double delta_phi = 1;
-
-  /*
-  sparc value:
-  int step = 1008;
-  double r0 = 2.41;
-  */
-  /*
-  ddt core
-  int step = 504;
-  double r0 = 2.8;
-  */
-  /*
-  ddt SOL
-  int step = 720;
-  double r0 = 2.871;
-  */
-  int step = 10;
-  double r0 = 2.871;
-  double phi0 = 0;
-  double z0 = 0.0;
-  double** line = allocate_2d_array(step+1,3);
+  double direction[3]={1.0,1.0,1.0};
+  printf("debug2\n");
   
+  ode_function ode_func = {
+    .ndim = 3,
+    .data = &test_magfield,
+    .rescale = direction,
+    .compute_f = ode_f_brz_torsys_bilinear
+  };
 
-  euler_method(r0,z0,phi0, delta_phi, step, &test_bfield,1.0,1.0,line);
-
-// opposite direction
-  int step2 = 10;
-  double** line2 = allocate_2d_array(step2+1,3);
-  euler_method(r0,z0,phi0, -delta_phi, step2, &test_bfield,-1.0,-1.0,line2);
-
-  const char *filename3="euler_line_tracing_xyz_line2";
-  FILE* file3 = fopen(filename3, "w");
-  for (int i=0; i<step2+1; i++)
+  ode_solver euler_solver =
   {
-      double x;
-      double y;
-      rphi_to_XY(line2[i][0],line2[i][1],&x,&y);
-      fprintf(file3, "%lf  %lf  %lf\n", x,y,line2[i][2]);
-  }
-  fclose(file3);
-  printf("write the tracing line in %s\n", filename3);
+    .step_size = 1,
+    .solver_data = NULL,
+    .next_step = euler_next_step,
+    .initialize = euler_initialize,
+    .finalize = euler_finalize
+  };
 
 
+  int step = 360;
+  double *x1 = (double *)malloc((step+1) * sizeof(double));
+  x1[0] = 0.0;
+  double **line = allocate_2d_array(step+1,3);
+  line[0][0] = 2.88;
+  line[0][1] = 0.0;
+  line[0][2] = 0.0;
+
+  for(int i=1;i<step+1;i++)
+  {
+    x1[i] = x1[i-1] + euler_solver.step_size;
+    euler_solver.next_step(euler_solver.step_size, &(x1[i-1]), line[i-1], line[i], &test_magfield, &ode_func);
+  };
+    
   const char *filename1="euler_line_tracing";
   FILE* file1 = fopen(filename1, "w");
   for (int i=0; i<step+1; i++)
@@ -188,15 +171,105 @@ test magnetic field line calculation
   {
       double x;
       double y;
-      rphi_to_XY(line[i][0],line[i][1],&x,&y);
-      fprintf(file2, "%lf  %lf  %lf\n", x,y,line[i][2]);
+      rphi_to_XY(line[i][0],line[i][2],&x,&y);
+      fprintf(file2, "%lf  %lf  %lf\n", x,y,line[i][1]);
   }
   fclose(file2);
   printf("write the tracing line in %s\n", filename2);
 
-  free_Bfield(&test_bfield);
+  free_mag_field_torsys(&test_magfield);
+  free(x1);
   free_2d_array(line);
-  free_2d_array(line2);
+
+
+
+
+
+
+
+
+
+
+  // Bfield_struct test_bfield;
+  // initial_Bfield(&test_bfield);
+  // create_Bfild(&test_bfield, &dtt_example);
+  // psi_to_Bfield_rzplane(&dtt_example, test_bfield.Bfield_rzplane);
+  // write_Bfield_rzplane(&test_bfield);
+
+
+
+
+/*
+
+  double delta_phi = 1;
+
+  
+  sparc value:
+  int step = 1008;
+  double r0 = 2.41;
+  */
+  /*
+  ddt core
+  int step = 504;
+  double r0 = 2.8;
+  */
+  /*
+  ddt SOL
+  int step = 720;
+  double r0 = 2.871;
+  */
+//   int step = 360;
+//   double r0 = 2.871;
+//   double phi0 = 0;
+//   double z0 = 0.0;
+//   double** line = allocate_2d_array(step+1,3);
+  
+
+//   euler_method(r0,z0,phi0, delta_phi, step, &test_bfield,1.0,1.0,line);
+
+// // opposite direction
+//   int step2 = 720;
+//   double** line2 = allocate_2d_array(step2+1,3);
+//   euler_method(r0,z0,phi0, -delta_phi, step2, &test_bfield,-1.0,-1.0,line2);
+
+//   const char *filename3="euler_line_tracing_xyz_line2";
+//   FILE* file3 = fopen(filename3, "w");
+//   for (int i=0; i<step2+1; i++)
+//   {
+//       double x;
+//       double y;
+//       rphi_to_XY(line2[i][0],line2[i][1],&x,&y);
+//       fprintf(file3, "%lf  %lf  %lf\n", x,y,line2[i][2]);
+//   }
+//   fclose(file3);
+//   printf("write the tracing line in %s\n", filename3);
+
+
+//   const char *filename1="euler_line_tracing";
+//   FILE* file1 = fopen(filename1, "w");
+//   for (int i=0; i<step+1; i++)
+//   {
+//       fprintf(file1, "%lf  %lf  %lf\n", line[i][0],line[i][1],line[i][2]);
+//   }
+//   fclose(file1);
+//   printf("write the tracing line in %s\n", filename1);
+
+//   const char *filename2="euler_line_tracing_xyz";
+//   FILE* file2 = fopen(filename2, "w");
+//   for (int i=0; i<step+1; i++)
+//   {
+//       double x;
+//       double y;
+//       rphi_to_XY(line[i][0],line[i][1],&x,&y);
+//       fprintf(file2, "%lf  %lf  %lf\n", x,y,line[i][2]);
+//   }
+//   fclose(file2);
+//   printf("write the tracing line in %s\n", filename2);
+
+//   free_Bfield(&test_bfield);
+//   free_2d_array(line);
+//   free_2d_array(line2);
+  
   free(xp);
   free_equilibrium(&dtt_example);  
 

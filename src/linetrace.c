@@ -283,9 +283,9 @@ void euler_method(double r0, double z0, double phi0, double dphi, int step,
   // please do not forget use arc instead of phi
     double drad_tmp = dphi * PI / 180.0;
     
-    output[i][0] = output[i-1][0] + r_tmp*drad_tmp*br_iijj/bphi_iijj*PI;
+    output[i][0] = output[i-1][0] + r_tmp*drad_tmp*br_iijj/bphi_iijj;
     output[i][1] = output[i-1][1] + dphi;
-    output[i][2] = output[i-1][2] + r_tmp*drad_tmp*bz_iijj/bphi_iijj*PI;
+    output[i][2] = output[i-1][2] + r_tmp*drad_tmp*bz_iijj/bphi_iijj;
   }
 
 /*
