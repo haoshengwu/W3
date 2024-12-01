@@ -118,12 +118,13 @@ test magnetic field line calculation
   calc_mag_field_torsys(&dtt_example, &test_magfield, method);
   write_mag_field_torsys(&test_magfield);
   printf("debug1\n");
-
-/*
-test new structure for tracing
-*/
-  double direction[3]={1.0,1.0,1.0};
   printf("debug2\n");
+
+
+/*****************************************************
+test new structure for euler  tracing
+******************************************************/
+  double direction[3]={1.0,1.0,1.0};
   
   ode_function ode_func = {
     .ndim = 3,
@@ -142,7 +143,7 @@ test new structure for tracing
   };
 
 
-  int step = 360;
+  int step = 5;
   double *x1 = (double *)malloc((step+1) * sizeof(double));
   x1[0] = 0.0;
   double **line = allocate_2d_array(step+1,3);
@@ -177,17 +178,67 @@ test new structure for tracing
   fclose(file2);
   printf("write the tracing line in %s\n", filename2);
 
-  free_mag_field_torsys(&test_magfield);
   free(x1);
   free_2d_array(line);
 
+/*****************************************************
+test new structure for brk5 tracing
+******************************************************/
+  RKSolverData brk45_data;
+
+  ode_solver brk45_solver =
+  {
+    .step_size = 1,
+    .solver_data = &brk45_data,
+    .next_step = brk5_next_step,
+    .initialize = brk5_initialize,
+    .finalize = brk5_finalize
+  };
+
+  brk45_solver.initialize(&brk45_data);
+
+  int step2 = 540*1;
+  double *x2 = (double *)malloc((step2+1) * sizeof(double));
+  x2[0] = 0.0;
+  double **line2 = allocate_2d_array(step2+1,3);
+  line2[0][0] = 2.875;
+  line2[0][1] = 0.0;
+  line2[0][2] = 0.0;
+
+  for(int i=1;i<step2+1;i++)
+  {
+    x2[i] = x2[i-1] + brk45_solver.step_size;
+    brk45_solver.next_step(brk45_solver.step_size, &(x2[i-1]), line2[i-1], line2[i], &brk45_data, &ode_func);
+  };
+    
+  const char *filename3="brk5_line_tracing";
+  FILE* file3 = fopen(filename3, "w");
+  for (int i=0; i<step2+1; i++)
+  {
+      fprintf(file3, "%.10f  %.10f  %.10f\n", line2[i][0],line2[i][1],line2[i][2]);
+  }
+  fclose(file3);
+  printf("write the tracing line in %s\n", filename3);
+
+  const char *filename4="brk5_line_tracing_xyz";
+  FILE* file4 = fopen(filename4, "w");
+  for (int i=0; i<step2+1; i++)
+  {
+      double x;
+      double y;
+      rphi_to_XY(line2[i][0],line2[i][2],&x,&y);
+      fprintf(file4, "%.10f  %.10f  %.10f\n", x,y,line2[i][1]);
+  }
+  fclose(file4);
+  printf("write the tracing line in %s\n", filename4);
+
+  free(x2);
+  free_2d_array(line2);
+  brk45_solver.finalize(&brk45_data);
 
 
 
-
-
-
-
+  free_mag_field_torsys(&test_magfield);
 
 
   // Bfield_struct test_bfield;

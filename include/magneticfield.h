@@ -50,10 +50,6 @@ typedef struct {
 
 intpl_2d_fun get_intpl_2d_method(const char *name);
 
-
-
-
-
 void init_mag_field_torsys(MagFieldTorSys *mag_field);
 void free_mag_field_torsys(MagFieldTorSys *mag_field);
 void calc_mag_field_torsys(Equilibrium *equ, MagFieldTorSys *mag_field, const char *method);

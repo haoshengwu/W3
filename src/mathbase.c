@@ -108,6 +108,7 @@ void bilenar_2d(double target_x, double target_y, int nx, double *x,  int ny, do
   int i = floor((target_x - x[0])/dx);
   int j = floor((target_y - y[0])/dy);
   //check range
+  //printf("debug: target_x: %lf, target_y: %lf\n", target_x, target_y);
   if (i < 0 || i >= nx - 1 || j < 0 || j >= ny - 1) {
     printf("Target point is out of x\n");
     exit(1);

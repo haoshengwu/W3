@@ -44,9 +44,28 @@ void ode_f_brz_torsys_bilinear(const int ndim, const double *x, const double *y,
 void ode_f_brz_torsys_cubherm(const int ndim, const double *x, const double *y, double *dydx, void *data);
 
 //following are necessary funcstion for euler method
-void euler_next_step(double step_size, const double *x, const double *y, double *y_next, void *solver_data, ode_function* ode_function);
+void euler_next_step(double step_size, const double *x, const double *y, double *y_next,
+                     void *solver_data, ode_function* ode_f);
 void euler_initialize(void *solver_data);
 void euler_finalize(void *solver_data);
 
 //following are necessary funcstion for rk45 method
+//Butcher’s (1964) fifth-order RK method
+typedef struct
+{
+  int order;
+  int stages;
+  double **A; 
+  double *B;    
+  double *B_ALT;  
+  double *C;       
+  double current_step_size;  //current_step_size;
+  double tollor;   
+} RKSolverData;
+
+void brk5_next_step(double step_size, const double *x, const double *y, double *y_next,
+                    void *solver_data, ode_function* ode_f);
+void brk5_initialize(void *solver_data);
+void brk5_finalize(void *solver_data);
+
 #endif
