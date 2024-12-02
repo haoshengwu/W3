@@ -12,6 +12,8 @@
 //mininum R range used for calculate magnetic field to avoid zero value;
 #define MIN_R 0.1 // unit(meter)
 
+
+
 typedef struct{
   int nr;
   int nphi;  //currently not use
@@ -40,8 +42,10 @@ diff_2d_fun get_diff_method(const char *name);
 /*
 follow define a algorithm to select different interpolate method
 */
+
+// 'void *intpl_data' is used to point any intermediate pre-calculated data to speed up the calculation
 typedef void (*intpl_2d_fun)(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
-                               double ***f, double *value1, double*value2);
+                             double ***f, double *value1, double*value2, void *intpl_data);
 
 typedef struct {
   const char *name;

@@ -98,7 +98,7 @@ void central_4th_2d_diff(int nx, double *x,  int ny, double *y, double **f, doub
 }
 
 void bilenar_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
-                double ***f, double *value1, double *value2)
+                double ***f, double *value1, double *value2, void *intpl_data)
 {
   // assume uniform dx and dy
   double dx = (x[nx-1] - x[0])/(nx-1);
@@ -139,15 +139,127 @@ void bilenar_2d(double target_x, double target_y, int nx, double *x,  int ny, do
 }
 
 void bicubic_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
-                double ***f, double *value1, double *value2)
+                double ***f, double *value1, double *value2, void *intpl_data)
 {
-  //TODO
+  if (intpl_data == NULL)
+  {
+    printf("df/dx, df/dy, d2f/dxdy are calculted by f\n");
+  }
+  else 
+  {
+    printf("df/dx, df/dy, d2f/dxdy are provided by user\n");
+    bicubic_2d_data *pre_data = (bicubic_2d_data *) intpl_data;
+  }
   return;
 }
 
-void cubherm_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
-                double ***f, double *value1, double *value2)
+void cubicherm_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+                double ***f, double *value1, double *value2, void *intpl_data)
 {
-  //TODO
-  return;
+  //This function is according to pspline function dnherm2() and function herm2fcn()
+  // assume uniform dx and dy
+  double dx = (x[nx-1] - x[0])/(nx-1);
+  double dy = (y[ny-1] - y[0])/(ny-1);
+  double dxdy = dx*dy;
+  //nx points then nx-1 cells, ny points then ny-1 cells
+  int xc = floor((target_x - x[0])/dx);
+  int yc = floor((target_y - y[0])/dy);
+  //check range
+  //printf("debug: target_x: %lf, target_y: %lf\n", target_x, target_y);
+  if (xc < 0 || xc >= nx - 1 || yc < 0 || yc >= ny - 1) 
+  {
+    printf("Target point is out of x\n");
+    exit(1);
+  }
+
+  double fxy[2][2][2];
+  double dfdx[2][2][2];
+  double dfdy[2][2][2];
+  double d2fdxdy[2][2][2];
+
+  if (intpl_data == NULL)
+  {
+    //printf("df/dx, df/dy, d2f/dxdy are calculted by f\n");
+    for(int i=0;i<2;i++)
+    {
+      for(int j=0;j<2;j++)
+      {
+        int iyp=min(ny-1,yc+j+1);
+        int iym=max(0,yc+j-1);
+        int ixp=min(nx-1,xc+i+1);
+        int ixm=max(0,xc+i-1);
+
+        for (int k=0; k<2; k++)
+        {
+        fxy[i][j][k] = f[xc+i][yc+j][k];
+        dfdx[i][j][k] = (f[ixp][yc+j][k] - f[ixm][yc+j][k])/(x[ixp]-x[ixm]);
+        dfdy[i][j][k] = (f[xc+i][iyp][k] - f[xc+i][iym][k])/(y[iyp]-y[iym]);
+        d2fdxdy[i][j][k] = (f[ixp][iyp][k] - f[ixm][iyp][k] - f[ixp][iym][k] + f[ixm][iym][k])
+                           / ((x[ixp]-x[ixm])*(y[iyp]-y[iym]));
+        }
+      }
+    }
+  }
+  else 
+  {
+    printf("df/dx, df/dy, d2f/dxdy are provided by user\n");
+    printf("it is not supported now\n");
+    //todo
+    exit(1);
+    //bicubic_2d_data *pre_data = (bicubic_2d_data *) intpl_data;
+  }
+  double hx = dx;
+  double hy = dy;
+  double hxi = 1/hx;
+  double hyi = 1/hy;
+
+  double xp = (target_x-x[xc])*hxi;
+  double xpi = 1-xp;
+  double xp2 = xp*xp;
+  double xpi2 = xpi*xpi;
+  double ax = xp2*(3.0-2.0*xp);
+  double axbar = 1.0-ax;
+  double bx = -xp2*xpi;
+  double bxbar = xpi2*xp;
+
+  double yp = (target_y-y[yc])*hyi;
+  double ypi = 1-yp;
+  double yp2 = yp*yp;
+  double ypi2 = ypi*ypi;
+  double ay = yp2*(3.0-2.0*yp);
+  double aybar = 1.0-ay;
+  double by = -yp2*ypi;
+  double bybar = ypi2*yp;
+
+  double axp=6.0*xp*xpi;
+  double axbarp=-axp;
+  double bxp=xp*(3.0*xp-2.0);
+  double bxbarp=xpi*(3.0*xpi-2.0);
+
+  double ayp=6.0*yp*ypi;
+  double aybarp=-ayp;
+  double byp=yp*(3.0*yp-2.0);
+  double bybarp=ypi*(3.0*ypi-2.0);
+
+  double sum[2]={0.0, 0.0};
+
+  //printf("xp: %lf\n",xp);
+  //printf("yp: %lf\n",yp);
+  for (int k=0;k<2;k++)
+  {
+
+    sum[k] = axbar * (aybar * fxy[0][0][k] + ay * fxy[0][1][k]) +
+                ax * (aybar * fxy[1][0][k] + ay * fxy[1][1][k]);
+
+    sum[k] += hx * (bxbar * (aybar * dfdx[0][0][k] + ay * dfdx[0][1][k]) +
+                       bx * (aybar * dfdx[1][0][k] + ay * dfdx[1][1][k]));
+
+    sum[k] += hy * (axbar * (bybar * dfdy[0][0][k] + by * dfdy[0][1][k]) +
+                       ax * (bybar * dfdy[1][0][k] + by * dfdy[1][1][k]));
+
+    sum[k] += hx * hy * (bxbar * (bybar * d2fdxdy[0][0][k] + by * d2fdxdy[0][1][k]) +
+                            bx * (bybar * d2fdxdy[1][0][k] + by * d2fdxdy[1][1][k]));
+  }
+  *value1 = sum[0];
+  *value2 = sum[1];
 }

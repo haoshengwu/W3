@@ -16,17 +16,42 @@ void ode_f_brz_torsys_bilinear(const int ndim, const double *x, const double *y,
     bt_tmp = mag_field->b0r0 / y[0];
   }
   bilenar_2d(y[0], y[1], mag_field->nr, mag_field->r, mag_field->nz, mag_field->z, 
-             mag_field->Brz, &br_tmp, &bz_tmp);
+             mag_field->Brz, &br_tmp, &bz_tmp, NULL);
+             
+  printf("debug br_tmp: %lf, bz_tmp: %lf\n", br_tmp, bt_tmp);
   double dg2rad = M_PI/180.0;
   dydx[0] = y[0] * br_tmp/bt_tmp * dg2rad;
   dydx[1] = y[0] * bz_tmp/bt_tmp * dg2rad;
   dydx[2] = 1.0;
 }
 
-void ode_f_brz_torsys_cubherm(const int ndim, const double *x, const double *y, double *dydx, void *data)
+void ode_f_brz_torsys_bicubic(const int ndim, const double *x, const double *y, double *dydx, void *data)
 {
   //Todo
   return;
+}
+
+void ode_f_brz_torsys_cubicherm(const int ndim, const double *x, const double *y, double *dydx, void *data)
+{
+  MagFieldTorSys *mag_field = (MagFieldTorSys *) data;
+  
+  double br_tmp, bz_tmp, bt_tmp;
+  if( y[0] < MIN_R)
+  {
+    printf("WARNING: points in the MIN_R: %lf region!\n", MIN_R);
+    bt_tmp = mag_field->b0r0 / y[0];
+  }
+  else
+  {
+    bt_tmp = mag_field->b0r0 / y[0];
+  }
+  cubicherm_2d(y[0], y[1], mag_field->nr, mag_field->r, mag_field->nz, mag_field->z, 
+             mag_field->Brz, &br_tmp, &bz_tmp, NULL);
+  double dg2rad = M_PI/180.0;
+  printf("debug br_tmp: %lf, bz_tmp: %lf\n", br_tmp, bt_tmp);
+  dydx[0] = y[0] * br_tmp/bt_tmp * dg2rad;
+  dydx[1] = y[0] * bz_tmp/bt_tmp * dg2rad;
+  dydx[2] = 1.0;
 }
 
 

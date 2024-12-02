@@ -28,6 +28,7 @@ diff_2d_fun get_diff_method(const char *name)
 InterpolateMethodEntry intpl_2d_methods[] = {
   {"bilnear", bilenar_2d},
   {"bicubic", bicubic_2d},
+  {"cubicherm", cubicherm_2d},
 //  {"cubichermite", cubherm_2d},
 // to do:
 };
@@ -136,9 +137,19 @@ void get_brz_torsys(MagFieldTorSys *mag_field, const double r, const double z, c
     printf("ERROE: Method: '%s' not found!\n", method);
     exit(1);
   }
-  selected_fun(r, z, mag_field->nr, mag_field->r, mag_field->nz, mag_field->z, 
-                mag_field->Brz, br, bz);
-}
+  if (strcmp("bilnear", method)==0)
+  {
+    selected_fun(r, z, mag_field->nr, mag_field->r, mag_field->nz, mag_field->z, 
+                mag_field->Brz, br, bz, NULL);
+  }
+  else{
+    printf("Currently, do not support other methods!\n");
+  }
+  //need to do
+  //else selected_fun(r, z, mag_field->nr, mag_field->r, mag_field->nz, mag_field->z, 
+  //             mag_field->Brz, br, bz, mag_field);
+} 
+
 
 void write_mag_field_torsys(MagFieldTorSys *mag_field)
 {

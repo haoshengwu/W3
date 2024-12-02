@@ -130,7 +130,7 @@ test new structure for euler  tracing
     .ndim = 3,
     .data = &test_magfield,
     .rescale = direction,
-    .compute_f = ode_f_brz_torsys_bilinear
+    .compute_f = ode_f_brz_torsys_bilinear,
   };
 
   ode_solver euler_solver =
@@ -143,11 +143,11 @@ test new structure for euler  tracing
   };
 
 
-  int step = 5;
+  int step = 600;
   double *x1 = (double *)malloc((step+1) * sizeof(double));
   x1[0] = 0.0;
   double **line = allocate_2d_array(step+1,3);
-  line[0][0] = 2.88;
+  line[0][0] = 2.75;
   line[0][1] = 0.0;
   line[0][2] = 0.0;
 
@@ -197,11 +197,11 @@ test new structure for brk5 tracing
 
   brk45_solver.initialize(&brk45_data);
 
-  int step2 = 540*1;
+  int step2 = step;
   double *x2 = (double *)malloc((step2+1) * sizeof(double));
   x2[0] = 0.0;
   double **line2 = allocate_2d_array(step2+1,3);
-  line2[0][0] = 2.875;
+  line2[0][0] = 2.75;
   line2[0][1] = 0.0;
   line2[0][2] = 0.0;
 
