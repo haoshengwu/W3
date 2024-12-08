@@ -143,7 +143,7 @@ test new structure for euler  tracing
   };
 
 
-  int step = 600;
+  int step = 360*10;
   double *x1 = (double *)malloc((step+1) * sizeof(double));
   x1[0] = 0.0;
   double **line = allocate_2d_array(step+1,3);
@@ -161,7 +161,7 @@ test new structure for euler  tracing
   FILE* file1 = fopen(filename1, "w");
   for (int i=0; i<step+1; i++)
   {
-      fprintf(file1, "%lf  %lf  %lf\n", line[i][0],line[i][1],line[i][2]);
+      fprintf(file1, "%.12f %.12f %.12f\n", line[i][0],line[i][1],line[i][2]);
   }
   fclose(file1);
   printf("write the tracing line in %s\n", filename1);
@@ -173,7 +173,7 @@ test new structure for euler  tracing
       double x;
       double y;
       rphi_to_XY(line[i][0],line[i][2],&x,&y);
-      fprintf(file2, "%lf  %lf  %lf\n", x,y,line[i][1]);
+      fprintf(file2, "%.12f %.12f %.12f\n", x,y,line[i][1]);
   }
   fclose(file2);
   printf("write the tracing line in %s\n", filename2);
@@ -215,7 +215,7 @@ test new structure for brk5 tracing
   FILE* file3 = fopen(filename3, "w");
   for (int i=0; i<step2+1; i++)
   {
-      fprintf(file3, "%.10f  %.10f  %.10f\n", line2[i][0],line2[i][1],line2[i][2]);
+      fprintf(file3, "%.12f %.12f %.12f\n", line2[i][0],line2[i][1],line2[i][2]);
   }
   fclose(file3);
   printf("write the tracing line in %s\n", filename3);
@@ -227,7 +227,7 @@ test new structure for brk5 tracing
       double x;
       double y;
       rphi_to_XY(line2[i][0],line2[i][2],&x,&y);
-      fprintf(file4, "%.10f  %.10f  %.10f\n", x,y,line2[i][1]);
+      fprintf(file4, "%.12f  %.12f  %.12f\n", x,y,line2[i][1]);
   }
   fclose(file4);
   printf("write the tracing line in %s\n", filename4);

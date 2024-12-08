@@ -26,7 +26,7 @@ typedef struct
 {
    //step size
   double step_size;
-   // Intermediate data
+   // Intermediate data, e.g. coefficient for BRK5th method
   void *solver_data;
   // calculate next step value y_next
   void (*next_step)(double step_size, const double *x, const double *y, double *y_next, void *solver_data, ode_function *ode_f);

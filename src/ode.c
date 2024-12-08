@@ -17,8 +17,8 @@ void ode_f_brz_torsys_bilinear(const int ndim, const double *x, const double *y,
   }
   bilenar_2d(y[0], y[1], mag_field->nr, mag_field->r, mag_field->nz, mag_field->z, 
              mag_field->Brz, &br_tmp, &bz_tmp, NULL);
-             
-  printf("debug br_tmp: %lf, bz_tmp: %lf\n", br_tmp, bt_tmp);
+
+  //printf("debug br_tmp: %lf, bz_tmp: %lf\n", br_tmp, bt_tmp);
   double dg2rad = M_PI/180.0;
   dydx[0] = y[0] * br_tmp/bt_tmp * dg2rad;
   dydx[1] = y[0] * bz_tmp/bt_tmp * dg2rad;
@@ -48,7 +48,7 @@ void ode_f_brz_torsys_cubicherm(const int ndim, const double *x, const double *y
   cubicherm_2d(y[0], y[1], mag_field->nr, mag_field->r, mag_field->nz, mag_field->z, 
              mag_field->Brz, &br_tmp, &bz_tmp, NULL);
   double dg2rad = M_PI/180.0;
-  printf("debug br_tmp: %lf, bz_tmp: %lf\n", br_tmp, bt_tmp);
+  //printf("debug br_tmp: %lf, bz_tmp: %lf\n", br_tmp, bt_tmp);
   dydx[0] = y[0] * br_tmp/bt_tmp * dg2rad;
   dydx[1] = y[0] * bz_tmp/bt_tmp * dg2rad;
   dydx[2] = 1.0;
