@@ -15,6 +15,7 @@ Contact: haosheng.wu@polito.it
 #include "linetrace.h"
 #include "magneticfield.h"
 #include "ode.h"
+#include "basemesh.h"
 
 int main(){
   
@@ -124,7 +125,7 @@ test magnetic field line calculation
 /*****************************************************
 test new structure for euler  tracing
 ******************************************************/
-  double direction[3]={1.0,1.0,1.0};
+  double direction[3]={-1.0,-1.0,-1.0};
   
   ode_function ode_func = {
     .ndim = 3,
@@ -197,7 +198,7 @@ test new structure for brk5 tracing
 
   brk45_solver.initialize(&brk45_data);
 
-  int step2 = step;
+  int step2 =300;
   double *x2 = (double *)malloc((step2+1) * sizeof(double));
   x2[0] = 0.0;
   double **line2 = allocate_2d_array(step2+1,3);
@@ -237,7 +238,172 @@ test new structure for brk5 tracing
   brk45_solver.finalize(&brk45_data);
 
 
+/***************************************
+ * Test the base mesh
+ ***************************************/
+//1. create the 2D trace solver
+  double direction_2d[2] = {-1.0, -1.0};
+  ode_function ode_func_2d = {
+    .ndim = 2,
+    .data = &test_magfield,
+    .rescale = direction_2d,
+    .compute_f = ode_f_brz_torsys_cubicherm,
+  };
 
+  RKSolverData brk45_data_2d;
+  ode_solver brk45_solver_2d =
+  {
+    .step_size = 1,
+    .solver_data = &brk45_data_2d,
+    .next_step = brk5_next_step,
+    .initialize = brk5_initialize,
+    .finalize = brk5_finalize
+  };
+//2. Test 2D tracer: create 2 lines
+  brk45_solver_2d.initialize(&brk45_data_2d);
+
+  int step_prev= 1800;
+  double *x_prev_2d = (double *)malloc((step_prev+1) * sizeof(double));
+  x_prev_2d[0] = 0.0;
+  double **line2d_prev = allocate_2d_array(step_prev+1,2);
+  line2d_prev[0][0] = 2.05;
+  line2d_prev[0][1] = -1.50;
+
+//first line
+  for(int i=1;i<step_prev+1;i++)
+  {
+    x_prev_2d[i] = x_prev_2d[i-1] + brk45_solver_2d.step_size;
+    brk45_solver_2d.next_step(brk45_solver_2d.step_size, &(x_prev_2d[i-1]), line2d_prev[i-1], line2d_prev[i], &brk45_data_2d, &ode_func_2d);
+  };
+    
+  const char *filename2d_prev="brk5_line_tracing_2d";
+  FILE* file2d_prev = fopen(filename2d_prev, "w");
+  for (int i=0; i<step_prev+1; i++)
+  {
+      fprintf(file2d_prev, "%.12f %.12f\n", line2d_prev[i][0],line2d_prev[i][1]);
+  }
+  fclose(file2d_prev);
+  printf("write the tracing line in %s\n", filename2d_prev);
+  
+//second line
+  int step_curve = 1710;
+  double *x_2d = (double *)malloc((step_curve+1) * sizeof(double));
+  x_2d[0] = 0.0;
+  double **line2d = allocate_2d_array(step_curve+1,2);
+  line2d[0][0] = 2.08;
+  line2d[0][1] = -1.50;
+
+
+  for(int i=1;i<step_curve+1;i++)
+  {
+    x_2d[i] = x_2d[i-1] + brk45_solver_2d.step_size;
+    brk45_solver_2d.next_step(brk45_solver_2d.step_size, &(x_2d[i-1]), line2d[i-1], line2d[i], &brk45_data_2d, &ode_func_2d);
+  };
+    
+  const char *filename2d="brk5_line_tracing_2d_2";
+  FILE* file2d = fopen(filename2d, "w");
+  for (int i=0; i<step_curve+1; i++)
+  {
+      fprintf(file2d, "%.12f %.12f\n", line2d[i][0],line2d[i][1]);
+  }
+  fclose(file2d);
+  printf("write the tracing line in %s\n", filename2d);
+
+//3. Create the mesh tube
+  int n_point = 101;
+  double del = 1.0/(n_point-1);
+  
+  int n_prev_curve = step_prev+1;
+  int n_curve = step_curve+1;
+
+  printf("debug n_prev_curve: %d\n",n_prev_curve);
+  printf("debug n_curve: %d\n",n_curve);
+  
+  double tot_length_prve = long_CARRE(line2d_prev,n_prev_curve);
+  printf("total prev curve length: %f\n", tot_length_prve);
+
+  double tot_length = long_CARRE(line2d,n_curve);
+  printf("total curve length: %f\n", tot_length);
+
+  double length_prev_points[n_point];
+  double **prev_point_coord = allocate_2d_array(n_point,2);
+
+
+   for(int i=0; i<n_point; i++)
+   {
+     printf("del: %f, i: %d, tot_length_prve: %.10f\n", del, i, tot_length_prve);
+     length_prev_points[i] = del * i * tot_length_prve;
+     printf("length_prev_points: %.10f\n",length_prev_points[i]);
+     coord_CARRE(line2d_prev, n_prev_curve, length_prev_points[i], prev_point_coord[i]);
+     printf("prev_point_coord: x: %.10f, y: %.10f\n",prev_point_coord[i][0],prev_point_coord[i][1]);
+   }
+
+  const char *prev_point_name="prev_point";
+  FILE* prev_point = fopen(prev_point_name, "w");
+  for (int i=0; i<n_point; i++)
+  {
+      fprintf(prev_point, "%.12f %.12f\n", prev_point_coord[i][0],prev_point_coord[i][1]);
+  }
+  fclose(prev_point);
+  printf("write the tracing line in %s\n", prev_point_name);
+
+  double guard_top = 0.05;
+  double guard_end = 0.2;
+  double pasmin = 1.0e-3;
+
+  double length_points[n_point];
+  // length_points[0] = 0;
+  // length_points[n_point-1] = tot_length;
+
+  double **point_coord = allocate_2d_array(n_point,2);
+  //point_coord[0][0] = line2d_2[0][0];
+  //point_coord[0][1] = line2d_2[0][1];
+  //point_coord[n_point-1][0] = line2d_2[n_curve-1][0];
+  //point_coord[n_point-1][1] = line2d_2[n_curve-1][1];
+ 
+  CarreMeshTube tube1 =
+  {
+    .guard_top = guard_top,
+    .guard_end = guard_end,
+    .pasmin = pasmin,
+
+    .n_prev_curve = n_prev_curve,
+    .prev_curve = line2d_prev,
+
+    .n_curve = n_curve,
+    .curve = line2d,
+
+    .n_point = n_point,
+    .length_prev_points = length_prev_points,
+    .prev_point_coord = prev_point_coord,
+
+    .length_points = length_points,
+    .point_coord = point_coord
+  };
+
+
+//4. Calculate the curve
+  calc_points_CARRE(&tube1);
+
+//5. output and free
+
+  const char *filenametube="flux_tube";
+  FILE* filetube = fopen(filenametube, "w");
+  for (int i=0; i<n_point; i++)
+  {
+      fprintf(filetube, "%.12f %.12f\n", tube1.prev_point_coord[i][0],tube1.prev_point_coord[i][1]);
+  }
+  for (int i=0; i<n_point; i++)
+  {
+      fprintf(filetube, "%.12f %.12f\n", tube1.point_coord[i][0],tube1.point_coord[i][1]);
+  }
+  fclose(filetube);
+  printf("write the tracing line in %s\n", filenametube);
+
+
+  free(x_prev_2d);
+//  free_2d_array(line2d);
+//  free_2d_array(line2d_2);
   free_mag_field_torsys(&test_magfield);
 
 

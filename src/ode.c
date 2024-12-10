@@ -22,7 +22,10 @@ void ode_f_brz_torsys_bilinear(const int ndim, const double *x, const double *y,
   double dg2rad = M_PI/180.0;
   dydx[0] = y[0] * br_tmp/bt_tmp * dg2rad;
   dydx[1] = y[0] * bz_tmp/bt_tmp * dg2rad;
-  dydx[2] = 1.0;
+  if(ndim ==3)
+  {
+    dydx[2] = 1.0;
+  }
 }
 
 void ode_f_brz_torsys_bicubic(const int ndim, const double *x, const double *y, double *dydx, void *data)
@@ -51,7 +54,11 @@ void ode_f_brz_torsys_cubicherm(const int ndim, const double *x, const double *y
   //printf("debug br_tmp: %lf, bz_tmp: %lf\n", br_tmp, bt_tmp);
   dydx[0] = y[0] * br_tmp/bt_tmp * dg2rad;
   dydx[1] = y[0] * bz_tmp/bt_tmp * dg2rad;
-  dydx[2] = 1.0;
+  if(ndim ==3)
+  {
+    dydx[2] = 1.0;
+  }
+
 }
 
 
@@ -147,6 +154,10 @@ void brk5_next_step(double step_size, const double *x, const double *y, double *
  
   //step 1, k1
   ode_f->compute_f(ndim, x, y, dydx[0], ode_f->data);
+  for (int i=0; i<ndim; i++)
+  {
+    dydx[0][i] = dydx[0][i] * ode_f->rescale[i];
+  }
   //printf("debug: dydx[0] calculated.\n");
 
 
@@ -157,6 +168,10 @@ void brk5_next_step(double step_size, const double *x, const double *y, double *
       y_tmp[i] = y[i] + step_size * brk5_data->A[1][0] * dydx[0][i];
   }
   ode_f->compute_f(ndim, &x_tmp, y_tmp, dydx[1], ode_f->data);
+  for (int i=0; i<ndim; i++)
+  {
+    dydx[1][i] = dydx[1][i] * ode_f->rescale[i];
+  }
   //printf("debug: dydx[1] calculated.\n");
 
   // Step 3: k3
@@ -166,6 +181,10 @@ void brk5_next_step(double step_size, const double *x, const double *y, double *
     y_tmp[i] = y[i] + step_size * (brk5_data->A[2][0] * dydx[0][i] + brk5_data->A[2][1] * dydx[1][i]);
   }
   ode_f->compute_f(ndim, &x_tmp, y_tmp, dydx[2], ode_f->data);
+  for (int i=0; i<ndim; i++)
+  {
+    dydx[2][i] = dydx[2][i] * ode_f->rescale[i];
+  }
   //printf("debug: dydx[3] calculated.\n");
 
   // Step 4: k4
@@ -175,6 +194,10 @@ void brk5_next_step(double step_size, const double *x, const double *y, double *
     y_tmp[i] = y[i] + step_size * (brk5_data->A[3][1] * dydx[1][i] + brk5_data->A[3][2] * dydx[2][i]);
   }
   ode_f->compute_f(ndim, &x_tmp, y_tmp, dydx[3], ode_f->data);
+  for (int i=0; i<ndim; i++)
+  {
+    dydx[3][i] = dydx[3][i] * ode_f->rescale[i];
+  }
   //printf("debug: dydx[4] calculated.\n");
 
   // Step 5: k5
@@ -184,6 +207,11 @@ void brk5_next_step(double step_size, const double *x, const double *y, double *
     y_tmp[i] = y[i] + step_size * (brk5_data->A[4][0] * dydx[0][i] + brk5_data->A[4][3] * dydx[3][i]);
   }
   ode_f->compute_f(ndim, &x_tmp, y_tmp, dydx[4], ode_f->data);
+
+  for (int i=0; i<ndim; i++)
+  {
+    dydx[4][i] = dydx[4][i] * ode_f->rescale[i];
+  }
   //printf("debug: dydx[5] calculated.\n");
 
   x_tmp = *x + brk5_data->C[5] * step_size;
@@ -197,6 +225,11 @@ void brk5_next_step(double step_size, const double *x, const double *y, double *
             brk5_data->A[5][4] * dydx[4][i]);
   }
   ode_f->compute_f(ndim, &x_tmp, y_tmp, dydx[5], ode_f->data);
+  
+  for (int i=0; i<ndim; i++)
+  {
+    dydx[5][i] = dydx[5][i] * ode_f->rescale[i];
+  }
   //printf("debug: dydx[6] calculated.\n");
 
 

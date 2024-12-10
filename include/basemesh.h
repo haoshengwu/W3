@@ -14,27 +14,27 @@ typedef struct
 * Input parameters
 **********************************/
     //point number of the previous curve.
-    const size_t n_prev_curve;
+    size_t n_prev_curve;
     //previous curve points prev_curve[n_prev_curve][0] x coordinate, prev_curve[n_prev_curve][0] x coordinate
     double **prev_curve;
     //point number of the curve.
-    const size_t n_curve;
+    size_t n_curve;
     //curve points curve[n_curve][0] x coordinate, curve[n_curve][0] x coordinate
     double **curve;
     
     //the number of points for the mesh in X direction
-    const size_t n_point;
+    size_t n_point;
     //The length distributions of the mesh pionts in the previous curve. 
     double *length_prev_points;
     //the points' coordiantes for the mesh which are along the prev_curve.
     double **prev_point_coord;
 
     //guardlength at the start for curve
-    const double guard_top;
+    double guard_top;
     //guardlength at the end for curve
-    const double guard_end;
+    double guard_end;
     //minimum distance between mesh points in the curve
-    const double pasmin;
+    double pasmin;
 /*********************************
 * Output parameters
 **********************************/
@@ -68,8 +68,10 @@ void free_CarreOrthoValue(CarreOrthoValue *ortho_value);
 * This function calculate the orthogonalirty of the mesh points on two mesh curves.
 * This fuction is refered to Fortran code CARRE/clort.F .
 ********************************************************************************/
-void calc_ortho_CARRE(CarreMeshTube *tube, CarreOrthoValue *ortho_value);
-
+void calc_ortho_CARRE(size_t n_point, double *length_prev_points, double **prev_point_coord,
+                      double guard_top, double guard_end, double pasmin,
+                      double *length_points, double **point_coord,
+                      CarreOrthoValue *ortho_value);
 
 /*******************************************************************************
 * This function calculate the mesh points in the curve which have a good orthogonalirty
