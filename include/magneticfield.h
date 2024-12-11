@@ -25,6 +25,12 @@ typedef struct{
   double *z;
   //B_rz[i][j][0] is Br, B_rz[i][j][1] is Bz
   double ***Brz;
+  //dBrzdx[i][j][0] is dBrdx, dBrzdx[i][j][1] is dBzdx
+  double ***dBrzdx;
+  //dBrzdy[i][j][0] is dBrdy, dBrzdx[i][j][1] is dBzdy
+  double ***dBrzdy;
+  //d2Brzdxdy[i][j][0] is d2Brdxdy, d2Brzdxdy[i][j][1] is d2Bzdxdy
+  double ***d2Brzdxdy;
 } MagFieldTorSys;
 
 /*
@@ -45,7 +51,7 @@ follow define a algorithm to select different interpolate method
 
 // 'void *intpl_data' is used to point any intermediate pre-calculated data to speed up the calculation
 typedef void (*intpl_2d_fun)(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
-                             double ***f, double *value1, double*value2, void *intpl_data);
+                             double ***f, double *value1, double*value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
 
 typedef struct {
   const char *name;

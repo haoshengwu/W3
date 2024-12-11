@@ -76,17 +76,11 @@ void calc_ortho_CARRE(size_t n_point, double *length_prev_points, double **prev_
 /*******************************************************************************
 * This function calculate the mesh points in the curve which have a good orthogonalirty
 * using a secant method according to R. Marchand Computer Physics Communications, 1996, 96.2-3: 232-246.
+* In carre, the guard length is depend on separatrix. In this code, it dependt on previous cureve.
+* Then the guard length are vertorized(different curves have different value). 
 ********************************************************************************/
 void calc_points_CARRE(CarreMeshTube *tube);
 
-
-/*******************************************************************************
-* This function calculate the points which on the curve of the CarreMeshTube.
-* In the CarreMeshTube, there are two curves: the previous curve and the curve.
-* The points in the curve is determined by the previous curve and to have a good orthognolity.
-* This algorithm refer to the Fortran code CARRE/mailrg.F .
-********************************************************************************/
-//void calc_point_CARRE(CarreMeshTube *tube);
 
 
 /*******************************************************************************

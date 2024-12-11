@@ -39,8 +39,6 @@ int main(){
   XPointTest xp;
   xp = find_Xpoint(&dtt_example, w3_input.xpt_estimation);
   
-
-  
   // for(int j = 0; j < 5; j++)
   // {
   //   printf("z= %f\n", dtt_example.z[j]);
@@ -262,11 +260,11 @@ test new structure for brk5 tracing
 //2. Test 2D tracer: create 2 lines
   brk45_solver_2d.initialize(&brk45_data_2d);
 
-  int step_prev= 1800;
+  int step_prev= 1950;
   double *x_prev_2d = (double *)malloc((step_prev+1) * sizeof(double));
   x_prev_2d[0] = 0.0;
   double **line2d_prev = allocate_2d_array(step_prev+1,2);
-  line2d_prev[0][0] = 2.05;
+  line2d_prev[0][0] = 2.04;
   line2d_prev[0][1] = -1.50;
 
 //first line
@@ -347,9 +345,9 @@ test new structure for brk5 tracing
     normal[n_point - 1] = 1.0;
 
     // 输出结果
-    for (int i = 0; i < n_point; i++) {
-        printf("normal[%d] = %.10f\n", i, normal[i]);
-    }
+    // for (int i = 0; i < n_point; i++) {
+    //     printf("normal[%d] = %.10f\n", i, normal[i]);
+    // }
 
   int n_prev_curve = step_prev+1;
   int n_curve = step_curve+1;
@@ -366,16 +364,15 @@ test new structure for brk5 tracing
   double length_prev_points[n_point];
   double **prev_point_coord = allocate_2d_array(n_point,2);
 
-
    for(int i=0; i<n_point; i++)
    {
-     printf("del: %f, i: %d, tot_length_prve: %.10f\n", del, i, tot_length_prve);
      length_prev_points[i] = normal[i] * tot_length_prve;
-     printf("length_prev_points: %.10f\n",length_prev_points[i]);
      coord_CARRE(line2d_prev, n_prev_curve, length_prev_points[i], prev_point_coord[i]);
-     printf("prev_point_coord: x: %.10f, y: %.10f\n",prev_point_coord[i][0],prev_point_coord[i][1]);
-   }
 
+     //printf("del: %f, i: %d, tot_length_prve: %.10f\n", del, i, tot_length_prve);
+     //printf("length_prev_points: %.10f\n",length_prev_points[i]);
+     //printf("prev_point_coord: x: %.10f, y: %.10f\n",prev_point_coord[i][0],prev_point_coord[i][1]);
+   }
 
 
   const char *prev_point_name="prev_point";
@@ -387,7 +384,7 @@ test new structure for brk5 tracing
   fclose(prev_point);
   printf("write the tracing line in %s\n", prev_point_name);
 
-  double guard_top = 0.05;
+  double guard_top = 0.1;
   double guard_end = 0.2;
   double pasmin = 1.0e-3;
 

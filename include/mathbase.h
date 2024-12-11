@@ -41,14 +41,16 @@ typedef struct
 
 typedef struct 
 {
-    /* data */
-} cubicherm;
+  double **dfdx;
+  double **dfdy;
+  double **d2fdxdy;
+} CubicHerm2dData;
 
 // 'void *intpl_data' is pointer can be used point to the pre-calculated data to speed up the calculation
 void bilenar_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
-                double ***f, double *value1, double *value2, void *intpl_data);
+                double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
 void bicubic_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
-                double ***f, double *value1, double *value2, void *intpl_data);
+                double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
 void cubicherm_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
-                double ***f, double *value1, double *value2, void *intpl_data);
+                double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
 #endif

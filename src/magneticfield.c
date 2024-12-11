@@ -58,6 +58,9 @@ void init_mag_field_torsys(MagFieldTorSys *mag_field)
   mag_field->z = NULL;
   mag_field->phi = NULL;
   mag_field->Brz = NULL;
+  mag_field->dBrzdx = NULL;
+  mag_field->dBrzdy = NULL;
+  mag_field->d2Brzdxdy = NULL;
 }
 
 void free_mag_field_torsys(MagFieldTorSys *mag_field)
@@ -66,6 +69,9 @@ void free_mag_field_torsys(MagFieldTorSys *mag_field)
   free(mag_field->z);
   free(mag_field->phi);
   free_3d_array(mag_field->Brz);
+  free_3d_array(mag_field->dBrzdx);
+  free_3d_array(mag_field->dBrzdy);
+  free_3d_array(mag_field->d2Brzdxdy);
 }
 
 void calc_mag_field_torsys(Equilibrium *equ, MagFieldTorSys *mag_field, const char *method)
@@ -113,9 +119,44 @@ void calc_mag_field_torsys(Equilibrium *equ, MagFieldTorSys *mag_field, const ch
       
     }
   }
+  //allocate and calculate dBrzdx, dBrzdx, d2Brzdxdy at each point by 2nd central difference method
+  //ToDO in the future can be updated to high order accuracy.
 
-  free_3d_array(grad_psi_tmp);
-}
+  mag_field->dBrzdx = allocate_3d_array(mag_field->nr, mag_field->nz, 2);
+  mag_field->dBrzdy = allocate_3d_array(mag_field->nr, mag_field->nz, 2);
+  mag_field->d2Brzdxdy = allocate_3d_array(mag_field->nr, mag_field->nz, 2);
+ 
+  int nr = mag_field->nr;
+  int nz = mag_field->nz;
+  for(int i=0;i<nr;i++)
+    {
+      for(int j=0;j<nz;j++)
+      {
+        int iyp=min(nz-1,j+1);
+        int iym=max(0,j-1);
+        int ixp=min(nr-1,i+1);
+        int ixm=max(0,i-1);
+
+        for (int k=0; k<2; k++)
+        {
+        mag_field->dBrzdx[i][j][k] = (mag_field->Brz[ixp][j][k] - mag_field->Brz[ixm][j][k])/(mag_field->r[ixp]-mag_field->r[ixm]);
+        mag_field->dBrzdy[i][j][k] = (mag_field->Brz[i][iyp][k] - mag_field->Brz[i][iym][k])/(mag_field->z[iyp]-mag_field->z[iym]);
+        mag_field->d2Brzdxdy [i][j][k] = (mag_field->Brz[ixp][iyp][k] - mag_field->Brz[ixm][iyp][k]
+                                          -mag_field->Brz[ixp][iym][k] + mag_field->Brz[ixm][iym][k])
+                                        /((mag_field->r[ixp]-mag_field->r[ixm])*(mag_field->z[iyp]-mag_field->z[iym]));
+        }
+      }
+    }
+    free_3d_array(grad_psi_tmp);
+  }
+
+
+
+
+
+
+  
+
 
 void get_bt_torsys(MagFieldTorSys *mag_field, const double r0, double *bt)
 {
@@ -140,7 +181,7 @@ void get_brz_torsys(MagFieldTorSys *mag_field, const double r, const double z, c
   if (strcmp("bilnear", method)==0)
   {
     selected_fun(r, z, mag_field->nr, mag_field->r, mag_field->nz, mag_field->z, 
-                mag_field->Brz, br, bz, NULL);
+                mag_field->Brz, br, bz, NULL, NULL, NULL);
   }
   else{
     printf("Currently, do not support other methods!\n");
