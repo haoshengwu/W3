@@ -9,7 +9,7 @@
 #endif
 
 #ifndef RLCEPT
-#define RLCEPT 5.0E-6
+#define RLCEPT 1.0E-6
 #endif
 
 #ifndef RELAX
@@ -108,10 +108,17 @@ void calc_ortho_CARRE(size_t n_point, double *length_prev_points, double **prev_
 
     double f1,f2,f3;
     f1 = cs2+cs3-cs1-cs4;
+    //this is according to the CARRE paper.
+    // f2 = -(pow(g1/length_points[i],2.0) 
+    //        +pow(g2/(length_points[n_point-1] - length_points[i]),2.0))
+    //      *(length_points[i] 
+    //        -length_prev_points[i]/length_prev_points[n_point-1]*length_points[n_point-1])
+    //       /(pasmin + g1 + g2);
+    //this is according to the CARRE source code clort.F
     f2 = -(pow(g1/length_prev_points[i],2.0) 
            +pow(g2/(length_prev_points[n_point-1] - length_prev_points[i]),2.0))
          *(length_points[i] 
-           -length_prev_points[i]/length_points[n_point-1]*length_points[n_point-1])
+           -length_prev_points[i]/length_prev_points[n_point-1]*length_points[n_point-1])
           /(pasmin + g1 + g2);
     f3 = (pow(pasmin/(length_points[i]-length_points[i-1]),2.0)
           -pow(pasmin/(length_points[i+1]-length_points[i]),2.0));
@@ -127,8 +134,8 @@ void calc_ortho_CARRE(size_t n_point, double *length_prev_points, double **prev_
 
 void calc_points_CARRE(CarreMeshTube *tube)
 {
-  CarreOrthoValue ortho_value_tmp, ortho_value;
-  allocate_CarreOrthoValue(tube->n_point, &ortho_value_tmp);
+  CarreOrthoValue tmp_ortho_value, ortho_value;
+  allocate_CarreOrthoValue(tube->n_point, &tmp_ortho_value);
   allocate_CarreOrthoValue(tube->n_point, &ortho_value);
   size_t n_point = tube->n_point;
 
@@ -141,6 +148,7 @@ void calc_points_CARRE(CarreMeshTube *tube)
     //tmp_length_points is coresponding to l1 in mailrg.F
     //tube->length_points is coresponding to l2 mailrg.F
     double *tmp_length_points = (double *)calloc(n_point, sizeof(double));
+    double **tmp_point_coord = allocate_2d_array(n_point,2);
 
     tmp_length_points[0] = 0.0; 
     double length = long_CARRE(tube->curve, tube->n_curve);
@@ -152,6 +160,11 @@ void calc_points_CARRE(CarreMeshTube *tube)
     tube->point_coord[0][1] = tube->curve[0][1];
     tube->point_coord[n_point-1][0] = tube->curve[tube->n_curve-1][0];
     tube->point_coord[n_point-1][1] = tube->curve[tube->n_curve-1][1];
+
+    tmp_point_coord[0][0] = tube->curve[0][0];
+    tmp_point_coord[0][1] = tube->curve[0][1];
+    tmp_point_coord[n_point-1][0] = tube->curve[tube->n_curve-1][0];
+    tmp_point_coord[n_point-1][1] = tube->curve[tube->n_curve-1][1];
     printf("debug npoint-1: %d, n_curve-1: %d \n", (int)(n_point-1), (int)(tube->n_curve-1));
 
 //    printf("debug in calc_points_CARRE line 149\n");
@@ -162,14 +175,15 @@ void calc_points_CARRE(CarreMeshTube *tube)
       d1 = ruban_CARRE(tube->prev_curve, tube->n_prev_curve, 
                        tube->prev_point_coord[ipol],d1);
       tmp_length_points[ipol] = (tube->length_prev_points[ipol]/prev_length)*length;
-      coord_CARRE(tube->curve, tube->n_curve, tmp_length_points[ipol], tube->point_coord[ipol]);
+ 
+      coord_CARRE(tube->curve, tube->n_curve, tmp_length_points[ipol], tmp_point_coord[ipol]);
     }
     //debug******************************************
     const char *ini_point_name="ini_point";
     FILE* ini_point = fopen(ini_point_name, "w");
     for (int i=0; i<n_point; i++)
     {
-      fprintf(ini_point, "%.12f %.12f\n", tube->point_coord[i][0],tube->point_coord[i][1]);
+      fprintf(ini_point, "%.12f %.12f\n", tmp_point_coord[i][0],tmp_point_coord[i][1]);
     }
     fclose(ini_point);
     printf("write the tracing line in %s\n", ini_point_name);
@@ -182,19 +196,18 @@ void calc_points_CARRE(CarreMeshTube *tube)
 //2. we initialize the function which must be zero for an orthogonal distribution.
       calc_ortho_CARRE(tube->n_point,tube->length_prev_points, tube->prev_point_coord,
                       tube->guard_top, tube->guard_end, tube->pasmin,
-                      tmp_length_points,tube->point_coord,
-                      &ortho_value_tmp);
-      printf("debug ort: %.10f\n",ortho_value_tmp.ort[n_point-1]);
+                      tmp_length_points,tmp_point_coord,
+                      &tmp_ortho_value);
+      printf("debug origin ort: %.10f\n",tmp_ortho_value.ort[n_point-1]);
 
 //3. we proceed to a first displacement of the nodes
 
       tube->length_points[0] = 0;
       tube->length_points[n_point-1] = length;
-      
-      
+  
       for(int ipol = 1; ipol<ipoln; ipol++)
       {
-        if(ortho_value_tmp.ort[ipol] > 0.0)
+        if(tmp_ortho_value.ort[ipol] > 0.0)
         {
           tube->length_points[ipol] = 0.9*tmp_length_points[ipol] + 0.1*tmp_length_points[ipol+1];
         }
@@ -206,14 +219,14 @@ void calc_points_CARRE(CarreMeshTube *tube)
       }
 
     //debug******************************************
-    const char *ini_point_name_tmp="ini_point_test";
-    FILE* ini_point_tmp = fopen(ini_point_name_tmp, "w");
+    const char *firstname="first_replace";
+    FILE* first = fopen(firstname, "w");
     for (int i=0; i<n_point; i++)
     {
-      fprintf(ini_point_tmp, "%.12f %.12f\n", tube->point_coord[i][0], tube->point_coord[i][1]);
+      fprintf(first, "%.12f %.12f\n", tube->point_coord[i][0], tube->point_coord[i][1]);
     }
-    fclose(ini_point_tmp);
-    printf("write the tracing line in %s\n", ini_point_name_tmp);
+    fclose(first);
+    printf("write the tracing line in %s\n", firstname);
     //************************************************************
     //todo: store the ortho value for the whole region
     // somort(ir)= somort(ir)+ (ort1(ipol)/nppol)
@@ -224,60 +237,69 @@ void calc_points_CARRE(CarreMeshTube *tube)
     
 //4. we relax the points iteratively to achieve the best possible orthogonality
       double ortmax = 0.0;
-      double diff_ortho = 0.0;
+      
       for (int i = 0; i<NRELAX; i++)
       {
         calc_ortho_CARRE(tube->n_point,tube->length_prev_points, tube->prev_point_coord,
                          tube->guard_top, tube->guard_end, tube->pasmin,
-                         tube->length_points,tube->point_coord,
+                         tube->length_points, tube->point_coord,
                          &ortho_value);
         ortmax = 0.0;
+
         for (int ipol=ipol1; ipol<ipoln; ipol++)
         {
-          diff_ortho = fabs(ortho_value.ort[ipol] - ortho_value_tmp.ort[ipol]);
-          if(fabs(ortho_value.ort[ipol]) > RLCEPT)
-          {
-            double del = 0.0;
-            
-            if(diff_ortho > RLCEPT*RLCEPT)
-            {
-              del = -ortho_value.ort[ipol]*(tube->length_points[ipol]-tmp_length_points[ipol])
-                    /(ortho_value.ort[ipol] - ortho_value_tmp.ort[ipol]);
-            }
+          double ortho_current = ortho_value.ort[ipol];
+          double ortho_diff = ortho_current - tmp_ortho_value.ort[ipol];
+          double length_diff = tube->length_points[ipol] - tmp_length_points[ipol];
+          double del = 0.0;
+          double ortho_diff_abs = fabs(ortho_diff);
 
-            if(del > 0.0) 
-            {
-              del = min(del, RELAX*(tube->length_points[ipol+1]-tube->length_points[ipol]));
-            }
-            else
-            {
-              del = max(del, RELAX*(tube->length_points[ipol-1]-tube->length_points[ipol]));
-            }
-            if(fabs(del)>1.0E-8)
-            {
-              tmp_length_points[ipol] = tube->length_points[ipol];
-              ortho_value_tmp.ort[ipol] = ortho_value.ort[ipol];
-              tube->length_points[ipol] = tmp_length_points[ipol]+del;
-            }
-            // printf("debug in calc_points_CARRE line 241\n"); 
-            printf("del: %.10f\n", del);
-            printf("ipol: %d, length_point %.10f\n",ipol, tube->length_points[ipol]);
-            coord_CARRE(tube->curve,tube->n_curve,tube->length_points[ipol], tube->point_coord[ipol]);
-            // printf("debug in calc_points_CARRE line 243\n");
+          if (fabs(ortho_current) <= RLCEPT)
+          {
+            continue;
           }
-          ortmax=max(ortmax,fabs(ortho_value.ort[ipol]));
+
+          if(ortho_diff_abs > RLCEPT*RLCEPT)
+          {
+            del = -ortho_current*length_diff/ortho_diff;
+          }
+          else
+          {
+            del = 0.0;
+          } 
+
+          if(del > 0.0) 
+          {
+            del = min(del, RELAX*(tube->length_points[ipol+1]-tube->length_points[ipol]));
+          }
+          else
+          {
+            del = max(del, RELAX*(tube->length_points[ipol-1]-tube->length_points[ipol]));
+          }
+
+          if(fabs(del) > RLCEPT*RLCEPT)
+          {
+            tmp_length_points[ipol] = tube->length_points[ipol];
+            tmp_ortho_value.ort[ipol] = ortho_value.ort[ipol];
+            tube->length_points[ipol] = tmp_length_points[ipol]+del;
+          }
+          // printf("debug in calc_points_CARRE line 241\n"); 
+          //printf("del: %.10f\n", del);
+          //printf("ipol: %d, length_point %.10f\n",ipol, tube->length_points[ipol]);
+          coord_CARRE(tube->curve,tube->n_curve,tube->length_points[ipol], tube->point_coord[ipol]);
+          ortmax=max(ortmax,fabs(ortho_current));
         }
         printf("debug: ortmax %.10f\n",ortmax);
         printf("i: %d\n",i);
         if ((ortmax < RLCEPT))
         {
-          printf("finish optimized\n");
+          printf("Finish optimized\n");
           break;
         }
       }
       if (ortmax > RLCEPT)
       {
-        printf("After optimization, the orthognoal is not good\n");
+        printf("WARING: After optimization, the orthognoality is not good\n");
         printf("please adjust the parameters\n");
       }
       //TODO write the orthognonal values
@@ -289,13 +311,14 @@ void calc_points_CARRE(CarreMeshTube *tube)
       //   somtotp(ir)= somtotp(ir)+ (tot2(ipol)/nppol)
       //   enddo
       free(tmp_length_points);
+      free_2d_array(tmp_point_coord);
     }
     else
     {
       printf("not support NRELAX=0\n");
     }
   }
-  free_CarreOrthoValue(&ortho_value_tmp);
+  free_CarreOrthoValue(&tmp_ortho_value);
   free_CarreOrthoValue(&ortho_value);
 
 }

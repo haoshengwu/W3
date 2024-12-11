@@ -286,12 +286,12 @@ test new structure for brk5 tracing
   printf("write the tracing line in %s\n", filename2d_prev);
   
 //second line
-  int step_curve = 1710;
+  int step_curve = 1700;
   double *x_2d = (double *)malloc((step_curve+1) * sizeof(double));
   x_2d[0] = 0.0;
   double **line2d = allocate_2d_array(step_curve+1,2);
-  line2d[0][0] = 2.08;
-  line2d[0][1] = -1.50;
+  line2d[0][0] = 2.1;
+  line2d[0][1] = -1.55;
 
 
   for(int i=1;i<step_curve+1;i++)
@@ -310,9 +310,47 @@ test new structure for brk5 tracing
   printf("write the tracing line in %s\n", filename2d);
 
 //3. Create the mesh tube
-  int n_point = 101;
-  double del = 1.0/(n_point-1);
-  
+
+
+    int n_point = 201;                 // 总点数
+    double del = 1.0 / (n_point - 1);
+
+    int m = 11;                        // 前后各11个点
+    int mid_points = n_point - 2 * m;  // 中间点的个数
+
+    double normal[n_point];            // 存储归一化长度坐标
+
+    double del1 = 0.02;
+    double del2 = 0.02;
+
+    double front_step = del1 / (m - 1);    // 前11个点的步长
+    double back_step = del2 / (m - 1);     // 后11个点的步长
+    double middle_step = (1 - del1 - del2) / (mid_points+1); // 中间区域步长
+
+    // 前11个点：累积长度从 0.0 到 0.05
+    normal[0] = 0.0;
+    for (int i = 1; i < m; i++) {
+        normal[i] = normal[i - 1] + front_step;
+    }
+
+    // 中间79个点：从前区域结束位置开始累加
+    for (int i = m; i < n_point - m; i++) {
+        normal[i] = normal[i - 1] + middle_step;
+    }
+
+    // 后11个点：从中间区域结束位置开始累加
+    for (int i = n_point - m; i < n_point; i++) {
+        normal[i] = normal[i - 1] + back_step;
+    }
+
+    // 修正最后一个点，确保精确为 1.0
+    normal[n_point - 1] = 1.0;
+
+    // 输出结果
+    for (int i = 0; i < n_point; i++) {
+        printf("normal[%d] = %.10f\n", i, normal[i]);
+    }
+
   int n_prev_curve = step_prev+1;
   int n_curve = step_curve+1;
 
@@ -332,11 +370,13 @@ test new structure for brk5 tracing
    for(int i=0; i<n_point; i++)
    {
      printf("del: %f, i: %d, tot_length_prve: %.10f\n", del, i, tot_length_prve);
-     length_prev_points[i] = del * i * tot_length_prve;
+     length_prev_points[i] = normal[i] * tot_length_prve;
      printf("length_prev_points: %.10f\n",length_prev_points[i]);
      coord_CARRE(line2d_prev, n_prev_curve, length_prev_points[i], prev_point_coord[i]);
      printf("prev_point_coord: x: %.10f, y: %.10f\n",prev_point_coord[i][0],prev_point_coord[i][1]);
    }
+
+
 
   const char *prev_point_name="prev_point";
   FILE* prev_point = fopen(prev_point_name, "w");
@@ -392,18 +432,22 @@ test new structure for brk5 tracing
   for (int i=0; i<n_point; i++)
   {
       fprintf(filetube, "%.12f %.12f\n", tube1.prev_point_coord[i][0],tube1.prev_point_coord[i][1]);
-  }
-  for (int i=0; i<n_point; i++)
-  {
       fprintf(filetube, "%.12f %.12f\n", tube1.point_coord[i][0],tube1.point_coord[i][1]);
   }
+  // for (int i=0; i<n_point; i++)
+  // {
+  //     fprintf(filetube, "%.12f %.12f\n", tube1.point_coord[i][0],tube1.point_coord[i][1]);
+  // }
   fclose(filetube);
   printf("write the tracing line in %s\n", filenametube);
 
-
+  brk45_solver_2d.finalize(&brk45_data_2d);
+  free(x_2d);
   free(x_prev_2d);
-//  free_2d_array(line2d);
-//  free_2d_array(line2d_2);
+  free_2d_array(line2d);
+  free_2d_array(line2d_prev);
+  free_2d_array(point_coord);
+  free_2d_array(prev_point_coord);
   free_mag_field_torsys(&test_magfield);
 
 
