@@ -108,7 +108,7 @@ void calc_ortho_CARRE(size_t n_point, double *length_prev_points, double **prev_
 
     double f1,f2,f3;
     f1 = cs2+cs3-cs1-cs4;
-    //this is according to the CARRE paper.
+    // this is according to the CARRE paper.
     // f2 = -(pow(g1/length_points[i],2.0) 
     //        +pow(g2/(length_points[n_point-1] - length_points[i]),2.0))
     //      *(length_points[i] 
@@ -315,6 +315,7 @@ void calc_points_CARRE(CarreMeshTube *tube)
     }
     else
     {
+      //ToDo: need to do similar things as CARRE.
       printf("not support NRELAX=0\n");
     }
   }

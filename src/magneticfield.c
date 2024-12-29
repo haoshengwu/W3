@@ -150,14 +150,6 @@ void calc_mag_field_torsys(Equilibrium *equ, MagFieldTorSys *mag_field, const ch
     free_3d_array(grad_psi_tmp);
   }
 
-
-
-
-
-
-  
-
-
 void get_bt_torsys(MagFieldTorSys *mag_field, const double r0, double *bt)
 {
   if (r0 < MIN_R)

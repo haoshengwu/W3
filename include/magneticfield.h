@@ -12,8 +12,6 @@
 //mininum R range used for calculate magnetic field to avoid zero value;
 #define MIN_R 0.1 // unit(meter)
 
-
-
 typedef struct{
   int nr;
   int nphi;  //currently not use

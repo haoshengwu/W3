@@ -46,7 +46,8 @@ typedef struct
   double **d2fdxdy;
 } CubicHerm2dData;
 
-// 'void *intpl_data' is pointer can be used point to the pre-calculated data to speed up the calculation
+// dfdx dfdy d2fdxdy can be supported or just NULL pointer.
+// here 2d means for TWO 2d-functions. NOT for ONE 2d-function.
 void bilenar_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
                 double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
 void bicubic_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
