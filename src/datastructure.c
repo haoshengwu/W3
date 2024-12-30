@@ -116,7 +116,7 @@ void write_DDList(DLListNode* head, const char* filename)
     while (head !=NULL) 
     {
         // the unit is mm, it can be changed in the future
-        fprintf(file, "%lf  %lf\n", head->r*1000, head->z*1000);  
+        fprintf(file, "%lf  %lf\n", head->r, head->z);  
         head = head->next;
     }
 
@@ -223,3 +223,4 @@ void free_3d_array(double ***array)
   free(array[0]);
   free(array);
 }
+

@@ -54,4 +54,16 @@ void bicubic_2d(double target_x, double target_y, int nx, double *x,  int ny, do
                 double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
 void cubicherm_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
                 double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
+
+// dfdx dfdy d2fdxdy can be supported or just NULL pointer.
+// here 1d means for ONE 2d-functions. E.g f(x,y)
+void bilenar_1d(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
+                double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy);
+
+void cubicherm_1d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+                double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy);
+
+
+
+
 #endif

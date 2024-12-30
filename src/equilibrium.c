@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+#include "basemesh.h"
 #include "equilibrium.h"
 #include "calc.h"
 
@@ -102,35 +103,112 @@ void read_equilib_geqdsk(Equilibrium *equilib, const char *geqdsk_file)
   fscanf(file, "%lf %lf %lf %lf %lf", &current, &simag, &xdum, &rmaxis, &xdum);
   fscanf(file, "%lf %lf %lf %lf %lf", &zmaxis, &xdum, &sibry, &xdum, &xdum);
 
-  equilib->nw = nw;
-  equilib->nh = nh;
+  //equilib->nw = nw;
+  //equilib->nh = nh;
   equilib->simag = simag;
   equilib->sibry = sibry;
   equilib->bcenter = bcentr;
   equilib->rcenter = rcentr;
 
   // skip fpol, pres, ffprim, pprime, total number is 4 * nw, will be updated.
-  for (int i = 0; i < 4 * equilib->nw; i++)
+  for (int i = 0; i < 4 * nw; i++)
   {
     fscanf(file, "%lf", &tmp);
   }
 
-  //  Allocate dynamic memmory and passing value for equilib -> psi
-  equilib->psi = (double **)malloc(equilib->nw * sizeof(double *));
+  //  Allocate dynamic memmory and passing value for Temporary r_tmp, z_tmp, psi_tmp; 
+  double **psi_tmp = allocate_2d_array(nw, nh);
+  double *r_tmp = calloc(nw,sizeof(double));
+  double *z_tmp = calloc(nh,sizeof(double));
 
-  for (int i = 0; i < equilib->nw; i++)
+  for (int j = 0; j < nh; j++)
   {
-    equilib->psi[i] = (double *)malloc(equilib->nh * sizeof(double));
-  }
-  
- 
-  for (int j = 0; j < equilib->nh; j++)
-  {
-    for (int i = 0; i < equilib->nw; i++)
+    for (int i = 0; i < nw; i++)
     {
-      fscanf(file, "%lf", &equilib->psi[i][j]);
+      fscanf(file, "%lf", &(psi_tmp[i][j]));
     }
   }
+  fclose(file);
+
+  double delta_r = rdim / (nw - 1);
+  for (int i = 0; i < nw; i++)
+  {
+    r_tmp[i] = i * delta_r + rleft;
+  }
+
+  double delta_z = zdim / (nh - 1);
+  double zleft = (2 * zmid - zdim) /2 ;
+  for (int j = 0; j < nh; j++)
+  {
+    z_tmp[j] = zleft + j * delta_z;
+  }
+/********************************************
+*     Refine the original equlibrium
+*********************************************/
+  int M = 4; // uniform the r_tmp and z_tmp into M;
+  int nr = nw + (M-1)*(nw-1);
+  int nz = nh + (M-1)*(nh-1);
+
+  equilib->psi = allocate_2d_array(nr, nz);
+  equilib->r = (double *)calloc(nr,sizeof(double));
+  equilib->z = (double *)calloc(nz,sizeof(double));
+
+  delta_r = delta_r/M;
+  delta_z = delta_z/M;
+  
+  for(int i = 0; i<nr; i++)
+  {
+    equilib->r[i] = i * delta_r + rleft;
+    // printf("debug r is: %.12f\n", equilib->r[i]);
+  }
+
+  for(int j = 0; j<nz; j++)
+  {
+    equilib->z[j] = zleft + j * delta_z;
+    // printf("debug z is: %.12f\n", equilib->z[j]);
+
+  }
+
+  printf("Before refine r is: %.12f %.12f\n", r_tmp[0], r_tmp[nw-1]);
+  printf("Before refine z is: %.12f %.12f\n", z_tmp[0], z_tmp[nh-1]);
+
+  printf("After refine r is: %.12f %.12f\n", equilib->r[0], equilib->r[nr-1]);
+  printf("After refine z is: %.12f %.12f\n", equilib->z[0], equilib->z[nz-1]);
+  printf("size: nw, nh, nr, nz %.d %d %d %d\n", nw, nh, nr, nz);
+
+  for(int i=0; i< nr; i++)
+  {
+    for(int j=0; j< nz; j++)
+    {
+      equilib->psi[i][j] = 0.0;
+      cubicherm_1d(equilib->r[i],equilib->z[j], nw, r_tmp, nh, z_tmp,
+                   psi_tmp, &(equilib->psi[i][j]),NULL, NULL, NULL);
+    }
+  }
+
+/********************************************
+*     update and free
+*********************************************/
+  equilib->nw = nr;
+  equilib->nh = nz;
+  free(r_tmp);
+  free(z_tmp);
+  free_2d_array(psi_tmp);
+  // equilib->psi = (double **)malloc(equilib->nw * sizeof(double *));
+
+  // for (int i = 0; i < equilib->nw; i++)
+  // {
+  //   equilib->psi[i] = (double *)malloc(equilib->nh * sizeof(double));
+  // }
+  
+ 
+  // for (int j = 0; j < equilib->nh; j++)
+  // {
+  //   for (int i = 0; i < equilib->nw; i++)
+  //   {
+  //     fscanf(file, "%lf", &equilib->psi[i][j]);
+  //   }
+  // }
   printf("BCENTER: %lf\n",equilib->bcenter);
   printf("RCENTER: %lf\n",equilib->rcenter);
 /*
@@ -148,25 +226,25 @@ void read_equilib_geqdsk(Equilibrium *equilib, const char *geqdsk_file)
 
   // Allocate memmory and calculate r and z values.
 
-  equilib->r = (double *)malloc(equilib->nw * sizeof(double));
-  equilib->z = (double *)malloc(equilib->nh * sizeof(double));
+  // equilib->r = (double *)malloc(equilib->nw * sizeof(double));
+  // equilib->z = (double *)malloc(equilib->nh * sizeof(double));
 
-  double delta_r = rdim / (equilib->nw - 1);
-  for (int i = 0; i < equilib->nw; i++)
-  {
-    equilib->r[i] = i * delta_r + rleft;
-  }
+  // double delta_r = rdim / (equilib->nw - 1);
+  // for (int i = 0; i < equilib->nw; i++)
+  // {
+  //   equilib->r[i] = i * delta_r + rleft;
+  // }
 
-  double delta_z = zdim / (equilib->nh - 1);
-  double zleft = (2 * zmid - zdim) /2 ;
-  for (int j = 0; j < equilib->nh; j++)
-  {
-    equilib->z[j] = zleft + j * delta_z;
-  }
+  // double delta_z = zdim / (equilib->nh - 1);
+  // double zleft = (2 * zmid - zdim) /2 ;
+  // for (int j = 0; j < equilib->nh; j++)
+  // {
+  //   equilib->z[j] = zleft + j * delta_z;
+  //}
 
   printf("r, z and psi is ok\n");
 
-  fclose(file);
+  
 
 }
 
@@ -241,54 +319,9 @@ XPointTest find_Xpoint(Equilibrium *equilib, const double *est_pos)
 // x is the r coordinate, y is the z coordinate, we assume x,y is not any apoint of equilibrium
 double get_psi_from_rz(const Equilibrium *equilib, double x, double y)
 {
-  // value is the psi at the point (x,y)
   double value;
-  if( x > equilib->r[equilib->nw - 1] || x < equilib->r[0])
-  {
-    printf("the position of x: %lf is out of r range\n", x);
-    return NAN;
-  }
-
-  if( y > equilib->z[equilib->nh - 1] || y < equilib->z[0])
-  {
-    printf("the position of y: %lf is out of z range\n", y);
-    return NAN;
-  }
-  
-  // this is the cell number, not the point. the coresponding four corners are: (cx,cy), (cx+1,cy), (cx, cy+1), (cx+1, cy+1) 
-  int cx, cy;
-  
-  for (int j = 0; j < equilib->nh; j++)
-  {
-    if ( y > equilib->z[j] && y < equilib->z[j+1])
-    {
-      for (int i = 0; i < equilib->nw; i++)
-        {
-          if ( x > equilib->r[i] &&  x < equilib->r[i+1])
-          {
-            cx = i;
-            cy = j;
-            printf("the x: %lf, y: %lf in the cell cx: %d cy: %d\n",x,y,cx,cy);
-            break;
-          }
-        }
-    }
-  }
-  
-  // Bi-linear interpolation for the psi valuex according Kotov's [Generation of orthogonal full-device grid]
-  //psi(x,y) = psi[cx][cy] + a*(x-r[cx]) + b*(y-z[cy]) + c*(x-r[cx])*(y-z[cy])
-  double a,b,c;
-  double delta_r,delta_z;
-  delta_r = x - equilib->r[cx];
-  delta_z = y - equilib->z[cy];
-  // printf("%lf %lf\n",equilib->psi[cx][cy], equilib->psi[cx+1][cy]);
-  // printf("%lf %lf\n",delta_r, delta_z);
-
-  a = ( equilib->psi[cx+1][cy] - equilib->psi[cx][cy] ) / (equilib->r[cx+1] - equilib->r[cx] );
-  b = ( equilib->psi[cx][cy+1] - equilib->psi[cx][cy] ) / (equilib->z[cy+1] - equilib->z[cy] );
-  c = ( equilib->psi[cx+1][cy+1] + equilib->psi[cx][cy] - equilib->psi[cx+1][cy] - equilib->psi[cx][cy+1])/ \
-      (equilib->r[cx+1] - equilib->r[cx]) / (equilib->z[cy+1] - equilib->z[cy]);
-  value = equilib->psi[cx][cy] + a * delta_r + b*delta_z + c * delta_r * delta_z;
+  cubicherm_1d(x, y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+                  equilib->psi, &(value), NULL, NULL, NULL);
   return value;
 }
 
@@ -551,12 +584,7 @@ static int calculate_xpt_center(Equilibrium *equilib, XPointTest xpt)
 void free_equilibrium(Equilibrium *equilib)
 {
 
-  for (int i = 0; i < equilib->nw; i++)
-  {
-    free(equilib->psi[i]);
-    equilib->psi[i] = NULL;
-  }
-  free(equilib->psi);
+  free_2d_array(equilib->psi);
   equilib->psi = NULL;
 
   free(equilib->r);

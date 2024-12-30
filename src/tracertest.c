@@ -139,7 +139,7 @@ function f1 that y=f1(x)
   fclose(file3);
   printf("write the tracing line in %s\n", filename3);
   
-  const char *filename4="tracer_rror";
+  const char *filename4="tracer_error";
   FILE* file4 = fopen(filename4, "w");
   fprintf(file4, "#x, y, euler, euler_abs, euler_rel, brk5, brk5_abs, brk5_rel\n");
   for (int i=0; i<step+1; i++)
@@ -158,10 +158,12 @@ function f1 that y=f1(x)
   printf("write the error of tracing line in %s\n", filename4);
   
   
-  
+  //   free(x2);
+//   free_2d_array(line2);
+  brk45_solver.finalize(&brk45_data);
   free(x1);
-  free(y_euler);
-  free(y_brk5);
+  free_2d_array(y_euler);
+  free_2d_array(y_brk5);
   printf("Finish test the tracer\n");
   printf("*******************************************\n");
 }
@@ -184,8 +186,8 @@ void interpolator_test()
   printf("*******************************************\n");
   printf("Begin test interpolator\n");
 
-  int nx = 101;
-  int ny = 201;
+  int nx = 11;
+  int ny = 21;
   double x[nx];
   double y[ny];
   double dx = 0.01;
@@ -222,8 +224,8 @@ void interpolator_test()
 /*********************************************
  * Interpolated matrix                       *
 **********************************************/
-  int nx1 = 301;
-  int ny1 = 601;
+  int nx1 = 31;
+  int ny1 = 61;
   double x1[nx1];
   double y1[ny1];
   double dx1 = (x[nx-2] - x[1]) / (nx1 - 1);
@@ -354,7 +356,7 @@ void write_results_2d(int nx, double *x, int ny, double *y, double ***f, const c
   {
     for (int j=0; j<ny; j++)
     {
-      fprintf(file1, "%.15f %.15f %.15f\n", x[i], y[j], f[i][j][1]);
+      fprintf(file2, "%.15f %.15f %.15f\n", x[i], y[j], f[i][j][1]);
     }
   }
   fclose(file2);
@@ -378,11 +380,8 @@ void write_results_1d(int nx, double *x, int ny, double *y, double **f, const ch
 void line_tracer_test()
 {
   InputPara w3_input;
-  
   init_inputpara(&w3_input);
-  
   print_inputpara(&w3_input);
-
   Equilibrium dtt_example;
   
   init_equilibrium(&dtt_example);
@@ -394,13 +393,17 @@ void line_tracer_test()
   xp = find_Xpoint(&dtt_example, w3_input.xpt_estimation);
 
   double value;
-  double x = 1.534;
-  double y = -1.125;
-  value = get_psi_from_rz(&dtt_example,x, y);
-  printf("psi at %lf %lf is %lf\n",x, y, value);
+  double x_point = 2.75;
+  double y_point = 0;
+  value = get_psi_from_rz(&dtt_example,x_point, y_point );
+  printf("psi at %lf %lf is %lf\n",x_point, y_point, value);
 
+  // x_point = 3.0;
+  // y_point = 0;
+  // value = get_psi_from_rz(&dtt_example,x_point, y_point );
+  // printf("psi at %lf %lf is %lf\n",x_point, y_point, value);
 
-//**********Test four lines of the separatrix tracing*******************/
+//**********Test four lines of the separatrix tracing********************/
 
   DLListNode* line_list[4]={NULL};
   for (int i=0; i<4; i++)
@@ -416,17 +419,215 @@ void line_tracer_test()
   {
     free_DLList(line_list[i]);
   }
-//**********************************************************************/
+
+
+
+  printf("*******************************************\n");
+  printf("Begin test magnetic field line tracer\n");
 
 
 /*test magnetic field line calculation*/
-
   MagFieldTorSys test_magfield;
   init_mag_field_torsys(&test_magfield);
-  char* method = "central_2nd";
+  char* method = "central_4th";
   calc_mag_field_torsys(&dtt_example, &test_magfield, method);
   write_mag_field_torsys(&test_magfield);
+
+/*****************************************************
+* Define the magnetic and ODE solver
+******************************************************/
+  double direction[3]={1.0,1.0,1.0};
+  RKSolverData brk45_data;
+
+  double stepsize = 0.01;
+
+  ode_function ode_func = {
+    .ndim = 3,
+    .data = &test_magfield,
+    .rescale = direction,
+    .compute_f = ode_f_brz_torsys_cubicherm,
+  };
+
+  ode_solver brk45_solver =
+  {
+    .step_size = stepsize,
+    .solver_data = &brk45_data,
+    .next_step = brk5_next_step,
+    .initialize = brk5_initialize,
+    .finalize = brk5_finalize
+  };
+
+    ode_solver euler_solver =
+  {
+    .step_size = stepsize,
+    .solver_data = NULL,
+    .next_step = euler_next_step,
+    .initialize = euler_initialize,
+    .finalize = euler_finalize
+  };
+
+  brk45_solver.initialize(&brk45_data);
+
+
+/*****************************************************
+* Define necessary input for tracer
+******************************************************/
+
+
+  double start_x = 0.0;
+  double prev_x;
+  double x;
+
+  prev_x = start_x;
+  x = start_x;
+
+  int turn = 100;
+  int one_turn = (int)round(360.0 / stepsize);
+  printf("points in one turn: %d\n", one_turn);
+  double start_point[3] ={2.77, 0.2, 0.0};
+
+  double *prev_point=calloc(3, sizeof(double));
+  double *point=calloc(3, sizeof(double));
+
+  prev_point[0] = start_point[0];
+  prev_point[1] = start_point[1];
+  prev_point[2] = start_point[2];
+
+  point[0] = start_point[0];
+  point[1] = start_point[1];
+  point[2] = start_point[2];
+
+/*****************************************************
+* Define output of the tracer
+******************************************************/
+  double **tracer_result = allocate_2d_array(turn,3);
+
+
+/*****************************************************
+* Begin to trace and writ the results
+******************************************************/
+  const char *filename_debug= "line_tracer_test_debug";
+  FILE* file_debug = fopen(filename_debug, "w");
+  fprintf(file_debug, "#R,Z\n");
+  fprintf(file_debug, "%.15f %.15f\n", point[0], point[1]);
+
+  for (int j = 0; j<turn; j++)
+  {
+    for (int i=0; i<one_turn; i++)
+    {
+      x = x + brk45_solver.step_size;
+      brk45_solver.next_step(brk45_solver.step_size, &prev_x, prev_point, point, &brk45_data, &ode_func);
+      //euler_solver.next_step(euler_solver.step_size, &prev_x, prev_point, point, NULL, &ode_func);
+      prev_x = x;
+      prev_point[0] = point[0];
+      prev_point[1] = point[1];
+      prev_point[2] = point[2];
+      fprintf(file_debug, "%.15f %.15f\n", point[0], point[1]);
+    }
+    printf("debug Turn: %d\n", j);
+
+    x = x - 360.0;
+    prev_x = prev_x - 360.0;
+    tracer_result[j][0] = point[0];
+    tracer_result[j][1] = point[1];
+    cubicherm_1d(point[0], point[1], dtt_example.nw, dtt_example.r, dtt_example.nh, dtt_example.z,
+                 dtt_example.psi, &(tracer_result[j][2]), NULL, NULL, NULL);
+  }
+  
+  fclose(file_debug);
+
+  double psi_start;
+  cubicherm_1d(start_point[0], start_point[1], dtt_example.nw, dtt_example.r, dtt_example.nh, dtt_example.z,
+                 dtt_example.psi, &(psi_start), NULL, NULL, NULL);
+  
+
+  const char *filename= "line_tracer_test_results";
+  FILE* file = fopen(filename, "w");
+  fprintf(file, "#R, Z, Psi\n");
+  for (int i=0; i<turn; i++)
+  {
+    fprintf(file, "%.15f %.15f %.15f\n", tracer_result[i][0], tracer_result[i][1], tracer_result[i][2]);
+  }
+  fclose(file);
+  printf("Finish write the line tracer results\n");
+
+
+  const char *filename1= "line_tracer_test_error";
+  FILE* file1 = fopen(filename1, "w");
+  fprintf(file1, "#turn, rel delta psi , delta R\n");
+  for (int i=0; i<turn; i++)
+  {
+    double r;
+    r = estimate_R_from_z_psi(tracer_result[i][2], start_point[0], start_point[1], &dtt_example);
+    //fprintf(file1, "%.d %.15f \n", i+1, r);
+    fprintf(file1, "%.d %.15f %.15f\n", i+1, fabs(tracer_result[i][2]-psi_start)/psi_start, fabs(r-start_point[0])*100);
+  }
+  fclose(file1);
+  printf("Finish write the error of line tracer results\n");
+
+  free_2d_array(tracer_result);
+  brk5_finalize(&brk45_data);
+  free(prev_point);
+  free(point);
   free(xp);
   free_mag_field_torsys(&test_magfield);
   free_equilibrium(&dtt_example);  
+}
+
+
+double estimate_R_from_z_psi(double psi_value, double r0, double z0,  Equilibrium *equ)
+{
+  double delta_r = 0.2;
+  double left_psi, right_psi;
+  double tol = 1.0E-12;
+  int max_iter = 500;
+  double x0 = r0 - delta_r;
+  double x1 = r0 + delta_r;
+
+  cubicherm_1d(x0, z0, equ->nw, equ->r, equ->nh, equ->z,
+                equ->psi, &(left_psi), NULL, NULL, NULL);
+  cubicherm_1d(x1, z0, equ->nw, equ->r, equ->nh, equ->z,
+                equ->psi, &(right_psi), NULL, NULL, NULL);
+
+  if (psi_value >= max(left_psi, right_psi) || psi_value <= min(left_psi, right_psi) )
+  {
+    printf("the psi value is out of range!\n");
+    exit(1);
+  }
+// TEST: use secant method to fine the point (r,z0) that the psi is psi_value
+  double f0 = left_psi - psi_value;
+  double f1 = right_psi - psi_value;
+
+  if (fabs(f0)  < tol)
+  {
+    return x0;
+  }
+  if (fabs(f1) < tol)
+  {
+    return x1;
+  }
+
+  for (int iter = 0; iter < max_iter; iter++) 
+  {
+    if (fabs(f1-f0) < tol) 
+    {
+      printf("Error: Division by zero in iteration %d\n", iter);
+      return NAN;
+    }
+    double x2 = x1 - f1 * (x1 - x0) / (f1 - f0);
+    x0 = x1;
+    f0 = f1;
+    x1 = x2;
+    cubicherm_1d(x1, z0, equ->nw, equ->r, equ->nh, equ->z,
+                equ->psi, &(f1), NULL, NULL, NULL);
+    f1 = f1-psi_value;
+    
+    if (fabs(f1) < tol)
+    {
+      printf("Secant iteration: %d\n", iter);
+      return x1;
+    }
+  }
+  printf("Warning: Secant method did not converge after %d iterations.\n", max_iter);
+  return NAN;
 }

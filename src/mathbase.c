@@ -83,7 +83,7 @@ void central_4th_2d_diff(int nx, double *x,  int ny, double *y, double **f, doub
 
       if (j>=2 && j<=ny-3)
       {
-        df[i][j][1] = (-f[i][j+2] + 8 * f[i][j+1] - 8 * f[i][j-1] + f[i][j-2])/(3 * (12 * dy));
+        df[i][j][1] = (-f[i][j+2] + 8 * f[i][j+1] - 8 * f[i][j-1] + f[i][j-2])/( 12 * dy);
       }
       else if (j<2)
       {
@@ -104,15 +104,36 @@ void bilenar_2d(double target_x, double target_y, int nx, double *x,  int ny, do
   double dx = (x[nx-1] - x[0])/(nx-1);
   double dy = (y[ny-1] - y[0])/(ny-1);
   double dxdy = dx*dy;
+  //precision cretirea
+  double eps = fmin(dx, dy) * 1e-6;
+  
+  //examine the boundary
+  if (target_x < x[0] - eps || target_x > x[nx-1] + eps) 
+  {
+    fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, x[0], x[nx-1]);
+    exit(EXIT_FAILURE);
+  }
+  if (target_y < y[0] - eps || target_y > y[ny-1] + eps) 
+  {
+    fprintf(stderr, "Error: target_y (%.6f) is out of bounds [%.12f, %.12f]\n", target_y, y[0], y[ny-1]);
+    exit(EXIT_FAILURE);
+  }
+
+
+  if (fabs(target_x - x[0]) < eps) target_x = x[0];
+  if (fabs(target_x - x[nx-1]) < eps) target_x = x[nx-1];
+  if (fabs(target_y - y[0]) < eps) target_y = y[0];
+  if (fabs(target_y - y[ny-1]) < eps) target_y = y[ny-1];
+
   //nx points then nx-1 cells, ny points then ny-1 cells
   int i = floor((target_x - x[0])/dx);
   int j = floor((target_y - y[0])/dy);
-  //check range
-  //printf("debug: target_x: %lf, target_y: %lf\n", target_x, target_y);
-  if (i < 0 || i >= nx - 1 || j < 0 || j >= ny - 1) {
-    printf("Target point is out of x\n");
-    exit(1);
-  }
+
+  if (i < 0) i = 0;
+  if (i >= nx - 1) i = nx - 2;
+  if (j < 0) j = 0;
+  if (j >= ny - 1) j = ny - 2;
+  
   double f00 = f[i][j][0];
   double f10 = f[i+1][j][0];
   double f01 = f[i][j+1][0];
@@ -156,20 +177,40 @@ void cubicherm_2d(double target_x, double target_y, int nx, double *x,  int ny, 
                 double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy)
 {
   //This function is according to pspline function dnherm2() and function herm2fcn()
+  
   // assume uniform dx and dy
   double dx = (x[nx-1] - x[0])/(nx-1);
   double dy = (y[ny-1] - y[0])/(ny-1);
   double dxdy = dx*dy;
+  //precision cretirea
+  double eps = fmin(dx, dy) * 1e-6;
+  
+  //examine the boundary
+  if (target_x < x[0] - eps || target_x > x[nx-1] + eps) 
+  {
+    fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, x[0], x[nx-1]);
+    exit(EXIT_FAILURE);
+  }
+  if (target_y < y[0] - eps || target_y > y[ny-1] + eps) 
+  {
+    fprintf(stderr, "Error: target_y (%.6f) is out of bounds [%.12f, %.12f]\n", target_y, y[0], y[ny-1]);
+    exit(EXIT_FAILURE);
+  }
+
+  if (fabs(target_x - x[0]) < eps) target_x = x[0];
+  if (fabs(target_x - x[nx-1]) < eps) target_x = x[nx-1];
+  if (fabs(target_y - y[0]) < eps) target_y = y[0];
+  if (fabs(target_y - y[ny-1]) < eps) target_y = y[ny-1];
+
   //nx points then nx-1 cells, ny points then ny-1 cells
   int xc = floor((target_x - x[0])/dx);
   int yc = floor((target_y - y[0])/dy);
-  //check range
-  //printf("debug: target_x: %lf, target_y: %lf\n", target_x, target_y);
-  if (xc < 0 || xc >= nx - 1 || yc < 0 || yc >= ny - 1) 
-  {
-    printf("Target point is out of x\n");
-    exit(1);
-  }
+
+  if (xc < 0) xc = 0;
+  if (xc >= nx - 1) xc = nx - 2;
+  if (yc < 0) yc = 0;
+  if (yc >= ny - 1) yc = ny - 2;
+
 
   double fxy_tmp[2][2][2];
   double dfdx_tmp[2][2][2];
@@ -270,4 +311,194 @@ void cubicherm_2d(double target_x, double target_y, int nx, double *x,  int ny, 
   }
   *value1 = sum[0];
   *value2 = sum[1];
+  return;
+}
+
+
+
+void bilenar_1d(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
+                double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy)
+{
+// assume uniform dx and dy
+  double dx = (x[nx-1] - x[0])/(nx-1);
+  double dy = (y[ny-1] - y[0])/(ny-1);
+  double dxdy = dx*dy;
+  //precision cretirea
+  double eps = fmin(dx, dy) * 1e-6;
+  
+  //examine the boundary
+  if (target_x < x[0] - eps || target_x > x[nx-1] + eps) 
+  {
+    fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, x[0], x[nx-1]);
+    exit(EXIT_FAILURE);
+  }
+  if (target_y < y[0] - eps || target_y > y[ny-1] + eps) 
+  {
+    fprintf(stderr, "Error: target_y (%.6f) is out of bounds [%.12f, %.12f]\n", target_y, y[0], y[ny-1]);
+    exit(EXIT_FAILURE);
+  }
+
+
+  if (fabs(target_x - x[0]) < eps) target_x = x[0];
+  if (fabs(target_x - x[nx-1]) < eps) target_x = x[nx-1];
+  if (fabs(target_y - y[0]) < eps) target_y = y[0];
+  if (fabs(target_y - y[ny-1]) < eps) target_y = y[ny-1];
+
+  //nx points then nx-1 cells, ny points then ny-1 cells
+  int i = floor((target_x - x[0])/dx);
+  int j = floor((target_y - y[0])/dy);
+
+  if (i < 0) i = 0;
+  if (i >= nx - 1) i = nx - 2;
+  if (j < 0) j = 0;
+  if (j >= ny - 1) j = ny - 2;
+  
+  double f00 = f[i][j];
+  double f10 = f[i+1][j];
+  double f01 = f[i][j+1];
+  double f11 = f[i+1][j+1];
+
+
+  double x0 = x[i], x1 = x[i+1];
+  double y0 = y[j], y1 = y[j+1];
+  double tx = (target_x - x0) / (x1 - x0);
+  double ty = (target_y - y0) / (y1 - y0);
+  
+  *value = (1 - tx) * (1 - ty) * f00 +
+            tx * (1 - ty) * f10 +
+            (1 - tx) * ty * f01 +
+            tx * ty * f11;
+  return;           
+}
+
+void cubicherm_1d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+                double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy)
+{
+  //This function is according to pspline function dnherm2() and function herm2fcn()
+  // assume uniform dx and dy
+  double dx = (x[nx-1] - x[0])/(nx-1);
+  double dy = (y[ny-1] - y[0])/(ny-1);
+  double dxdy = dx*dy;
+  //precision cretirea
+  double eps = fmin(dx, dy) * 1e-6;
+  
+  //examine the boundary
+  if (target_x < x[0] - eps || target_x > x[nx-1] + eps) 
+  {
+    fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, x[0], x[nx-1]);
+    exit(EXIT_FAILURE);
+  }
+  if (target_y < y[0] - eps || target_y > y[ny-1] + eps) 
+  {
+    fprintf(stderr, "Error: target_y (%.6f) is out of bounds [%.12f, %.12f]\n", target_y, y[0], y[ny-1]);
+    exit(EXIT_FAILURE);
+  }
+
+  if (fabs(target_x - x[0]) < eps) target_x = x[0];
+  if (fabs(target_x - x[nx-1]) < eps) target_x = x[nx-1];
+  if (fabs(target_y - y[0]) < eps) target_y = y[0];
+  if (fabs(target_y - y[ny-1]) < eps) target_y = y[ny-1];
+
+  //nx points then nx-1 cells, ny points then ny-1 cells
+  int xc = floor((target_x - x[0])/dx);
+  int yc = floor((target_y - y[0])/dy);
+  
+  //nx points then nx-1 cells, ny points then ny-1 cells
+  if (xc < 0) xc = 0;
+  if (xc >= nx - 1) xc = nx - 2;
+  if (yc < 0) yc = 0;
+  if (yc >= ny - 1) yc = ny - 2;
+
+  double fxy_tmp[2][2];
+  double dfdx_tmp[2][2];
+  double dfdy_tmp[2][2];
+  double d2fdxdy_tmp[2][2];
+
+  if (dfdx == NULL || dfdy == NULL || d2fdxdy == NULL )
+  {
+    //printf("df/dx, df/dy, d2f/dxdy are calculted by f\n");
+    for(int i=0;i<2;i++)
+    {
+      for(int j=0;j<2;j++)
+      {
+        int iyp=min(ny-1,yc+j+1);
+        int iym=max(0,yc+j-1);
+        int ixp=min(nx-1,xc+i+1);
+        int ixm=max(0,xc+i-1);
+
+
+        fxy_tmp[i][j] = f[xc+i][yc+j];
+        dfdx_tmp[i][j] = (f[ixp][yc+j] - f[ixm][yc+j])/(x[ixp]-x[ixm]);
+        dfdy_tmp[i][j]= (f[xc+i][iyp] - f[xc+i][iym])/(y[iyp]-y[iym]);
+        d2fdxdy_tmp[i][j] = (f[ixp][iyp] - f[ixm][iyp] - f[ixp][iym] + f[ixm][iym])
+                           / ((x[ixp]-x[ixm])*(y[iyp]-y[iym]));
+      }
+    }
+  }
+  else 
+  {
+    for(int i=0;i<2;i++)
+    {
+      for(int j=0;j<2;j++)
+      {
+        fxy_tmp[i][j] = f[xc+i][yc+j];
+        dfdx_tmp[i][j] = dfdx[xc+i][yc+j];
+        dfdy_tmp[i][j] = dfdy[xc+i][yc+j];
+        d2fdxdy_tmp[i][j]= d2fdxdy[xc+i][yc+j];
+      }
+    }
+  }
+  
+  double hx = dx;
+  double hy = dy;
+  double hxi = 1/hx;
+  double hyi = 1/hy;
+
+  double xp = (target_x-x[xc])*hxi;
+  double xpi = 1-xp;
+  double xp2 = xp*xp;
+  double xpi2 = xpi*xpi;
+  double ax = xp2*(3.0-2.0*xp);
+  double axbar = 1.0-ax;
+  double bx = -xp2*xpi;
+  double bxbar = xpi2*xp;
+
+  double yp = (target_y-y[yc])*hyi;
+  double ypi = 1-yp;
+  double yp2 = yp*yp;
+  double ypi2 = ypi*ypi;
+  double ay = yp2*(3.0-2.0*yp);
+  double aybar = 1.0-ay;
+  double by = -yp2*ypi;
+  double bybar = ypi2*yp;
+
+  double axp=6.0*xp*xpi;
+  double axbarp=-axp;
+  double bxp=xp*(3.0*xp-2.0);
+  double bxbarp=xpi*(3.0*xpi-2.0);
+
+  double ayp=6.0*yp*ypi;
+  double aybarp=-ayp;
+  double byp=yp*(3.0*yp-2.0);
+  double bybarp=ypi*(3.0*ypi-2.0);
+
+  double sum=0.0;
+
+  //printf("xp: %lf\n",xp);
+  //printf("yp: %lf\n",yp);
+
+  sum = axbar * (aybar * fxy_tmp[0][0] + ay * fxy_tmp[0][1]) +
+              ax * (aybar * fxy_tmp[1][0]+ ay * fxy_tmp[1][1]);
+
+  sum += hx * (bxbar * (aybar * dfdx_tmp[0][0] + ay * dfdx_tmp[0][1]) +
+                     bx * (aybar * dfdx_tmp[1][0]+ ay * dfdx_tmp[1][1]));
+
+  sum += hy * (axbar * (bybar * dfdy_tmp[0][0] + by * dfdy_tmp[0][1]) +
+                     ax * (bybar * dfdy_tmp[1][0] + by * dfdy_tmp[1][1]));
+
+  sum += hx * hy * (bxbar * (bybar * d2fdxdy_tmp[0][0] + by * d2fdxdy_tmp[0][1]) +
+                          bx * (bybar * d2fdxdy_tmp[1][0] + by * d2fdxdy_tmp[1][1]));
+
+  *value = sum;
+  return;
 }
