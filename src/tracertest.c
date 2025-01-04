@@ -439,13 +439,13 @@ void line_tracer_test()
   double direction[3]={1.0,1.0,1.0};
   RKSolverData brk45_data;
 
-  double stepsize = 0.01;
+  double stepsize = 0.1;
 
   ode_function ode_func = {
     .ndim = 3,
     .data = &test_magfield,
     .rescale = direction,
-    .compute_f = ode_f_brz_torsys_cubicherm,
+    .compute_f = ode_f_brz_torsys_bilinear,
   };
 
   ode_solver brk45_solver =
@@ -484,7 +484,7 @@ void line_tracer_test()
   int turn = 100;
   int one_turn = (int)round(360.0 / stepsize);
   printf("points in one turn: %d\n", one_turn);
-  double start_point[3] ={2.77, 0.2, 0.0};
+  double start_point[3] ={2.6, 0.2, 0.0};
 
   double *prev_point=calloc(3, sizeof(double));
   double *point=calloc(3, sizeof(double));
@@ -516,8 +516,8 @@ void line_tracer_test()
     for (int i=0; i<one_turn; i++)
     {
       x = x + brk45_solver.step_size;
-      brk45_solver.next_step(brk45_solver.step_size, &prev_x, prev_point, point, &brk45_data, &ode_func);
-      //euler_solver.next_step(euler_solver.step_size, &prev_x, prev_point, point, NULL, &ode_func);
+      //brk45_solver.next_step(brk45_solver.step_size, &prev_x, prev_point, point, &brk45_data, &ode_func);
+      euler_solver.next_step(euler_solver.step_size, &prev_x, prev_point, point, NULL, &ode_func);
       prev_x = x;
       prev_point[0] = point[0];
       prev_point[1] = point[1];

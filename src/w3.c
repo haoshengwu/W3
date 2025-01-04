@@ -18,6 +18,8 @@ Contact: haosheng.wu@polito.it
 #include "basemesh.h"
 #include "tracertest.h"
 
+#include "xpoint.h"
+
 int main(){
   
   printf("Welcome to W3!\n");
@@ -165,8 +167,13 @@ test magnetic field line calculation
 /*****************************************************
 Verify the magnetic field line tracer
 ******************************************************/
-  tracer_test();
-  interpolator_test();
-  line_tracer_test();
+  // tracer_test();
+  // interpolator_test();
+  // line_tracer_test();
+
+/*****************************************************
+Verify the find_xpoint
+******************************************************/
+  test_find_xpoint();
   return 0;
 }
