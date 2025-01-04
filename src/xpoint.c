@@ -7,15 +7,15 @@
 #endif
 
 #ifndef LEARNINGRATE
-#define LEARNINGRATE 0.001
+#define LEARNINGRATE 5E-6
 #endif
 
 #ifndef MAXITER
-#define MAXITER 10
+#define MAXITER 10000
 #endif
 
 #ifndef TOLERANCE
-#define TOLERANCE 1.0E-6
+#define TOLERANCE 8.0E-4
 #endif
 
 // private functions for find Xpoint
@@ -23,11 +23,11 @@ static int check_xpt_rectangular(const Equilibrium *equilib, const XPointInfo xp
 static int check_xpt_est_range(const Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos, const XPointInfo xpt);
 static int check_xpt_levels(const Equilibrium *equilib,int cx1,int cy1,int cx2,int cy2,int x0,int y0,int bMinMax);
 static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos,
-                                interpl_psi_f interpl_psi, interpl_gradpsi_f interpl_gradpsi_f, _XPointInfo *xpt_array);
+                                interpl_1D_f interpl_1D_f, interpl_2D_f interpl_2D_f, _XPointInfo *xpt_array);
 
 
 void find_xpoint(Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos, 
-                 interpl_psi_f interpl_psi, interpl_gradpsi_f interpl_gradpsi, _XPointInfo *xpt_array)
+                 interpl_1D_f interpl_1D_f, interpl_2D_f interpl_2D_f, _XPointInfo *xpt_array)
 {
   // est_xpoint_pos is the estimated postions of xpoint. est_xpoint_pos[:][0] is R, est_xpoint_pos[:][1] is Z. 
   // xpoint_number is the expected X-point number. Currentlu, only suppot ONE Xpoint. 
@@ -57,35 +57,39 @@ void find_xpoint(Equilibrium *equilib, int xpoint_number, double **est_xpoint_po
         };
 
         //printf("Find a potential equ rectangular contain a Xpoint:\n");
-        printf("crx1: %i, crx2: %i, cry1: %i, cry2: %i\n", xpC->cx1, xpC->cx2, xpC->cy1, xpC->cy2);
-        printf("x1: %.12f y1: %.12f\n", equilib->r[xpC->cx1], equilib->z[xpC->cy1]);
+        //printf("crx1: %i, crx2: %i, cry1: %i, cry2: %i\n", xpC->cx1, xpC->cx2, xpC->cy1, xpC->cy2);
+        //printf("x1: %.12f y1: %.12f\n", equilib->r[xpC->cx1], equilib->z[xpC->cy1]);
         //printf("minMax[0:3]: %.12f %.12f %.12f %.12f\n", xpC->minMax[0].lvl, xpC->minMax[1].lvl,
         //                                                 xpC->minMax[2].lvl, xpC->minMax[3].lvl);
         // store the value in xp
         if (!check_xpt_est_range(equilib, xpoint_number, est_xpoint_pos, xpC))
         {
           if (ixpt == -1 || 
-            ((ixpt != -1) && abs(xpC->cx1 - xpt_array[ixpt].cx1) >= 4 && abs(xpC->cy1 - xpt_array[ixpt].cy1) >= 4)) 
+            ((ixpt != -1) && abs(xpC->cx1 - xpt_array[ixpt].cx1) > s && abs(xpC->cy1 - xpt_array[ixpt].cy1) > s)) 
             {
               ixpt++;
+              xpt_array[ixpt].cx1 = xpC->cx1;
+              xpt_array[ixpt].cx2 = xpC->cx2;
+              xpt_array[ixpt].cy1 = xpC->cy1;
+              xpt_array[ixpt].cy2 = xpC->cy2;
+              xpt_array[ixpt].lvlMin = xpC->lvlMin;
+              xpt_array[ixpt].lvlMax = xpC->lvlMax;
+              xpt_array[ixpt].minMax[0] = xpC->minMax[0];
+              xpt_array[ixpt].minMax[1] = xpC->minMax[1];
+              xpt_array[ixpt].minMax[2] = xpC->minMax[2];
+              xpt_array[ixpt].minMax[3] = xpC->minMax[3];
+              printf("ixpt: %d\n",ixpt);
+              printf("crx1: %i, crx2: %i, cry1: %i, cry2: %i\n", xpC->cx1, xpC->cx2, xpC->cy1, xpC->cy2);
+              printf("x1: %.12f y1: %.12f\n", equilib->r[xpC->cx1], equilib->z[xpC->cy1]);
+              printf("minMax[0:3]: %.12f %.12f %.12f %.12f\n", xpC->minMax[0].lvl, xpC->minMax[1].lvl,
+                                                        xpC->minMax[2].lvl, xpC->minMax[3].lvl);
             }
-
           if (ixpt >= xpoint_number)
           {
             printf("Expected Xpoint number: %d\n", xpoint_number);
             printf("More xpionts are found. Please check the equilibriun/estimated xpoints positions\n");
             exit(EXIT_FAILURE);;
           }
-          xpt_array[ixpt].cx1 = xpC->cx1;
-          xpt_array[ixpt].cx2 = xpC->cx2;
-          xpt_array[ixpt].cy1 = xpC->cy1;
-          xpt_array[ixpt].cy2 = xpC->cy2;
-          xpt_array[ixpt].lvlMin = xpC->lvlMin;
-          xpt_array[ixpt].lvlMax = xpC->lvlMax;
-          xpt_array[ixpt].minMax[0] = xpC->minMax[0];
-          xpt_array[ixpt].minMax[1] = xpC->minMax[1];
-          xpt_array[ixpt].minMax[2] = xpC->minMax[2];
-          xpt_array[ixpt].minMax[3] = xpC->minMax[3];
         }
       }
     }
@@ -97,7 +101,7 @@ void find_xpoint(Equilibrium *equilib, int xpoint_number, double **est_xpoint_po
     printf("Less xpionts are found. Please check the equilibriun/estimated xpoints positions\n");
     exit(1);
   }
-  calculate_xpt_level(equilib, xpoint_number, est_xpoint_pos, interpl_psi, interpl_gradpsi, xpt_array);
+  calculate_xpt_level(equilib, xpoint_number, est_xpoint_pos, interpl_1D_f, interpl_2D_f, xpt_array);
   printf("Finish find the X-points.\n");
   return;
 }
@@ -314,122 +318,149 @@ static int check_xpt_levels(const Equilibrium *equilib,int cx1,int cy1,int cx2,i
 
 //Calculate the coordinates and psi values of the X-points 
 static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos,
-                                interpl_psi_f interpl_psi, interpl_gradpsi_f interpl_gradpsi, _XPointInfo *xpt_array)
+                                interpl_1D_f interpl_1D_f, interpl_2D_f interpl_2D_f, _XPointInfo *xpt_array)
 {
 //currently, assume in the range [cx1:cx2,cy1:cy2] the psi are calculated by bilinear interpolation.
 
-for(int i=0; i<xpoint_number; i++)
-{
-  int cx1 = xpt_array[i].cx1;
-  int cy1 = xpt_array[i].cy1;
-  int cx2 = xpt_array[i].cx2;
-  int cy2 = xpt_array[i].cy2;
-  double a=(equilib->psi[cx2][cy1] - equilib->psi[cx1][cy1])/(equilib->r[cx2]-equilib->r[cx1]);
-  double b=(equilib->psi[cx1][cy2] - equilib->psi[cx1][cy1])/(equilib->z[cy2]-equilib->z[cy1]);
-  double c = (equilib->psi[cx2][cy2] + equilib->psi[cx1][cy1] - equilib->psi[cx2][cy1] - equilib->psi[cx1][cy2])
-            /((equilib->r[cx2]-equilib->r[cx1])*(equilib->z[cy2]-equilib->z[cy1]));
+// for(int i=0; i<xpoint_number; i++)
+// {
+//   int cx1 = xpt_array[i].cx1;
+//   int cy1 = xpt_array[i].cy1;
+//   int cx2 = xpt_array[i].cx2;
+//   int cy2 = xpt_array[i].cy2;
+//   double a=(equilib->psi[cx2][cy1] - equilib->psi[cx1][cy1])/(equilib->r[cx2]-equilib->r[cx1]);
+//   double b=(equilib->psi[cx1][cy2] - equilib->psi[cx1][cy1])/(equilib->z[cy2]-equilib->z[cy1]);
+//   double c = (equilib->psi[cx2][cy2] + equilib->psi[cx1][cy1] - equilib->psi[cx2][cy1] - equilib->psi[cx1][cy2])
+//             /((equilib->r[cx2]-equilib->r[cx1])*(equilib->z[cy2]-equilib->z[cy1]));
 
-  xpt_array[i].centerX = (-b)/c + equilib->r[cx1];
-  xpt_array[i].centerY = (-a)/c + equilib->z[cy1];
-  xpt_array[i].level = equilib->psi[cx1][cy1] - (a*b)/c;
-  printf("R: %.12f, Z: %.12f, psi: %.12f\n", xpt_array[i].centerX, xpt_array[i].centerY, xpt_array[i].level);
-  printf("crx1: %i, crx2: %i, cry1: %i, cry2: %i\n", cx1, cx2, cy1, cy2);
-  printf("x1: %.12f y1: %.12f\n", equilib->r[cx1], equilib->z[cy1]);
-  printf("lvlmin: %.12f, lvlmax: %.12f\n", xpt_array[i].lvlMin, xpt_array[i].lvlMax);
-}
+//   xpt_array[i].centerX = (-b)/c + equilib->r[cx1];
+//   xpt_array[i].centerY = (-a)/c + equilib->z[cy1];
+//   xpt_array[i].level = equilib->psi[cx1][cy1] - (a*b)/c;
+//   printf("R: %.12f, Z: %.12f, psi: %.12f\n", xpt_array[i].centerX, xpt_array[i].centerY, xpt_array[i].level);
+//   printf("crx1: %i, crx2: %i, cry1: %i, cry2: %i\n", cx1, cx2, cy1, cy2);
+//   printf("x1: %.12f y1: %.12f\n", equilib->r[cx1], equilib->z[cy1]);
+//   printf("lvlmin: %.12f, lvlmax: %.12f\n", xpt_array[i].lvlMin, xpt_array[i].lvlMax);
+// }
 
 /******************************************************************************
 * Following is another way based on secant method. There are problems in that 
 * method. In the future, it will be used.
 *******************************************************************************/
+  //temperoray magneticfield used for calculate X-point where the magnetic field is zero.
+
+  MagFieldTorSys magfield;
+  init_mag_field_torsys(&magfield);
+  char* method = "central_4th";
+  calc_mag_field_torsys(equilib, &magfield, method);
+  //write_mag_field_torsys(&test_magfield);
+
   // //temperoray magneticfield used for calculate X-point where the magnetic field is zero.
   // double ***grad_psi = allocate_3d_array(equilib->nw, equilib->nh, 2);
   // central_2nd_2d_diff(equilib->nw, equilib->r, equilib->nh, equilib->z, equilib->psi, grad_psi);
 
 
-  // for(int i=1; i<xpoint_number; i++)
-  // {
-  //   int cx1 = xpt_array[i].cx1;
-  //   int cy1 = xpt_array[i].cy1;
-  //   int cx2 = xpt_array[i].cx2;
-  //   int cy2 = xpt_array[i].cy2;
+  for(int i=0; i<xpoint_number; i++)
+  {
+    int cx1 = xpt_array[i].cx1;
+    int cy1 = xpt_array[i].cy1;
+    int cx2 = xpt_array[i].cx2;
+    int cy2 = xpt_array[i].cy2;
     
-  //   double x_start = equilib->r[cx1];
-  //   double y_start = equilib->z[cy1];
-  //   double x = x_start;
-  //   double y = y_start;
-  //   double dfdx = grad_psi[cx1][cy1][0];
-  //   double dfdy = grad_psi[cx1][cy1][1];
-  //   double L2norm;
+    double x_start = equilib->r[cx1];
+    double y_start = equilib->z[cy1];
+    double x = x_start;
+    double y = y_start;
+    double dBrdx = magfield.dBrzdx[cx1][cy1][0];
+    double dBrdy = magfield.dBrzdy[cx1][cy1][0];
+    double dBzdx, dBzdy;
+    double L2norm;
+    double Br,Bz;
+    interpl_2D_f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+                    magfield.Brz, &Br, &Bz, NULL, NULL, NULL);
     
-  //   L2norm = 0.5*sqrt(pow(dfdx,2.0) + pow(dfdy,2.0));
-  //   printf("x: %.12f y: %.12f L2norm: %.12f\n", x, y, L2norm);
-  //   printf("dfdx: %.12f dfdy: %.12f\n", dfdx, dfdy);
-  //   if(L2norm < TOLERANCE)
-  //   {
-  //     xpt_array[i].centerX = x_start;
-  //     xpt_array[i].centerY = y_start;
-  //     continue;
-  //   }
+    L2norm = sqrt(pow(Br,2.0) + pow(Bz,2.0));
+    printf("x: %.12f y: %.12f L2norm: %.12f\n", x, y, L2norm);
+    printf("Br: %.12f Bz: %.12f\n", Br, Bz);
+    if(L2norm < TOLERANCE)
+    {
+      xpt_array[i].centerX = x_start;
+      xpt_array[i].centerY = y_start;
+      continue;
+    }
 
-  //   //printf("x: %.12f y: %.12f\n", x, y);
-  //   for (int iter=0; iter<MAXITER; iter++)
-  //   {
-  //     interpl_gradpsi(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
-  //                 grad_psi, &dfdx, &dfdy, NULL, NULL, NULL);
-  //     L2norm = 0.5*sqrt(pow(dfdx,2.0) + pow(dfdy,2.0));
+    //printf("x: %.12f y: %.12f\n", x, y);
+    for (int iter=0; iter<MAXITER; iter++)
+    {
+      interpl_2D_f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+                  magfield.dBrzdx, &dBrdx, &dBzdx, NULL, NULL, NULL);
 
-  //     printf("iter: %d\n", iter);
-  //     if(fabs(dfdx)>TOLERANCE)
-  //     {
-  //       x=x+LEARNINGRATE*dfdx;
-  //     }
-  //     if(fabs(dfdy)>TOLERANCE)
-  //     {
-  //       y=y+LEARNINGRATE*dfdy;
-  //     }
+      interpl_2D_f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+                  magfield.dBrzdy, &dBrdy, &dBzdy, NULL, NULL, NULL);
 
-  //     printf("x: %.12f y: %.12f L2norm: %.12f\n", x, y, L2norm);
-  //     printf("dfdx: %.12f dfdy: %.12f\n", dfdx, dfdy);
 
-  //     if(L2norm < TOLERANCE)
-  //     {
-  //       xpt_array[i].centerX = x;
-  //       xpt_array[i].centerY = y;
-  //       break;
-  //     }
-  //     if(iter == MAXITER-1)
-  //     {
-  //       printf("Don't find the X-point center. Please check the function: calculate_xpt_level.\n");
-  //       exit(1);
-  //     }
-  //   }
 
-  //   //double check the xpoint
-  //   if (xpt_array[i].centerX >= equilib->r[cx1] &&
-  //       xpt_array[i].centerX <= equilib->r[cx2] &&
-  //       xpt_array[i].centerY >= equilib->z[cy1] &&
-  //       xpt_array[i].centerY <= equilib->z[cy2])
-  //   {
-  //     printf("The %d X-point is in the range\n", i);
-  //     printf("The X-Point: %.12f %.12f\n", xpt_array[i].centerX, xpt_array[i].centerY);
-  //   }
-  //   else
-  //   {
-  //     printf("The %d X-point is in out of the range\n", i);
-  //     printf("Please check the function: calculate_xpt_level\n");
-  //     exit(1);
-  //   }
-  // }
+      //we always start from the left corner. The Xpoint is in the center.
+      //In order to make sure the search in the correct direction,
+      // we use x+LEARNINGRATE*(fabs(dBrdx)+fabs(dBzdx))/2.0 instead of x-LEARNINGRATE*dBrdx
+      // also y=y+LEARNINGRATE*(fabs(dBrdx)+fabs(dBzdx))/2.0 instead of y-LEARNINGRATE*dBrdy
+      // At the meanwhile, the the effec of dBzdx and dBzdy is considered.
 
-  // for(int i=0; i<xpoint_number; i++)
-  // {
-  //   interpl_psi(xpt_array[i].centerX, xpt_array[i].centerY, 
-  //               equilib->nw,equilib->r, equilib->nh, equilib->z, equilib->psi,
-  //               &(xpt_array[i].level), NULL, NULL, NULL);
-  //   printf("The psi of the %d X-Point: %.12f \n", i, xpt_array[i].level);
-  // }
-  // free_3d_array(grad_psi);
+
+      x=x+LEARNINGRATE*(fabs(dBrdx)+fabs(dBzdx))/2.0;
+      y=y+LEARNINGRATE*(fabs(dBrdy)+fabs(dBzdy))/2.0;
+
+
+      interpl_2D_f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+                  magfield.Brz, &Br, &Bz, NULL, NULL, NULL);
+    
+      L2norm = sqrt(pow(Br,2.0) + pow(Bz,2.0));
+      //printf("iter: %d\n", iter);
+      //printf("x: %.12f y: %.12f L2norm: %.12f\n", x, y, L2norm);
+      //printf("Br: %.12f Bz: %.12f\n", Br, Bz);
+
+      //printf("dfdx: %.12f dfdy: %.12f\n", dBrdx, dBrdy);
+
+      if(L2norm < TOLERANCE)
+      {
+        xpt_array[i].centerX = x;
+        xpt_array[i].centerY = y;
+        printf("iter: %d\n", iter);
+        printf("x: %.12f y: %.12f L2norm: %.12f\n", x, y, L2norm);
+        printf("Br: %.12f Bz: %.12f\n", Br, Bz);
+        break;
+      }
+      if(iter == MAXITER-1)
+      {
+        printf("Don't find the X-point center. Please check the function: calculate_xpt_level.\n");
+        exit(EXIT_FAILURE);
+      }
+    }
+
+    //double check the xpoint
+    if (xpt_array[i].centerX >= equilib->r[cx1] &&
+        xpt_array[i].centerX <= equilib->r[cx2] &&
+        xpt_array[i].centerY >= equilib->z[cy1] &&
+        xpt_array[i].centerY <= equilib->z[cy2])
+    {
+      printf("The %d X-point is in the range\n", i);
+      printf("The X-Point: %.12f %.12f\n", xpt_array[i].centerX, xpt_array[i].centerY);
+    }
+    else
+    {
+      printf("The %d X-point is in out of the range\n", i);
+      printf("Please check the function: calculate_xpt_level\n");
+      exit(1);
+    }
+  }
+
+  for(int i=0; i<xpoint_number; i++)
+  {
+    interpl_1D_f(xpt_array[i].centerX, xpt_array[i].centerY, 
+                equilib->nw,equilib->r, equilib->nh, equilib->z, equilib->psi,
+                &(xpt_array[i].level), NULL, NULL, NULL);
+    printf("The psi of the %d X-Point: %.12f \n", i, xpt_array[i].level);
+  }
+  free_mag_field_torsys(&magfield);
 }
 
 void test_find_xpoint()
@@ -455,12 +486,12 @@ void test_find_xpoint()
   est_xpt[1][0] = 1.58;
   est_xpt[1][1] = 1.61;
 
-  interpl_psi_f interpl_psi = bilenar_1d;
-  interpl_gradpsi_f interpl_gradpsi = bilenar_2d;
+  interpl_1D_f interpl_1D_f = bilenar_1d;
+  interpl_2D_f interpl_2D_f = bilenar_2d;
 
   _XPointInfo xpt_array[2];
 
-  find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_psi, interpl_gradpsi, xpt_array);
+  find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_1D_f, interpl_2D_f, xpt_array);
 
   free_2d_array(est_xpt);
   free_equilibrium(&dtt_example);  
