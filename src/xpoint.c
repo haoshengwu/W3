@@ -7,7 +7,7 @@
 #endif
 
 #ifndef LEARNINGRATE
-#define LEARNINGRATE 5E-6
+#define LEARNINGRATE 1E-6
 #endif
 
 #ifndef MAXITER
@@ -15,8 +15,19 @@
 #endif
 
 #ifndef TOLERANCE
-#define TOLERANCE 8.0E-4
+#define TOLERANCE 1.0E-3
 #endif
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <math.h>
+#include "datastructure.h"
+#include "mathbase.h"
+#include "calc.h"
+#include "magneticfield.h"
+#include "input.h"
 
 // private functions for find Xpoint
 static int check_xpt_rectangular(const Equilibrium *equilib, const XPointInfo xpt);
@@ -343,8 +354,7 @@ static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double 
 // }
 
 /******************************************************************************
-* Following is another way based on secant method. There are problems in that 
-* method. In the future, it will be used.
+* Following is my own method, future will be updated
 *******************************************************************************/
   //temperoray magneticfield used for calculate X-point where the magnetic field is zero.
 
@@ -397,12 +407,10 @@ static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double 
       interpl_2D_f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
                   magfield.dBrzdy, &dBrdy, &dBzdy, NULL, NULL, NULL);
 
-
-
       //we always start from the left corner. The Xpoint is in the center.
       //In order to make sure the search in the correct direction,
-      // we use x+LEARNINGRATE*(fabs(dBrdx)+fabs(dBzdx))/2.0 instead of x-LEARNINGRATE*dBrdx
-      // also y=y+LEARNINGRATE*(fabs(dBrdx)+fabs(dBzdx))/2.0 instead of y-LEARNINGRATE*dBrdy
+      // we use x+LEARNINGRATE*(fabs(dBrdx)+fabs(dBzdx))/10.0 instead of x-LEARNINGRATE*dBrdx
+      // also y=y+LEARNINGRATE*(fabs(dBrdx)+fabs(dBzdx))/10.0 instead of y-LEARNINGRATE*dBrdy
       // At the meanwhile, the the effec of dBzdx and dBzdy is considered.
 
 
@@ -486,8 +494,8 @@ void test_find_xpoint()
   est_xpt[1][0] = 1.58;
   est_xpt[1][1] = 1.61;
 
-  interpl_1D_f interpl_1D_f = bilenar_1d;
-  interpl_2D_f interpl_2D_f = bilenar_2d;
+  interpl_1D_f interpl_1D_f = cubicherm_1d;
+  interpl_2D_f interpl_2D_f = cubicherm_2d;
 
   _XPointInfo xpt_array[2];
 

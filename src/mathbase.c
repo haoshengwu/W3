@@ -1,4 +1,8 @@
 #include "mathbase.h"
+#include <math.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 
 double deg2rad(double phi)
@@ -451,8 +455,8 @@ void cubicherm_1d(double target_x, double target_y, int nx, double *x,  int ny, 
   
   double hx = dx;
   double hy = dy;
-  double hxi = 1/hx;
-  double hyi = 1/hy;
+  double hxi = 1.0/hx;
+  double hyi = 1.0/hy;
 
   double xp = (target_x-x[xc])*hxi;
   double xpi = 1-xp;
@@ -501,4 +505,91 @@ void cubicherm_1d(double target_x, double target_y, int nx, double *x,  int ny, 
 
   *value = sum;
   return;
+}
+
+// referen to herm1ev.f90 in pspline
+void cubicherm1D_eval(const void* interp_data, double target_x, double* value){
+  const CubicHerm1dData* data = (const CubicHerm1dData*) interp_data;
+  int nx = data->nx;
+// range check
+  double dx = (data->x[nx-1] - data->x[0])/(nx-1);
+  //precision cretirea
+  double eps = dx * 1e-6;
+
+  //examine the boundary
+  if (target_x < data->x[0] - eps || target_x > data->x[nx-1] + eps) 
+  {
+    fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, data->x[0], data->x[nx-1]);
+    exit(EXIT_FAILURE);
+  }
+  if (fabs(target_x - data->x[0]) < eps) target_x = data->x[0];
+  if (fabs(target_x - data->x[nx-1]) < eps) target_x = data->x[nx-1];
+  //nx points then nx-1 cells, ny points then ny-1 cells
+  int xc = floor((target_x - data->x[0])/dx);
+  if (xc < 0) xc = 0;
+  if (xc >= nx - 1) xc = nx - 2;
+
+  double hx=(data->x[xc+1]-data->x[xc]);
+  double hxi = 1.0/hx;
+
+  double xp = (target_x-data->x[xc])*hxi;
+  double xpi = 1-xp;
+  double xp2 = xp*xp;
+  double xpi2 = xpi*xpi;
+  double ax = xp2*(3.0-2.0*xp);
+  double axbar = 1.0-ax;
+  double bx = -xp2*xpi;
+  double bxbar = xpi2*xp;
+
+  double sum=0.0;
+  sum = axbar*data->fx[xc] + ax*data->fx[xc+1];
+  sum = sum + hx*(bxbar*data->dfdx[xc]+bx*data->dfdx[xc+1]);
+
+  *value = sum;
+}
+
+Interp1DFunction* create_cubicherm1D_interp(double* x, double* fx, double* dfdx, int nx)
+{
+  CubicHerm1dData* data = malloc(sizeof(CubicHerm1dData));
+  data->nx = nx;
+  data->x = malloc(sizeof(double) * nx);
+  data->fx = malloc(sizeof(double) * nx);
+  data->dfdx = malloc(sizeof(double) * nx);
+
+  memcpy(data->x, x, sizeof(double) * nx);
+  memcpy(data->fx, fx, sizeof(double) * nx);
+  memcpy(data->dfdx, dfdx, sizeof(double) * nx);
+
+  Interp1DFunction* interp = malloc(sizeof(Interp1DFunction));
+  interp->data = data;
+  interp->eval = cubicherm1D_eval;
+//  interp->deriv = cubicherm1D_deriv;
+  interp->free_data = cubicherm1D_free_data;
+  interp->name = "CubicHerm1D";
+  return interp;
+}
+
+void cubicherm1D_free_data(void** ptr)
+{
+  if (ptr && *ptr)
+  {
+    CubicHerm1dData* data = (CubicHerm1dData*)(*ptr);
+      free(data->x);
+      free(data->fx);
+      free(data->dfdx);
+      free(data); 
+      *ptr = NULL;
+  }
+}
+
+void free_interp1d_function(Interp1DFunction* interp) 
+{
+    if (interp == NULL) return;
+
+    if (interp->free_data && interp->data) 
+    {
+          interp->free_data(&(interp->data));
+    }
+    free(interp);
+    printf("Finish free interp1d\n");
 }

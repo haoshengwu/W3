@@ -1,16 +1,7 @@
 #ifndef XPOINT_H
 #define XPOINT_H
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <math.h>
-#include "datastructure.h"
-#include "mathbase.h"
 #include "equilibrium.h"
-#include "calc.h"
-#include "magneticfield.h"
-#include "input.h"
+
 
 
 // Some structs are from DG, the objects with common out are not used.

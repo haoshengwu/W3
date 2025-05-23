@@ -5,8 +5,7 @@
 //  
 //  Related functions are also clear here.
 
-#include <stdlib.h>
-#include <string.h>
+
 
 
 // There are some codes directly from DivGeo, the reason is I will to use benefits from DivGeo

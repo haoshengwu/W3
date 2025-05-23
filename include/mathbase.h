@@ -1,9 +1,6 @@
 #ifndef MATHBASE_H
 #define MATHBASE_H
 
-#include <math.h>
-#include <stdlib.h>
-#include <stdio.h>
 #define M_PI 3.14159265358979323846
 #ifndef min
 #define min(x,y) ((x)<(y) ? (x) : (y))
@@ -64,6 +61,41 @@ void cubicherm_1d(double target_x, double target_y, int nx, double *x,  int ny, 
                 double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy);
 
 
+void cubicherm_D1(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+                double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy);
 
+
+// for 1D interpolation, x and f(x), we change to an abstrac interface.
+// This is for 1D situation.
+typedef void (*interp1d_eval_fun)(const void* interp_data, double x, double* value);
+typedef void (*interp1d_deriv_fun)(const void* interp_data, double x, double* value);
+typedef void (*interp1d_free_data)(void** ptr);
+
+
+typedef struct 
+{
+  interp1d_eval_fun eval;
+//  interp1d_deriv_fun deriv;
+  void* data;
+  interp1d_free_data free_data;
+  const char* name;
+}Interp1DFunction;
+
+typedef struct
+{
+  double* x;
+  double* fx;
+  double* dfdx;
+  int nx;
+}CubicHerm1dData;
+
+void free_interp1d_function(Interp1DFunction* func);
+
+
+void cubicherm1D_eval(const void* interp_data, double x, double* value);
+void cubicherm1D_deriv(const void* interp_data, double x, double* value); //todo
+Interp1DFunction* create_cubicherm1D_interp(double* x, double* fx, double* dfdx, int nx);
+void cubicherm1D_free_data(void** ptr);
+void modify_cubicherm1D_interp_data(Interp1DFunction* interp, double* x, double* fx, int nx);//todo
 
 #endif

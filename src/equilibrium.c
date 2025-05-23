@@ -1,10 +1,13 @@
+#include "equilibrium.h"
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
 #include "basemesh.h"
-#include "equilibrium.h"
 #include "calc.h"
+
 
 // private functions for find Xpoint
 static int check_xpt_rectangular(const Equilibrium *equilib, const XPointTest xpt);
