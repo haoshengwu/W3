@@ -3,8 +3,17 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
+
+#define MAX_ITER_NEWTON 1000
+#define epsilon 1.0E-12
 
 
+void swap_double(double* a, double* b) {
+    double temp = *a;
+    *a = *b;
+    *b = temp;
+}
 double deg2rad(double phi)
 {
   return phi * M_PI / 180.0;
@@ -546,27 +555,119 @@ void cubicherm1D_eval(const void* interp_data, double target_x, double* value){
   sum = sum + hx*(bxbar*data->dfdx[xc]+bx*data->dfdx[xc+1]);
 
   *value = sum;
+  return;
+}
+
+
+void cubicherm1D_deriv(const void* interp_data, double target_x, double* value)
+{
+  const CubicHerm1dData* data = (const CubicHerm1dData*) interp_data;
+  int nx = data->nx;
+// range check
+  double dx = (data->x[nx-1] - data->x[0])/(nx-1);
+  //precision cretirea
+  double eps = dx * 1e-6;
+
+  //examine the boundary
+  if (target_x < data->x[0] - eps || target_x > data->x[nx-1] + eps) 
+  {
+    fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, data->x[0], data->x[nx-1]);
+    exit(EXIT_FAILURE);
+  }
+  if (fabs(target_x - data->x[0]) < eps) target_x = data->x[0];
+  if (fabs(target_x - data->x[nx-1]) < eps) target_x = data->x[nx-1];
+  //nx points then nx-1 cells, ny points then ny-1 cells
+  int xc = floor((target_x - data->x[0])/dx);
+  if (xc < 0) xc = 0;
+  if (xc >= nx - 1) xc = nx - 2;
+  double hx=(data->x[xc+1]-data->x[xc]);
+  double hxi = 1.0/hx;
+
+  double xp = (target_x-data->x[xc])*hxi;
+  double xpi = 1-xp;
+  double xp2 = xp*xp;
+  double xpi2 = xpi*xpi;
+  double axp=6.0*xp*xpi;
+  double axbarp=-axp;
+  double bxp=xp*(3.0*xp-2.0);
+  double bxbarp=xpi*(3.0*xpi-2.0);
+  double sum=0.0;
+  sum=hxi*(axbarp*data->fx[xc] +axp*data->fx[xc+1]);
+  sum=sum+bxbarp*data->fx[xc] + bxp*data->fx[xc+1];
+  *value = sum;
+  return;
 }
 
 Interp1DFunction* create_cubicherm1D_interp(double* x, double* fx, double* dfdx, int nx)
 {
   CubicHerm1dData* data = malloc(sizeof(CubicHerm1dData));
+  
+  if (!data) {
+    fprintf(stderr, "Failed to allocate CubicHerm1dData.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  bool input_xfxdfdx = false;
+
   data->nx = nx;
   data->x = malloc(sizeof(double) * nx);
   data->fx = malloc(sizeof(double) * nx);
   data->dfdx = malloc(sizeof(double) * nx);
 
-  memcpy(data->x, x, sizeof(double) * nx);
-  memcpy(data->fx, fx, sizeof(double) * nx);
-  memcpy(data->dfdx, dfdx, sizeof(double) * nx);
+  if (!data->x || !data->fx || !data->dfdx) {
+    fprintf(stderr, "Failed to allocate arrays.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(x==NULL && fx==NULL && dfdx==NULL)
+  {
+    for(int i=0;i<nx;i++)
+    {
+      data->x[i]=0;
+      data->fx[i]=0;
+      data->dfdx[i]=0;
+    }
+  }
+  else if(x!=NULL && fx!=NULL && dfdx!=NULL)
+  {
+    memcpy(data->x, x, sizeof(double) * nx);
+    memcpy(data->fx, fx, sizeof(double) * nx);
+    memcpy(data->dfdx, dfdx, sizeof(double) * nx);
+  }
+  else
+  {
+    free(data->x);
+    free(data->fx);
+    free(data->dfdx);
+    fprintf(stderr, "Please check the input for the interpolator\n");
+    exit(EXIT_FAILURE);
+  }
 
   Interp1DFunction* interp = malloc(sizeof(Interp1DFunction));
   interp->data = data;
   interp->eval = cubicherm1D_eval;
-//  interp->deriv = cubicherm1D_deriv;
+  interp->deriv = cubicherm1D_deriv;
   interp->free_data = cubicherm1D_free_data;
   interp->name = "CubicHerm1D";
   return interp;
+}
+
+//modify the CubicHerm1dData value! not the addreass. THE SIZE should be exactly the same.
+void modify_cubicherm1D_data(CubicHerm1dData* data, double* x, double* fx, double* dfdx, int nx)
+{
+  if(nx!=data->nx)
+  {
+    printf("The size of new data is not same with previous!!!\n");
+    exit(EXIT_FAILURE);
+  }
+  // printf("DEBUG in modify_cubicherm1D_data\n");
+  for(int i=0;i<nx;i++)
+  {
+    if(x!=NULL) data->x[i]=x[i];
+    if(fx!=NULL) data->fx[i]=fx[i];
+    if(dfdx!=NULL)data->dfdx[i]=dfdx[i];
+  }
+  return;
 }
 
 void cubicherm1D_free_data(void** ptr)
@@ -581,15 +682,98 @@ void cubicherm1D_free_data(void** ptr)
       *ptr = NULL;
   }
 }
-
-void free_interp1d_function(Interp1DFunction* interp) 
+void free_interp1d_function(Interp1DFunction* interp)
 {
-    if (interp == NULL) return;
-
-    if (interp->free_data && interp->data) 
+  if (interp == NULL) return;
+  if (interp->free_data && interp->data) 
     {
-          interp->free_data(&(interp->data));
+      interp->free_data(&(interp->data));
     }
     free(interp);
-    printf("Finish free interp1d\n");
+    printf("Finish free interpolator.\n");
+}
+
+
+
+//assume cubichermit interpolation, will be update in future.
+//Use newton method to calculate x which have the fx value;
+void Newton_Raphson_Method(double* x, const double* fx_target, Interp1DFunction* interp)
+{
+  double x_prev, x_curr;
+  CubicHerm1dData* data = (CubicHerm1dData*) interp->data;
+  int nx = data->nx;
+  x_prev=data->x[0]+(data->x[nx-1]-data->x[0])*1.0e-6;
+  double fx_prev, dfdx_prev;
+  double fx_curr;
+  for(int i=0; i<MAX_ITER_NEWTON; i++)
+  {
+    interp->eval(interp->data, x_prev, &fx_prev);
+    interp->deriv(interp->data, x_prev, &dfdx_prev);
+    if (fabs(dfdx_prev) < 1e-14) 
+    {
+      printf("Warning: derivative too small in Newton iteration.\n");
+      break;
+    }
+    x_curr=x_prev-(fx_prev-*fx_target)/dfdx_prev;
+    interp->eval(interp->data, x_curr, &fx_curr);
+    if(fabs(fx_curr-*fx_target)<epsilon)
+    {
+      *x = x_curr;
+      return;
+    }
+    x_prev = x_curr;
+  }
+  printf("Newton_Raphson_Method: maximum iterations reached.\n");
+  *x = x_curr;
+  return;
+}
+
+//assume cubichermit interpolation, will be update in future.
+void Secant_Method(double* x, const double* fx_target, Interp1DFunction* interp)
+{
+  double x_prev, x_curr, x_next;
+  int nx;
+  if(strcmp(interp->name, "CubicHerm1D")==0)
+  {
+    CubicHerm1dData* data = (CubicHerm1dData*) interp->data;
+    nx = data->nx;
+    x_prev = data->x[0] ;
+    x_curr = data->x[nx - 1];
+  }
+  else
+  {
+    printf("Only support CubicHermit data!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  double fx_prev, fx_curr, fx_next;
+
+  interp->eval(interp->data, x_prev, &fx_prev);
+  interp->eval(interp->data, x_curr, &fx_curr);
+
+  for (int i = 0; i < MAX_ITER_NEWTON; ++i) 
+  {
+    double denom = fx_curr - fx_prev;
+    if (fabs(denom) < 1e-14) {
+      printf("Warning: function difference too small in Secant iteration.\n");
+      break;
+    }
+
+    double x_next = x_curr - (fx_curr - *fx_target) * (x_curr - x_prev) / denom;
+
+    interp->eval(interp->data, x_next, &fx_next);
+
+    if (fabs(fx_next - *fx_target) < epsilon) {
+      *x = x_next;
+      return;
+    }
+
+    x_prev = x_curr;
+    fx_prev = fx_curr;
+    x_curr = x_next;
+    fx_curr = fx_next;
+  }
+
+  printf("Secant_Method: maximum iterations reached.\n");
+  *x = x_curr;  // fallback
 }

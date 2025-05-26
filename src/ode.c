@@ -9,6 +9,8 @@ void ode_f_brz_torsys_bilinear(const int ndim, const double *x, const double *y,
   if( y[0] < MIN_R)
   {
     printf("WARNING: points in the MIN_R: %lf region!\n", MIN_R);
+    printf("WARNING: y[0]: %lf MIN_R %lf\n", y[0], MIN_R);
+
     bt_tmp = mag_field->b0r0 / y[0];
   }
   else
@@ -42,6 +44,7 @@ void ode_f_brz_torsys_cubicherm(const int ndim, const double *x, const double *y
   if( y[0] < MIN_R)
   {
     printf("WARNING: points in the MIN_R: %lf region!\n", MIN_R);
+    printf("WARNING: y[0]: %lf MIN_R %lf\n", y[0], MIN_R);
     bt_tmp = mag_field->b0r0 / y[0];
   }
   else
@@ -156,7 +159,7 @@ void brk5_next_step(double step_size, const double *x, const double *y, double *
   {
     dydx[0][i] = dydx[0][i] * ode_f->rescale[i];
   }
-  //printf("debug: dydx[0] calculated.\n");
+  // printf("debug: dydx[0] calculated.\n");
 
 
   //step 2, k2
@@ -170,20 +173,24 @@ void brk5_next_step(double step_size, const double *x, const double *y, double *
   {
     dydx[1][i] = dydx[1][i] * ode_f->rescale[i];
   }
-  //printf("debug: dydx[1] calculated.\n");
+  // printf("debug: dydx[1] calculated.\n");
 
   // Step 3: k3
   x_tmp = *x + brk5_data->C[2] * step_size;
+  // printf("debug: dydx[3] step1.\n");
+
   for (int i = 0; i < ndim; i++) 
   {
     y_tmp[i] = y[i] + step_size * (brk5_data->A[2][0] * dydx[0][i] + brk5_data->A[2][1] * dydx[1][i]);
   }
+  // printf("debug: dydx[3] step2.\n");
+
   ode_f->compute_f(ndim, &x_tmp, y_tmp, dydx[2], ode_f->data);
   for (int i=0; i<ndim; i++)
   {
     dydx[2][i] = dydx[2][i] * ode_f->rescale[i];
   }
-  //printf("debug: dydx[3] calculated.\n");
+  // printf("debug: dydx[3] step3.\n");
 
   // Step 4: k4
   x_tmp = *x + brk5_data->C[3] * step_size;
@@ -196,7 +203,7 @@ void brk5_next_step(double step_size, const double *x, const double *y, double *
   {
     dydx[3][i] = dydx[3][i] * ode_f->rescale[i];
   }
-  //printf("debug: dydx[4] calculated.\n");
+  // printf("debug: dydx[4] calculated.\n");
 
   // Step 5: k5
   x_tmp = *x + brk5_data->C[4] * step_size;
@@ -210,7 +217,7 @@ void brk5_next_step(double step_size, const double *x, const double *y, double *
   {
     dydx[4][i] = dydx[4][i] * ode_f->rescale[i];
   }
-  //printf("debug: dydx[5] calculated.\n");
+  // printf("debug: dydx[5] calculated.\n");
 
   x_tmp = *x + brk5_data->C[5] * step_size;
   for (int i = 0; i < ndim; i++) 
@@ -228,7 +235,7 @@ void brk5_next_step(double step_size, const double *x, const double *y, double *
   {
     dydx[5][i] = dydx[5][i] * ode_f->rescale[i];
   }
-  //printf("debug: dydx[6] calculated.\n");
+  // printf("debug: dydx[6] calculated.\n");
 
 
   for (int i = 0; i < ndim; i++) 

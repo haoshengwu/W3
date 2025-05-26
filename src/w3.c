@@ -182,10 +182,12 @@ test magnetic field line calculation
 *  Verify the separatrix
 ******************************************************/
   // separatrix_test();
-
+  new_separatrix_test();
 /*****************************************************
 *  Verify Interpolation 1D
 ******************************************************/
-  interp1d_test();  
+  // interp1d_test();  
+
+
   return 0;
 }

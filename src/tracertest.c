@@ -2,7 +2,17 @@
  * Should not be included in source code. 
 */
 #include "tracertest.h"
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "input.h"
+#include "magneticsurface.h"
+#include "datastructure.h"
+#include "linetrace.h"
+#include "magneticfield.h"
+#include "ode.h"
+#include "basemesh.h"
+#include "mathbase.h"
 /****************************************************************************
  * Some static functions used for test the tracer.
 ****************************************************************************/

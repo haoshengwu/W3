@@ -114,6 +114,7 @@ void find_xpoint(Equilibrium *equilib, int xpoint_number, double **est_xpoint_po
   }
   calculate_xpt_level(equilib, xpoint_number, est_xpoint_pos, interpl_1D_f, interpl_2D_f, xpt_array);
   printf("Finish find the X-points.\n");
+  free(xpC);
   return;
 }
 
@@ -331,8 +332,8 @@ static int check_xpt_levels(const Equilibrium *equilib,int cx1,int cy1,int cx2,i
 static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos,
                                 interpl_1D_f interpl_1D_f, interpl_2D_f interpl_2D_f, _XPointInfo *xpt_array)
 {
+  
 //currently, assume in the range [cx1:cx2,cy1:cy2] the psi are calculated by bilinear interpolation.
-
 // for(int i=0; i<xpoint_number; i++)
 // {
 //   int cx1 = xpt_array[i].cx1;
@@ -471,37 +472,3 @@ static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double 
   free_mag_field_torsys(&magfield);
 }
 
-void test_find_xpoint()
-{
-  printf("*******************************************\n");
-  printf("Begint to test find_xpoint\n"); 
-
-  InputPara w3_input;
-  init_inputpara(&w3_input);
-  print_inputpara(&w3_input);
-  Equilibrium dtt_example;
-  
-  init_equilibrium(&dtt_example);
-
-  read_equilib_geqdsk(&dtt_example,w3_input.equilibrium_file);
-  print_equilibrium(&dtt_example);
-  
-  int xpt_n = 2;
-  double **est_xpt = allocate_2d_array(xpt_n,2);
-  est_xpt[0][0] = 1.85;
-  est_xpt[0][1] = -1.16;
-
-  est_xpt[1][0] = 1.58;
-  est_xpt[1][1] = 1.61;
-
-  interpl_1D_f interpl_1D_f = cubicherm_1d;
-  interpl_2D_f interpl_2D_f = cubicherm_2d;
-
-  _XPointInfo xpt_array[2];
-
-  find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_1D_f, interpl_2D_f, xpt_array);
-
-  free_2d_array(est_xpt);
-  free_equilibrium(&dtt_example);  
-
-}
