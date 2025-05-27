@@ -124,8 +124,8 @@ void test_find_xpoint()
   est_xpt[1][0] = 1.58;
   est_xpt[1][1] = 1.61;
 
-  interpl_1D_f interpl_1D_f = cubicherm_1d;
-  interpl_2D_f interpl_2D_f = cubicherm_2d;
+  interpl_1D_f interpl_1D_f = cubicherm2d1f;
+  interpl_2D_f interpl_2D_f = cubicherm2d2f;
 
   _XPointInfo xpt_array[2];
 
@@ -155,8 +155,8 @@ void new_separatrix_test(){
   est_xpt[1][0] = 1.58;
   est_xpt[1][1] = 1.61;
 
-  interpl_1D_f interpl_1D_f = cubicherm_1d;
-  interpl_2D_f interpl_2D_f = cubicherm_2d;
+  interpl_1D_f interpl_1D_f = cubicherm2d1f;
+  interpl_2D_f interpl_2D_f = cubicherm2d2f;
 
   _XPointInfo xpt_array[2];
 

@@ -264,7 +264,7 @@ void euler_method(double r0, double z0, double phi0, double dphi, int step,
 
     double br_iijj, bz_iijj;
 
-    bilenar_2d(r_tmp, z_tmp, Bfield->nr, Bfield->r, Bfield->nz_RZ, Bfield->z_RZ, brz_field, &br_iijj, &bz_iijj, NULL, NULL, NULL);
+    bilenar2d2f(r_tmp, z_tmp, Bfield->nr, Bfield->r, Bfield->nz_RZ, Bfield->z_RZ, brz_field, &br_iijj, &bz_iijj, NULL, NULL, NULL);
 
 //    double br_iijj = br_bilinear_coeff[ii][jj][0] + br_bilinear_coeff[ii][jj][1] * xx
 //                     + br_bilinear_coeff[ii][jj][2]*zz + br_bilinear_coeff[ii][jj][3] * xx * zz;

@@ -184,7 +184,7 @@ void read_equilib_geqdsk(Equilibrium *equilib, const char *geqdsk_file)
     for(int j=0; j< nz; j++)
     {
       equilib->psi[i][j] = 0.0;
-      cubicherm_1d(equilib->r[i],equilib->z[j], nw, r_tmp, nh, z_tmp,
+      cubicherm2d1f(equilib->r[i],equilib->z[j], nw, r_tmp, nh, z_tmp,
                    psi_tmp, &(equilib->psi[i][j]),NULL, NULL, NULL);
     }
   }
@@ -323,7 +323,7 @@ XPointTest find_Xpoint(Equilibrium *equilib, const double *est_pos)
 double get_psi_from_rz(const Equilibrium *equilib, double x, double y)
 {
   double value;
-  cubicherm_1d(x, y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+  cubicherm2d1f(x, y, equilib->nw, equilib->r, equilib->nh, equilib->z,
                   equilib->psi, &(value), NULL, NULL, NULL);
   return value;
 }

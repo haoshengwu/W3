@@ -110,7 +110,7 @@ void central_4th_2d_diff(int nx, double *x,  int ny, double *y, double **f, doub
   }
 }
 
-void bilenar_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
+void bilenar2d2f(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
                 double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy)
 {
   // assume uniform dx and dy
@@ -124,12 +124,16 @@ void bilenar_2d(double target_x, double target_y, int nx, double *x,  int ny, do
   if (target_x < x[0] - eps || target_x > x[nx-1] + eps) 
   {
     fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, x[0], x[nx-1]);
-    exit(EXIT_FAILURE);
+    *value1=NAN;
+    *value2=NAN;
+    return;
   }
   if (target_y < y[0] - eps || target_y > y[ny-1] + eps) 
   {
     fprintf(stderr, "Error: target_y (%.6f) is out of bounds [%.12f, %.12f]\n", target_y, y[0], y[ny-1]);
-    exit(EXIT_FAILURE);
+    *value1=NAN;
+    *value2=NAN;
+    return;
   }
 
 
@@ -172,7 +176,7 @@ void bilenar_2d(double target_x, double target_y, int nx, double *x,  int ny, do
             tx * ty * g11;                  
 }
 
-void bicubic_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+void bicubic2d2f(double target_x, double target_y, int nx, double *x,  int ny, double *y,
                 double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy)
 {
   if (dfdx == NULL || dfdy == NULL || d2fdxdy == NULL)
@@ -186,7 +190,7 @@ void bicubic_2d(double target_x, double target_y, int nx, double *x,  int ny, do
   return;
 }
 
-void cubicherm_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+void cubicherm2d2f(double target_x, double target_y, int nx, double *x,  int ny, double *y,
                 double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy)
 {
   //This function is according to pspline function dnherm2() and function herm2fcn()
@@ -201,13 +205,17 @@ void cubicherm_2d(double target_x, double target_y, int nx, double *x,  int ny, 
   //examine the boundary
   if (target_x < x[0] - eps || target_x > x[nx-1] + eps) 
   {
-    fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, x[0], x[nx-1]);
-    exit(EXIT_FAILURE);
+    fprintf(stderr, "WARNING: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, x[0], x[nx-1]);
+    *value1=NAN;
+    *value2=NAN;
+    return;
   }
   if (target_y < y[0] - eps || target_y > y[ny-1] + eps) 
   {
-    fprintf(stderr, "Error: target_y (%.6f) is out of bounds [%.12f, %.12f]\n", target_y, y[0], y[ny-1]);
-    exit(EXIT_FAILURE);
+    fprintf(stderr, "WARNING: target_y (%.6f) is out of bounds [%.12f, %.12f]\n", target_y, y[0], y[ny-1]);
+    *value1=NAN;
+    *value2=NAN;
+    return;
   }
 
   if (fabs(target_x - x[0]) < eps) target_x = x[0];
@@ -329,7 +337,7 @@ void cubicherm_2d(double target_x, double target_y, int nx, double *x,  int ny, 
 
 
 
-void bilenar_1d(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
+void bilenar2d1f(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
                 double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy)
 {
 // assume uniform dx and dy
@@ -342,13 +350,15 @@ void bilenar_1d(double target_x, double target_y, int nx, double *x,  int ny, do
   //examine the boundary
   if (target_x < x[0] - eps || target_x > x[nx-1] + eps) 
   {
-    fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, x[0], x[nx-1]);
-    exit(EXIT_FAILURE);
-  }
+    fprintf(stderr, "WARNING: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, x[0], x[nx-1]);
+    *value=NAN;
+    return; 
+    }
   if (target_y < y[0] - eps || target_y > y[ny-1] + eps) 
   {
-    fprintf(stderr, "Error: target_y (%.6f) is out of bounds [%.12f, %.12f]\n", target_y, y[0], y[ny-1]);
-    exit(EXIT_FAILURE);
+    fprintf(stderr, "WARNING: target_y (%.6f) is out of bounds [%.12f, %.12f]\n", target_y, y[0], y[ny-1]);
+    *value=NAN;
+    return; 
   }
 
 
@@ -384,7 +394,7 @@ void bilenar_1d(double target_x, double target_y, int nx, double *x,  int ny, do
   return;           
 }
 
-void cubicherm_1d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+void cubicherm2d1f(double target_x, double target_y, int nx, double *x,  int ny, double *y,
                 double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy)
 {
   //This function is according to pspline function dnherm2() and function herm2fcn()
@@ -399,12 +409,14 @@ void cubicherm_1d(double target_x, double target_y, int nx, double *x,  int ny, 
   if (target_x < x[0] - eps || target_x > x[nx-1] + eps) 
   {
     fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, x[0], x[nx-1]);
-    exit(EXIT_FAILURE);
+    *value=NAN;
+    return; 
   }
   if (target_y < y[0] - eps || target_y > y[ny-1] + eps) 
   {
     fprintf(stderr, "Error: target_y (%.6f) is out of bounds [%.12f, %.12f]\n", target_y, y[0], y[ny-1]);
-    exit(EXIT_FAILURE);
+    *value=NAN;
+    return; 
   }
 
   if (fabs(target_x - x[0]) < eps) target_x = x[0];
@@ -528,8 +540,9 @@ void cubicherm1D_eval(const void* interp_data, double target_x, double* value){
   //examine the boundary
   if (target_x < data->x[0] - eps || target_x > data->x[nx-1] + eps) 
   {
-    fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, data->x[0], data->x[nx-1]);
-    exit(EXIT_FAILURE);
+    fprintf(stderr, "WARNING: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, data->x[0], data->x[nx-1]);
+    *value=NAN;
+    return; 
   }
   if (fabs(target_x - data->x[0]) < eps) target_x = data->x[0];
   if (fabs(target_x - data->x[nx-1]) < eps) target_x = data->x[nx-1];
@@ -572,7 +585,8 @@ void cubicherm1D_deriv(const void* interp_data, double target_x, double* value)
   if (target_x < data->x[0] - eps || target_x > data->x[nx-1] + eps) 
   {
     fprintf(stderr, "Error: target_x (%.6f) is out of bounds [%.12f, %.12f]\n", target_x, data->x[0], data->x[nx-1]);
-    exit(EXIT_FAILURE);
+    *value=NAN;
+    return; 
   }
   if (fabs(target_x - data->x[0]) < eps) target_x = data->x[0];
   if (fabs(target_x - data->x[nx-1]) < eps) target_x = data->x[nx-1];

@@ -46,20 +46,20 @@ typedef struct
 } CubicHerm2dData;
 
 // dfdx dfdy d2fdxdy can be supported or just NULL pointer.
-// here 2d means for TWO 2d-functions. NOT for ONE 2d-function.
-void bilenar_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
+// here 2d means for 2d-functions f(x,y). 2f means f(x,y,2).
+void bilenar2d2f(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
                 double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
-void bicubic_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+void bicubic2d2f(double target_x, double target_y, int nx, double *x,  int ny, double *y,
                 double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
-void cubicherm_2d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+void cubicherm2d2f(double target_x, double target_y, int nx, double *x,  int ny, double *y,
                 double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
 
 // dfdx dfdy d2fdxdy can be supported or just NULL pointer.
-// here 1d means for ONE 2d-functions. E.g f(x,y)
-void bilenar_1d(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
+// here 2d means for a 2d-functions f(x,y). 1f means f(x,y).
+void bilenar2d1f(double target_x, double target_y, int nx, double *x,  int ny, double *y, 
                 double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy);
 
-void cubicherm_1d(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+void cubicherm2d1f(double target_x, double target_y, int nx, double *x,  int ny, double *y,
                 double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy);
 
 
@@ -103,7 +103,7 @@ void modify_cubicherm1D_data(CubicHerm1dData* data, double* x, double* fx, doubl
 
 
 /**************************************************
-* To do, abstract for bilenar_1d, cubicherm_1d
+* To do, abstract for bilenar2d1f, cubicherm2d1f
 ***************************************************/
 // for 2D interpolation, x,y and f(x,y), we change to an abstrac interface.
 // This is for 2D situation.
@@ -120,7 +120,7 @@ typedef struct
 }Interp2DFunction;
 
 /**************************************************
-* To do, abstract for bilenar_2d, cubicherm_2d
+* To do, abstract for bilenar2d2f, cubicherm2d2f
 ***************************************************/
 // for 2D verctor interpolation vector, x,y and u(x,y) v(x,y), we change to an abstrac interface.
 // This is for 2D situation.

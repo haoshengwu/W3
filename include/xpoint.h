@@ -27,11 +27,11 @@ typedef struct {
 
 typedef _XPointInfo* XPointInfo;
 
-//interpl_psi_f can be bound to bilenar_1d/cubicherm_1d/etc. which used to interpolate psi value
+//interpl_psi_f can be bound to bilenar2d1f/cubicherm2d1f/etc. which used to interpolate psi value
 typedef void (*interpl_1D_f)(double target_x, double target_y, int nr, double *r,  int nz, double *z,
                       double **psi, double *value, double **dfdx, double **dfdy, double **d2fdxdy);
 
-//interpl_Brz_f can be bound to bilenar_2d/cubicherm_2d/etc. which used to interpolate Br and Bz value.
+//interpl_Brz_f can be bound to bilenar2d2f/cubicherm2d2f/etc. which used to interpolate Br and Bz value.
 typedef void (*interpl_2D_f)(double target_x, double target_y, int nx, double *x,  int ny, double *y,
                 double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
 

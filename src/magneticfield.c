@@ -26,9 +26,9 @@ diff_2d_fun get_diff_method(const char *name)
 }
 
 InterpolateMethodEntry intpl_2d_methods[] = {
-  {"bilnear", bilenar_2d},
-  {"bicubic", bicubic_2d},
-  {"cubicherm", cubicherm_2d},
+  {"bilnear", bilenar2d2f},
+  {"bicubic", bicubic2d2f},
+  {"cubicherm", cubicherm2d2f},
 //  {"cubichermite", cubherm_2d},
 // to do:
 };

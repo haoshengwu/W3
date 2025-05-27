@@ -269,12 +269,12 @@ void interpolator_test()
       // printf("x1[i]: %f, y1[j]: %f\n", x1[i], y1[j]);
       double *f0 = &f_cubicherm[i][j][0];
       double *f1 = &f_cubicherm[i][j][1];
-      cubicherm_2d(x1[i],y1[j],nx, x, ny, y, f, f0, f1, NULL, NULL, NULL);
-      // printf("finish cubicherm_2d interpolator\n");
+      cubicherm2d2f(x1[i],y1[j],nx, x, ny, y, f, f0, f1, NULL, NULL, NULL);
+      // printf("finish cubicherm2d2f interpolator\n");
       f0 = &f_bilinear[i][j][0];
       f1 = &f_bilinear[i][j][1];
-      bilenar_2d(x1[i],y1[j],nx, x, ny, y, f, f0, f1, NULL, NULL, NULL);
-      // printf("finish bilenar_2d interpolator\n");
+      bilenar2d2f(x1[i],y1[j],nx, x, ny, y, f, f0, f1, NULL, NULL, NULL);
+      // printf("finish bilenar2d2f interpolator\n");
     }
   }
 
@@ -540,14 +540,14 @@ void line_tracer_test()
     prev_x = prev_x - 360.0;
     tracer_result[j][0] = point[0];
     tracer_result[j][1] = point[1];
-    cubicherm_1d(point[0], point[1], dtt_example.nw, dtt_example.r, dtt_example.nh, dtt_example.z,
+    cubicherm2d1f(point[0], point[1], dtt_example.nw, dtt_example.r, dtt_example.nh, dtt_example.z,
                  dtt_example.psi, &(tracer_result[j][2]), NULL, NULL, NULL);
   }
   
   fclose(file_debug);
 
   double psi_start;
-  cubicherm_1d(start_point[0], start_point[1], dtt_example.nw, dtt_example.r, dtt_example.nh, dtt_example.z,
+  cubicherm2d1f(start_point[0], start_point[1], dtt_example.nw, dtt_example.r, dtt_example.nh, dtt_example.z,
                  dtt_example.psi, &(psi_start), NULL, NULL, NULL);
   
 
@@ -594,9 +594,9 @@ double estimate_R_from_z_psi(double psi_value, double r0, double z0,  Equilibriu
   double x0 = r0 - delta_r;
   double x1 = r0 + delta_r;
 
-  cubicherm_1d(x0, z0, equ->nw, equ->r, equ->nh, equ->z,
+  cubicherm2d1f(x0, z0, equ->nw, equ->r, equ->nh, equ->z,
                 equ->psi, &(left_psi), NULL, NULL, NULL);
-  cubicherm_1d(x1, z0, equ->nw, equ->r, equ->nh, equ->z,
+  cubicherm2d1f(x1, z0, equ->nw, equ->r, equ->nh, equ->z,
                 equ->psi, &(right_psi), NULL, NULL, NULL);
 
   if (psi_value >= max(left_psi, right_psi) || psi_value <= min(left_psi, right_psi) )
@@ -628,7 +628,7 @@ double estimate_R_from_z_psi(double psi_value, double r0, double z0,  Equilibriu
     x0 = x1;
     f0 = f1;
     x1 = x2;
-    cubicherm_1d(x1, z0, equ->nw, equ->r, equ->nh, equ->z,
+    cubicherm2d1f(x1, z0, equ->nw, equ->r, equ->nh, equ->z,
                 equ->psi, &(f1), NULL, NULL, NULL);
     f1 = f1-psi_value;
     
