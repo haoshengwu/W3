@@ -170,11 +170,7 @@ void new_separatrix_test(){
   // write_mag_field_torsys(&test_magfield);
 
 
-  SeparatrixStr* sep=init_separatrix_default();
-  void *p1;
-  void *p2;
-  p1=NULL;
-  p2=NULL;
+
 
 //build the interpolator; x_tmp,fx_tmp, dfdx_tmp are nothing realted to x or y. 
 
@@ -204,11 +200,15 @@ void new_separatrix_test(){
   };
   brk45_solver.initialize(&brk45_data);
 
+  SeparatrixStr* sep=init_separatrix_default();
   generate_separatrix_bytracing(sep, &xpt_array[1], &dtt_example,&test_magfield, interp,&ode_func, &brk45_solver);
+  
+  free_separatrix_default(sep);
 
+
+  brk5_finalize(&brk45_data);
   free_interp1d_function(interp);
   free_2d_array(est_xpt);
-  free_separatrix_default(sep);
   free_mag_field_torsys(&test_magfield);
   free_equilibrium(&dtt_example);
 

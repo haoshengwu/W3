@@ -20,10 +20,10 @@ DLListNode;
 DLListNode* create_DLListNode(double r, double z);
 
 // head is the head node of the double linked list
-void insert_DLList_at_head(DLListNode** prt_head, double r, double z);
+void insert_DLList_at_head(DLListNode** head_ref, double r, double z);
 
 // get the end node of a double linked list, becareful to use, because the DLL will updated!!!
-DLListNode* end_DLListNode(DLListNode* head);
+DLListNode* get_DLList_endnode(DLListNode* head);
 
 // insert a point at the end of a double linked list
 void insert_DLList_at_end(DLListNode** prt_end, double r, double z);

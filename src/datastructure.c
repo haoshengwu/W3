@@ -6,7 +6,8 @@ DLListNode* create_DLListNode(double r, double z)
   
   DLListNode* new_node = malloc(sizeof(DLListNode));
   if (new_node == NULL){
-    printf("Can not create new DLListNode, No memory avaible\n");
+    fprintf(stderr, "Cannot allocate DLListNode: Out of memory.\n");
+    exit(EXIT_FAILURE);
     return NULL;
   }
   new_node->r = r;
@@ -17,35 +18,32 @@ DLListNode* create_DLListNode(double r, double z)
 };
 
 // head is the head of the double linked list
-void insert_DLList_at_head(DLListNode** ptr_head, double r, double z)
+void insert_DLList_at_head(DLListNode** head_ref, double r, double z)
 {
-  DLListNode* new_node = malloc(sizeof(DLListNode));
-  if (new_node == NULL){
-    printf("Can not insert DLListNode at head, No memory avaible\n");
-    exit(1);
+  DLListNode* new_node = create_DLListNode(r, z);
+  if (new_node == NULL)
+  {
+    exit(EXIT_FAILURE);
   }
-    new_node->r = r;
-    new_node->z = z;
-    new_node->prev = NULL;
 
-  if (*ptr_head == NULL)
+  if (*head_ref == NULL)
   {
       new_node->next = NULL;
   }
   else
   {
-      new_node->next = (*ptr_head);
-      (*ptr_head)->prev = new_node;
+      new_node->next = (*head_ref);
+      (*head_ref)->prev = new_node;
   }
-  *ptr_head = new_node;
+  *head_ref = new_node;
 }
 
 // get the end node of a double linked list, becareful to use, because the DLL will updated!!!
-DLListNode* end_DLListNode(DLListNode* head)
+DLListNode* get_DLList_endnode(DLListNode* head)
 {
   if (head == NULL)
   {
-    printf("the Double linked list is emptry!\n");
+    fprintf(stderr, "The double linked list is empty!\n");
     return NULL;
   }
 
@@ -57,41 +55,33 @@ DLListNode* end_DLListNode(DLListNode* head)
 }
 
 // insert a point r,z to the end of double linked list and return new end node
-void insert_DLList_at_end(DLListNode** ptr_end, double r, double z)
+void insert_DLList_at_end(DLListNode** end_ref, double r, double z)
 {
-  if (ptr_end == NULL || (*ptr_end) == NULL)
+  if (end_ref == NULL || *end_ref == NULL) 
   {
-    printf("the ptr_end or end node is emptry!\n");
-    exit(1);
+    fprintf(stderr, "end_ref or *end_ref is NULL!\n");
+    exit(EXIT_FAILURE);
   }
-
-  DLListNode* new_node = malloc(sizeof(DLListNode));
   
-  if (new_node == NULL){
-    printf("Can not insert DLListNode at end, No memory avaible\n");
-    exit(1);
-  }
-    new_node->r = r;
-    new_node->z = z;
-    new_node->next = NULL;
-    new_node->prev = (*ptr_end);
-    (*ptr_end)->next = new_node;
-    (*ptr_end) = new_node;
+  DLListNode* new_node = create_DLListNode(r, z);
+  if (!new_node) exit(EXIT_FAILURE);
+
+  new_node->prev = *end_ref;
+  (*end_ref)->next = new_node;
+  *end_ref = new_node;
+
 }
 
 // free a double linked list
 void free_DLList(DLListNode* head)
 {
- DLListNode* tmp = head;
- DLListNode* next;
- while(tmp != NULL )
- {
-    next =tmp->next;
+  DLListNode* next;
+  for (DLListNode* tmp = head; tmp != NULL; tmp = next)
+  {
+    next = tmp->next;
     free(tmp);
-    tmp = next;
- }
+  }
 }
-
 // print a double linked list
 void print_DLList(DLListNode* head)
 {

@@ -20,18 +20,7 @@ SeparatrixStr* init_separatrix_default(void)
   // the index is corespodng to the four line, later to sort the sequence.
   for (int i = 0; i<4; i++)
   {
-    sep->line_list[i] = create_DLListNode(0.0, 0.0);
-    if (!sep->line_list[i])
-    {
-    // rollback: free previously created nodes
-      for (int j = 0; j < i; ++j) 
-      {
-        free_DLList(sep->line_list[j]);
-      }
-      free(sep);
-      fprintf(stderr, "Error: create_DLListNode failed at index %d\n", i);
-      return NULL;
-    }
+    sep->line_list[i] = NULL;
   }
   return sep;
 }
@@ -209,7 +198,7 @@ void generate_separatrix_bytracing(
   char filename[100];
   for(int i=0;i<4;i++)
   {
-    sprintf(filename, "newsep%d", i);
+    sprintf(filename, "sep_baseline%d", i);
     FILE *fp = fopen(filename, "w");
     start_p[0]=second_p[i][0];
     start_p[1]=second_p[i][1];
@@ -219,14 +208,9 @@ void generate_separatrix_bytracing(
     {
       func->rescale[i]=-1.0*func->rescale[i];
     }
-    fprintf(fp,"%.15f %.15f\n",equ->r[cx1], equ->z[cy1]);
-    fprintf(fp,"%.15f %.15f\n",equ->r[cx1], equ->z[cy2]);
-    fprintf(fp,"%.15f %.15f\n",equ->r[cx2], equ->z[cy1]);
-    fprintf(fp,"%.15f %.15f\n",equ->r[cx2], equ->z[cy2]);
 
-    fprintf(fp,"%.15f %.15f\n",xpt->centerX, xpt->centerY);
-    fprintf(fp,"%.15f %.15f\n",start_p[0], start_p[1]);
-    // printf("%.15f %.15f\n", start_p[0], start_p[1]);
+
+
     
     //one step to check whether reverse the direction
     solver->next_step(step_size, &t, start_p, next_p, solver->solver_data, func);
@@ -240,6 +224,22 @@ void generate_separatrix_bytracing(
         func->rescale[i]=-1.0*func->rescale[i];
       }
     }
+
+    //print the four point for the Xpt rec for debug.
+    fprintf(fp,"%.15f %.15f\n",equ->r[cx1], equ->z[cy1]);
+    fprintf(fp,"%.15f %.15f\n",equ->r[cx1], equ->z[cy2]);
+    fprintf(fp,"%.15f %.15f\n",equ->r[cx2], equ->z[cy1]);
+    fprintf(fp,"%.15f %.15f\n",equ->r[cx2], equ->z[cy2]);
+
+    //print the Xpoint and 2nd point for the sep line.
+    fprintf(fp,"%.15f %.15f\n",xpt->centerX, xpt->centerY);
+    fprintf(fp,"%.15f %.15f\n",start_p[0], start_p[1]);
+
+    //Add X-point to separatix line
+    sep->line_list[i]=create_DLListNode(xpt->centerX,xpt->centerY);
+    //Add 2nd point to separatix line
+    DLListNode* endnode=get_DLList_endnode(sep->line_list[i]);
+    insert_DLList_at_end(&endnode, start_p[0], start_p[1]);
 
     t=t+step_size;
     int boundary=10;
@@ -263,7 +263,7 @@ void generate_separatrix_bytracing(
         printf("Back to X-Point Rectangular!\n");
         break;
       }
-      
+      insert_DLList_at_end(&endnode, next_p[0], next_p[1]);
       fprintf(fp, "%.15f %.15f\n", next_p[0], next_p[1]);
     }
     fclose(fp);

@@ -145,7 +145,7 @@ int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int n
   cy = oCy;
   calc_surf_data(equlib, cx, cy, level, &sc, nw, nh);
   
-  endnode = end_DLListNode(*ptr_line_list);
+  endnode = get_DLList_endnode(*ptr_line_list);
   //printf("debug: first endnode is %p, r: %lf, z: %lf\n", (void*)endnode, endnode->r,endnode->z);
 
   if (sc.n == 2)
