@@ -24,6 +24,7 @@
 #include "basemesh.h"
 #include "mathbase.h"
 #include "xpoint.h"
+#include "separatrix.h"
 
 
 

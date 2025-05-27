@@ -9,6 +9,8 @@
 #define max(x,y) ((x)>(y) ? (x) : (y))
 #endif
 
+void swap_double(double* a, double* b);
+
 //convertion angle to radians
 double deg2rad(double phi);
 
@@ -61,8 +63,8 @@ void cubicherm_1d(double target_x, double target_y, int nx, double *x,  int ny, 
                 double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy);
 
 
-void cubicherm_D1(double target_x, double target_y, int nx, double *x,  int ny, double *y,
-                double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy);
+// void cubicherm_D1(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+//                 double **f, double *value, double **dfdx, double **dfdy, double **d2fdxdy);
 
 
 // for 1D interpolation, x and f(x), we change to an abstrac interface.
@@ -75,7 +77,7 @@ typedef void (*interp1d_free_data)(void** ptr);
 typedef struct 
 {
   interp1d_eval_fun eval;
-//  interp1d_deriv_fun deriv;
+  interp1d_deriv_fun deriv;
   void* data;
   interp1d_free_data free_data;
   const char* name;
@@ -91,11 +93,51 @@ typedef struct
 
 void free_interp1d_function(Interp1DFunction* func);
 
-
+//for cubicherm1D
 void cubicherm1D_eval(const void* interp_data, double x, double* value);
-void cubicherm1D_deriv(const void* interp_data, double x, double* value); //todo
+void cubicherm1D_deriv(const void* interp_data, double x, double* value); 
 Interp1DFunction* create_cubicherm1D_interp(double* x, double* fx, double* dfdx, int nx);
+//void free_cubicherm1D_interp(Interp1DFunction* interp);
 void cubicherm1D_free_data(void** ptr);
-void modify_cubicherm1D_interp_data(Interp1DFunction* interp, double* x, double* fx, int nx);//todo
+void modify_cubicherm1D_data(CubicHerm1dData* data, double* x, double* fx, double* dfdx, int nx);
+
+
+/**************************************************
+* To do, abstract for bilenar_1d, cubicherm_1d
+***************************************************/
+// for 2D interpolation, x,y and f(x,y), we change to an abstrac interface.
+// This is for 2D situation.
+typedef void (*interp2d_eval_fun)(const void* interp_data, double x, double y,double* value);
+typedef void (*interp2d_deriv_fun)(const void* interp_data, double x, double y, double* value);
+typedef void (*interp2d_free_data)(void** ptr);
+typedef struct 
+{
+  interp2d_eval_fun eval;
+  interp1d_deriv_fun deriv;
+  void* data;
+  interp1d_free_data free_data;
+  const char* name;
+}Interp2DFunction;
+
+/**************************************************
+* To do, abstract for bilenar_2d, cubicherm_2d
+***************************************************/
+// for 2D verctor interpolation vector, x,y and u(x,y) v(x,y), we change to an abstrac interface.
+// This is for 2D situation.
+typedef void (*interp2d_vec_eval_fun)(const void* interp_data, double x, double y, double* u, double* v);
+typedef void (*interp2d_vec_deriv_fun)(const void* interp_data, double x, double y, double* u, double* v);
+typedef void (*interp2d_vec_free_data)(void** ptr);
+typedef struct 
+{
+  interp2d_vec_eval_fun eval;
+  interp2d_vec_deriv_fun deriv;
+  void* data;
+  interp2d_vec_free_data free_data;
+  const char* name;
+}Interp2DFunction3D;
+
+void Newton_Raphson_Method(double* x, const double* fx_target, Interp1DFunction* interp);
+void Secant_Method(double* x, const double* fx_target, Interp1DFunction* interp);
+
 
 #endif

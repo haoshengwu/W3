@@ -4,31 +4,52 @@
 #include "datastructure.h"
 #include "xpoint.h"
 #include "equilibrium.h"
+#include "magneticfield.h"
 #include "ode.h"
-#include "tracertest.h"
 
 
-typedef struct Separatrix Separatrix;
 
+typedef struct SeparatrixStr SeparatrixStr;
+typedef struct SeparatrixOpt SeparatrixOpt;
 
-typedef struct Separatrix
+// A Structure for Separatrix
+typedef struct SeparatrixStr
 {
-  double r,z; // X-point;
-  double psi; //psi
-  int index[4]; // determine the index of septrix
-  int order; //1st, 2nd, 3rh, or fouth X-point
-  DLListNode* line_list[4]={NULL}; //four lines
-  SeparatrixOpt* opt;
-}
-Separatrix;
+    double r, z;             // X-point coordinates
+    double psi;              // Magnetic flux at X-point
+    int index[4];            // Indices defining separatrix topology
+    int order;               // 1st, 2nd, 3rd, or 4th X-point
+    DLListNode* line_list[4]; // Pointers to 4 separatrix line segments
+} SeparatrixStr;
+
+// general interface for initialize, free, and generator separatrix.
+typedef SeparatrixStr* (*Init_Separatrix_Fun)(void);
+typedef void (*Free_Separatrix_Fun)(SeparatrixStr* sep);
+typedef void (*Generate_Separatrix_Fun)(
+    SeparatrixStr* sep, 
+    _XPointInfo* xpt, 
+    Equilibrium* equ,
+    MagFieldTorSys* magfield,
+    Interp1DFunction* interp, //bound to an interp interface
+    void* func,   // bound to a ode function
+    void* solver  // dound to a ode solver
+);
 
 typedef struct SeparatrixOpt
 {
-  Separatrix* init();
-  void (*free)(Separatrix* sep);
-  void (*generate)(Separatrix* sep, _XPointInfo* xpoint, Equilibrium* equ, ode_function ode_func, ode_solver brk45_solver);
-}
-SeparatrixOpt;
+    Init_Separatrix_Fun init;       // Function to allocate/init separatrix
+    Free_Separatrix_Fun free;       // Function to clean up
+    Generate_Separatrix_Fun generate_sep;// Strategy function to generate separatrix
+} SeparatrixOpt;
+
+SeparatrixStr* init_separatrix_default(void);
+void free_separatrix_default(SeparatrixStr* sep);
+void generate_separatrix_bytracing(
+  SeparatrixStr* sep, XPointInfo xpt, Equilibrium* equ, MagFieldTorSys* magfield,
+  Interp1DFunction* interp, //bound to an interp interface
+  ode_function* func,   // bound to a ode function
+  ode_solver* solver // dound to a ode solver
+);
 
 
-#endif SPARATRIX_H
+#endif

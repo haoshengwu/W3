@@ -1,18 +1,8 @@
 #ifndef TRACERTEST_H
 #define TRACERTEST_H
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include "input.h"
 #include "equilibrium.h"
-#include "magneticsurface.h"
-#include "datastructure.h"
-#include "linetrace.h"
-#include "magneticfield.h"
-#include "ode.h"
-#include "basemesh.h"
-#include "mathbase.h"
+
+
 
 
 void tracer_test();

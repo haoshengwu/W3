@@ -68,6 +68,7 @@ typedef struct
   double current_step_size;  //current_step_size;
   double tollor;   
 } RKSolverData;
+
 void brk5_next_step(double step_size, const double *x, const double *y, double *y_next,
                     void *solver_data, ode_function* ode_f);
 void brk5_initialize(void *solver_data);
