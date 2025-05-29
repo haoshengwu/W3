@@ -15,7 +15,7 @@ Contact: haosheng.wu@polito.it
 #include "linetrace.h"
 #include "magneticfield.h"
 #include "ode.h"
-#include "basemesh.h"
+#include "carrefunction.h"
 #include "tracertest.h"
 
 #include "xpoint.h"

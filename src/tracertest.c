@@ -11,7 +11,7 @@
 #include "linetrace.h"
 #include "magneticfield.h"
 #include "ode.h"
-#include "basemesh.h"
+#include "carrefunction.h"
 #include "mathbase.h"
 /****************************************************************************
  * Some static functions used for test the tracer.
