@@ -30,40 +30,41 @@ void free_curveset(CurveSet* cs);
 
 typedef struct {
     // --- 1. Basic information ---
-    char* name;              // Zone name (e.g., PFR123, SOL123, CORE)
-    int np;                  // Number of magnetic surfaces (radial direction)
-    int nr;                  // Number of points along each surface (poloidal)
+    char* name;
+    int np;
+    int nr;
 
     // --- 2. Grid data ---
-    // zone_grid is a set of cureve which is consist of [nr] curves,
-    // and each curve is consist of [np] points.
     CurveSet* zone_grid;
 
     // --- 3. Start & end tracing info ---
-    double** start_points;   // [nr][2] Starting points for field line tracing
-    double* guard_head;      // [nr] Guard length at the start of each line
-    double* guard_end;       // [nr] Guard length at the end of each line
-    double* pasmin;          // [nr] Minimum parallel arc length (pasmin) for each line
-    double distribution[2];  // deltp1 and deltpn from CARRE
+    double** start_points;   // [nr][2]
+    double* guard_head;      // [nr]
+    double* guard_end;       // [nr]
+    double* pasmin;          // [nr]
+    double distribution[2];  // deltp1, deltpn
 
     // --- 4. Boundary info ---
-    int n_inner_boundary;    
-    double** inner_boundary;  // [n_inner_boundary][2]
-
-    int n_outer_boundary;    
-    double** outer_boundary;  // [n_outer_boundary][2]
+    Curve* first_boundary;
+    Curve* second_boundary;
 
     // --- 5. Target info ---
-    int n_target;           
-    double** target_points;   // [n_target][2]
-    // --- 6. Miscellaneous ---
+    Curve* target_curve;
 } Zone;
 
+// Create a new Zone
+Zone* allocate_zone();
 
+// Load all geometry info from input file (returns 0 if success, 1 if fail)
+int load_zone_from_file(Zone* z, const char* filename);
 
+// Load individual curve components
+int load_zone_first_boundary(Zone* z, Curve* first_boundary);
+int load_zone_second_boundary(Zone* z, Curve* second_boundary);
+int load_zone_target_curve(Zone* z, Curve* target_curve);
 
-
-
+//free the zone
+void free_zone(Zone** z);
 
 
 #endif
