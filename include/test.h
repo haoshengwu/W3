@@ -7,4 +7,6 @@ void interp1d_test();
 
 void new_separatrix_test();
 
+void read_trg_test();
+
 #endif

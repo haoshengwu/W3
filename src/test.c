@@ -213,3 +213,11 @@ void new_separatrix_test(){
   free_equilibrium(&dtt_example);
 
 };
+
+void read_trg_test()
+{
+  char* name="example.trg";
+  DivGeoTrg* trg=create_dgtrg();
+  int status=load_dgtrg_from_file(trg, name);
+  free_dgtrg(trg);
+}

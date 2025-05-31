@@ -8,17 +8,6 @@ Contact: haosheng.wu@polito.it
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "input.h"
-#include "equilibrium.h"
-#include "magneticsurface.h"
-#include "datastructure.h"
-#include "linetrace.h"
-#include "magneticfield.h"
-#include "ode.h"
-#include "carrefunction.h"
-#include "tracertest.h"
-
-#include "xpoint.h"
 
 #include "test.h"
 
@@ -182,12 +171,15 @@ test magnetic field line calculation
 *  Verify the separatrix
 ******************************************************/
   // separatrix_test();
-  new_separatrix_test();
+  // new_separatrix_test();
 /*****************************************************
 *  Verify Interpolation 1D
 ******************************************************/
   // interp1d_test();  
 
-
+/*****************************************************
+*  Verify read DG *.trg file
+******************************************************/
+  read_trg_test();  
   return 0;
 }

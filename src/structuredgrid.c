@@ -23,6 +23,11 @@ static int copy_curve(Curve* c1, Curve* c2)
 
 Curve* create_curve(size_t n_point)
 {   
+  if(!n_point)
+  {
+    fprintf(stderr, "Error: n_point is 0!\n");
+    return NULL;
+  }
   Curve* c = malloc(sizeof(Curve));
   if (!c)
   {
@@ -95,9 +100,8 @@ Zone* allocate_zone()
   z->guard_head=NULL;
   z->guard_end=NULL;
   z->pasmin = NULL;
-  z->distribution[0]=0.00;
-  z->distribution[1]=0.00;
-
+  z->norm_pol_dist=NULL;
+ 
   z->first_boundary=NULL;
   z->second_boundary=NULL;
 
@@ -126,9 +130,7 @@ int load_zone_from_file(Zone* z, const char* filename)
   if (!fp) 
   {
     fprintf(stderr, "Fail to open the file: %s\n", filename);
-    free(z->name);
-    z->name = NULL;
-    return 1;
+    goto fail;
   }
 
   char line[256];
@@ -143,10 +145,7 @@ int load_zone_from_file(Zone* z, const char* filename)
   if (sscanf(line, "%d %d", &(z->np), &(z->nr)) != 2) 
   {
     fprintf(stderr, "Invalid format for np and nr in file: %s\n", filename);
-    fclose(fp);
-    free(z->name);
-    z->name = NULL;
-    return 1;
+    goto fail;
   }
 
   // Allocate memory
@@ -154,12 +153,12 @@ int load_zone_from_file(Zone* z, const char* filename)
   z->guard_head = malloc(sizeof(double) * z->nr);
   z->guard_end = malloc(sizeof(double) * z->nr);
   z->pasmin = malloc(sizeof(double) * z->nr);
+  z->norm_pol_dist = malloc(sizeof(double) * z->np);
 
-  if (!z->start_points || !z->guard_head || !z->guard_end || !z->pasmin) 
+  if (!z->start_points || !z->guard_head || !z->guard_end || !z->pasmin || !z->norm_pol_dist) 
   {
     fprintf(stderr, "Memory allocation failed for start_points or guard arrays.\n");
-    fclose(fp);
-    return 1;
+    goto fail;
   }
 
   // Skip to next valid line for distribution
@@ -169,40 +168,67 @@ int load_zone_from_file(Zone* z, const char* filename)
     break;
   }
 
-  if (sscanf(line, "%lf %lf", &(z->distribution[0]), &(z->distribution[1])) != 2) 
+  for (int i = 0; i<z->np; i++)
   {
-    fprintf(stderr, "Invalid format for distribution values.\n");
-    fclose(fp);
-    return 1;
+    if (sscanf(line, "%lf", &z->norm_pol_dist[i]) != 1) 
+    {
+      fprintf(stderr, "Failed to read norm_pol_dist[%d] from file.\n", i);
+      goto fail;
+    }
+    if (!fgets(line, sizeof(line), fp)) 
+    {
+      fprintf(stderr, "Unexpected EOF while reading norm_pol_dist.\n");
+      goto fail;
+    }
   }
-  printf("deltp1: %lf, deltpn: %lf\n", z->distribution[0], z->distribution[1]);
+
+// Skip to next valid line for distribution
+  while (line[0] == '#' || line[0] == '\n') 
+  {
+    if (!fgets(line, sizeof(line), fp)) 
+    {
+      fprintf(stderr, "Unexpected EOF before tracing data.\n");
+      goto fail;
+    }
+}
 
   // Read data for each tracing line
   for (int i = 0; i < z->nr; i++) 
   {
-    if (!fgets(line, sizeof(line), fp)) 
-    {
-      fprintf(stderr, "Unexpected end of file while reading start_point at index %d.\n", i);
-      fclose(fp);
-      return 1;
-    }
     if (sscanf(line, "%lf %lf %lf %lf %lf",
               &(z->start_points[i][0]), &(z->start_points[i][1]),
               &(z->guard_head[i]), &(z->guard_end[i]), &(z->pasmin[i])) != 5)
-        {
-          fprintf(stderr,
-                "Invalid format at line %d for tracing input (expecting 5 values).\n", i + 1);
-          fclose(fp);
-          return 1;
-        }
+    {
+      fprintf(stderr,
+              "Invalid format at line %d for tracing input (expecting 5 values).\n", i + 1);
+      goto fail;
     }
+    if (!fgets(line, sizeof(line), fp) && i < z->nr - 1) 
+    {
+      fprintf(stderr, "Unexpected EOF when reading tracing points.\n");
+      goto fail;
+    }
+  }
+
   if (!feof(fp)) 
   {
     printf("Warning: File %s has additional lines after expected input.\n", filename);
   }
   fclose(fp);
   return 0;
+  
+fail:
+    if (fp) fclose(fp);
+    if (z->name) { free(z->name); z->name = NULL; }
+    if (z->start_points) { free_2d_array(z->start_points); z->start_points = NULL; }
+    if (z->guard_head) { free(z->guard_head); z->guard_head = NULL;}
+    if (z->guard_end) {free(z->guard_end);  z->guard_end = NULL;}
+    if (z->pasmin) {free(z->pasmin);     z->pasmin = NULL;}
+    if (z->norm_pol_dist) {free(z->norm_pol_dist); z->norm_pol_dist = NULL;}
+    return 1;
 }
+
+
 
 int load_zone_first_boundary(Zone* z, Curve* first_boundary)
 {

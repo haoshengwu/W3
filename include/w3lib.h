@@ -25,7 +25,7 @@
 #include "mathbase.h"
 #include "xpoint.h"
 #include "separatrix.h"
-
+#include "divgeo.h"
 
 
 #endif

@@ -31,18 +31,18 @@ void free_curveset(CurveSet* cs);
 typedef struct {
     // --- 1. Basic information ---
     char* name;
-    int np;
-    int nr;
+    int np; //points in the poloidal magnetic line, elements number is np-1;
+    int nr; //magnetic line number in radial direction, elements number is nr-1;
 
     // --- 2. Grid data ---
     CurveSet* zone_grid;
 
     // --- 3. Start & end tracing info ---
-    double** start_points;   // [nr][2]
+    double** start_points;   // [nr][2] starting point for tracing magnetic line
     double* guard_head;      // [nr]
     double* guard_end;       // [nr]
     double* pasmin;          // [nr]
-    double distribution[2];  // deltp1, deltpn
+    double* norm_pol_dist;  // distribution of points in the poloidal direction， from 0.0 to 1.0
 
     // --- 4. Boundary info ---
     Curve* first_boundary;
@@ -65,6 +65,5 @@ int load_zone_target_curve(Zone* z, Curve* target_curve);
 
 //free the zone
 void free_zone(Zone** z);
-
 
 #endif

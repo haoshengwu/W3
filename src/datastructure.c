@@ -125,7 +125,7 @@ d2: second dimenion number
 */
   if (d1 <= 0 || d2 <= 0)
   {
-    fprintf(stderr, "Error: Invalid dimensions!\n");
+    fprintf(stderr, "Error: Invalid dimensions for 2D array!\n");
     return NULL;
   }
 
