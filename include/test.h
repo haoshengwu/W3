@@ -9,4 +9,5 @@ void new_separatrix_test();
 
 void read_trg_test();
 
+void get_target_curve_from_trg_test();
 #endif

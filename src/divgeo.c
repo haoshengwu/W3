@@ -211,7 +211,7 @@ static DGZone* read_zone(FILE* fp, int n_points, const char* name)
     return zone;
 }
 
-static Curve* read_curve(FILE* fp)
+static Curve* read_curve(FILE* fp, int* n_curve_point)
 {
     char line[256];
     int n_point = 0;
@@ -224,7 +224,8 @@ static Curve* read_curve(FILE* fp)
       else if (strncmp(line, "target", 6)==0 || strncmp(line, "region", 6)==0) break;
       else n_point++;
     }
-    printf("Number of points for target cure: %d\n",n_point);
+    //printf("Number of points for target cure: %d\n",n_point);
+    *n_curve_point=n_point;
     fseek(fp, pos, SEEK_SET);
 
     Curve* curve = create_curve(n_point);
@@ -341,6 +342,7 @@ int load_dgtrg_from_file(DivGeoTrg* trg, const char* filename)
     trg->n_region = count_regions;
     trg->n_zones = count_zones;
 
+    trg->n_target_curve = count_targets > 0 ? malloc(count_targets * sizeof(int)) : NULL;
     trg->target_curves = count_targets > 0 ? malloc(count_targets * sizeof(Curve*)) : NULL;
     trg->regions = count_regions > 0 ? malloc(count_regions * sizeof(DGRegion*)) : NULL;
     trg->zones = count_zones > 0 ? malloc(count_zones * sizeof(DGZone*)) : NULL;
@@ -381,7 +383,8 @@ int load_dgtrg_from_file(DivGeoTrg* trg, const char* filename)
       {
         printf("Read target curve %d\n", cur_target);
         printf("%s\n", line);
-        trg->target_curves[cur_target] = read_curve(fp);
+        trg->target_curves[cur_target] = read_curve(fp,&trg->n_target_curve[cur_target]);
+        printf("Number of points in the target curve: %d\n", trg->n_target_curve[cur_target]);
         printf("Finish reading target curve %d\n", cur_target);
         cur_target++;
         continue;
@@ -401,7 +404,7 @@ int load_dgtrg_from_file(DivGeoTrg* trg, const char* filename)
       //Read poloidal zones
       if (strncmp(line, "zone", 4) == 0) 
       {
-        snprintf(temp_name, sizeof(temp_name), "zone%d", cur_zone);
+        snprintf(temp_name, sizeof(temp_name), "zone%d\n", cur_zone);
         trg->zones[cur_zone] = read_zone(fp, trg->nptseg[cur_zone],temp_name);
         printf("Finish reading zone %d\n", cur_zone);
         cur_zone++;
@@ -500,6 +503,7 @@ void free_dgtrg(DivGeoTrg* trg)
     trg->zones = NULL;
   }
 
+  free(trg->n_target_curve); trg->n_target_curve=NULL;
   free(trg->dltr1); trg->dltr1 = NULL;
   free(trg->dltrn); trg->dltrn = NULL;
   free(trg->npr);   trg->npr = NULL;

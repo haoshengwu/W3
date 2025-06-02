@@ -180,6 +180,7 @@ test magnetic field line calculation
 /*****************************************************
 *  Verify read DG *.trg file
 ******************************************************/
-  read_trg_test();  
+  // read_trg_test();
+  get_target_curve_from_trg_test();
   return 0;
 }

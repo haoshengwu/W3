@@ -221,3 +221,22 @@ void read_trg_test()
   int status=load_dgtrg_from_file(trg, name);
   free_dgtrg(trg);
 }
+
+void get_target_curve_from_trg_test()
+{
+  char* name="example.trg";
+  DivGeoTrg* trg=create_dgtrg();
+  int status=load_dgtrg_from_file(trg, name);
+  int n=0;
+  TargetCurve* tgt_cur1=create_target_curve_from_dgtrg(trg,n);
+  printf("%d\n" ,trg->n_target_curve[0]);
+  // printf("%d\n" ,trg->n_target_curve[1]);
+  // // TargetCurve* tgt_cur2=create_target_curve_from_dgtrg(trg,2);
+  printf_target_curve(tgt_cur1);
+  // // printf_target_curve(tgt_cur2);
+  free_target_curve(tgt_cur1);
+  // free_target_curve(tgt_cur2);
+  free_dgtrg(trg);
+
+}
+

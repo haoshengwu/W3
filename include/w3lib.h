@@ -26,6 +26,7 @@
 #include "xpoint.h"
 #include "separatrix.h"
 #include "divgeo.h"
+#include "target.h"
 
 
 #endif

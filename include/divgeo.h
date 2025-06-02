@@ -2,6 +2,8 @@
 #define DIVGEO_H
 
 #include <structuredgrid.h>
+#include <separatrix.h>
+#include <equilibrium.h>
 
 typedef struct 
 {
@@ -54,6 +56,7 @@ typedef struct
 {
   char* topo;
   int n_target;
+  int* n_target_curve; //array[i] is the total number of points for target_curves[i]
   Curve** target_curves;
 
   // for the poloidal points distributions 
@@ -75,10 +78,13 @@ typedef struct
   double* dltp1;
   double* dltpn;
   int* nptseg;
-}DivGeoTrg;
+} DivGeoTrg;
 
 DivGeoTrg* create_dgtrg(void);
 int load_dgtrg_from_file(DivGeoTrg* trg, const char* filename);
+
+//From here it is already related with topology
+int write_dgtrg_to_input(DivGeoTrg* trg, const char* filename);
 void free_dgtrg(DivGeoTrg* trg);
 
 
