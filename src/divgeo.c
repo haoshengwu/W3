@@ -514,3 +514,11 @@ void free_dgtrg(DivGeoTrg* trg)
 
   free(trg);
 }
+
+
+
+
+int write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium equ, SeparatrixStr sep)
+{
+
+}

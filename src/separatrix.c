@@ -226,10 +226,10 @@ void generate_separatrix_bytracing(
     }
 
     //print the four point for the Xpt rec for debug.
-    fprintf(fp,"%.15f %.15f\n",equ->r[cx1], equ->z[cy1]);
-    fprintf(fp,"%.15f %.15f\n",equ->r[cx1], equ->z[cy2]);
-    fprintf(fp,"%.15f %.15f\n",equ->r[cx2], equ->z[cy1]);
-    fprintf(fp,"%.15f %.15f\n",equ->r[cx2], equ->z[cy2]);
+    // fprintf(fp,"%.15f %.15f\n",equ->r[cx1], equ->z[cy1]);
+    // fprintf(fp,"%.15f %.15f\n",equ->r[cx1], equ->z[cy2]);
+    // fprintf(fp,"%.15f %.15f\n",equ->r[cx2], equ->z[cy1]);
+    // fprintf(fp,"%.15f %.15f\n",equ->r[cx2], equ->z[cy2]);
 
     //print the Xpoint and 2nd point for the sep line.
     fprintf(fp,"%.15f %.15f\n",xpt->centerX, xpt->centerY);

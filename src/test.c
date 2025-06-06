@@ -239,4 +239,129 @@ void get_target_curve_from_trg_test()
   free_dgtrg(trg);
 
 }
+void target_curve_test()
+{
+  InputPara w3_input;
+  init_inputpara(&w3_input);
+  print_inputpara(&w3_input);
+  Equilibrium dtt_example;
+  
+  init_equilibrium(&dtt_example);
+
+  read_equilib_geqdsk(&dtt_example,w3_input.equilibrium_file);
+  print_equilibrium(&dtt_example);
+  
+  int xpt_n = 2;
+  double **est_xpt = allocate_2d_array(xpt_n,2);
+  est_xpt[0][0] = 1.85;
+  est_xpt[0][1] = -1.16;
+
+  est_xpt[1][0] = 1.58;
+  est_xpt[1][1] = 1.61;
+
+  interpl_1D_f interpl_1D_f = cubicherm2d1f;
+  interpl_2D_f interpl_2D_f = cubicherm2d2f;
+
+  _XPointInfo xpt_array[2];
+
+  find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_1D_f, interpl_2D_f, xpt_array);
+
+  MagFieldTorSys test_magfield;
+  init_mag_field_torsys(&test_magfield);
+  char* method = "central_4th";
+  calc_mag_field_torsys(&dtt_example, &test_magfield, method);
+
+  // write_mag_field_torsys(&test_magfield);
+
+
+
+
+//build the interpolator; x_tmp,fx_tmp, dfdx_tmp are nothing realted to x or y. 
+
+  Interp1DFunction* interp=create_cubicherm1D_interp(NULL, NULL, NULL, 2);
+
+/************************************************
+*  Build the tracer for generation separatrix   *
+************************************************/ 
+  double direction[3]={1.0,1.0,1.0};
+  RKSolverData brk45_data;
+
+  double stepsize = 0.1;
+
+  ode_function ode_func = {
+    .ndim = 2,
+    .data = &test_magfield,
+    .rescale = direction,
+    .compute_f = ode_f_brz_torsys_cubicherm,
+  };
+  ode_solver brk45_solver =
+  {
+    .step_size = stepsize,
+    .solver_data = &brk45_data,
+    .next_step = brk5_next_step,
+    .initialize = brk5_initialize,
+    .finalize = brk5_finalize
+  };
+  brk45_solver.initialize(&brk45_data);
+
+  SeparatrixStr* sep=init_separatrix_default();
+  generate_separatrix_bytracing(sep, &xpt_array[1], &dtt_example,&test_magfield, interp,&ode_func, &brk45_solver);
+
+
+
+  char* name="example.trg";
+  DivGeoTrg* trg=create_dgtrg();
+  int status=load_dgtrg_from_file(trg, name);
+  int n=0;
+  TargetCurve* tgt_cur=create_target_curve_from_dgtrg(trg,n);
+  // printf("%d\n" ,trg->n_target_curve[0]);
+  // printf("%d\n" ,trg->n_target_curve[1]);
+  // // TargetCurve* tgt_cur2=create_target_curve_from_dgtrg(trg,2);
+  // printf_target_curve(tgt_cur);
+  // // printf_target_curve(tgt_cur2);
+  // free_target_curve(tgt_cur1);
+  // free_target_curve(tgt_cur2);
+  
+  DLListNode* tgt_cur_head=tgt_cur->head;
+  double itrsct_r, itrsct_z;
+  int num_itrsct;
+  for(int i=0; i<4; i++)
+  {
+    int value;
+    value = has_intersection_DDList(tgt_cur_head, sep->line_list[i]);
+    if(value)
+    {
+      printf("The %d sep line intersects with target cureve.\n",i);
+      insert_intersections_DDList(tgt_cur_head, sep->line_list[i], &itrsct_r, &itrsct_z);
+      printf("intersection:\n");
+      printf("%lf %lf\n", itrsct_r,itrsct_z);
+      num_itrsct=i;
+    }
+    else
+    {
+      //printf("The %d sep line do NOT intersect with target cureve.\n", i);
+    }
+  }
+  int n_cut;
+  n_cut = cut_intersections_DDList(sep->line_list[num_itrsct], itrsct_r,itrsct_z);
+  printf("Deleted points: %d\n", n_cut);
+  char* cut_sep="sep_cut_baseline";
+  write_DDList(sep->line_list[num_itrsct], cut_sep);
+  char* name_tgt_cur="target_curve";
+  write_DDList(tgt_cur_head, name_tgt_cur);
+
+
+
+
+  
+  free_target_curve(tgt_cur);
+  free_dgtrg(trg);
+  free_separatrix_default(sep);
+  brk5_finalize(&brk45_data);
+  free_interp1d_function(interp);
+  free_2d_array(est_xpt);
+  free_mag_field_torsys(&test_magfield);
+  free_equilibrium(&dtt_example);
+
+}
 

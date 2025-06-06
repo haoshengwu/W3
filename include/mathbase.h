@@ -136,8 +136,20 @@ typedef struct
   const char* name;
 }Interp2DFunction3D;
 
-void Newton_Raphson_Method(double* x, const double* fx_target, Interp1DFunction* interp);
+
+//Not yet check
+//void Newton_Raphson_Method(double* x, const double* fx_target, Interp1DFunction* interp);
+
 void Secant_Method(double* x, const double* fx_target, Interp1DFunction* interp);
+
+
+/********************************************************
+*       New Interface for Differentiation
+* PLEASE DO NOT CONFUSE WITH ABOVE Difference Algorithm
+*********************************************************/
+typedef void (*diff2d_eval_fun)(const int nx, double *x,  const int ny, double *y, double **f, double **dfdx, double **dfdy);
+void central_diff_2nd_2d(const int nx, double *x,  const int ny, double *y, double **f, double **dfdx, double **dfdy);
+void central_diff_4th_2d(const int nx, double *x,  const int ny, double *y, double **f, double **dfdx, double **dfdy);
 
 
 #endif

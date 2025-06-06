@@ -571,7 +571,6 @@ void cubicherm1D_eval(const void* interp_data, double target_x, double* value){
   return;
 }
 
-
 void cubicherm1D_deriv(const void* interp_data, double target_x, double* value)
 {
   const CubicHerm1dData* data = (const CubicHerm1dData*) interp_data;
@@ -711,36 +710,36 @@ void free_interp1d_function(Interp1DFunction* interp)
 
 //assume cubichermit interpolation, will be update in future.
 //Use newton method to calculate x which have the fx value;
-void Newton_Raphson_Method(double* x, const double* fx_target, Interp1DFunction* interp)
-{
-  double x_prev, x_curr;
-  CubicHerm1dData* data = (CubicHerm1dData*) interp->data;
-  int nx = data->nx;
-  x_prev=data->x[0]+(data->x[nx-1]-data->x[0])*1.0e-6;
-  double fx_prev, dfdx_prev;
-  double fx_curr;
-  for(int i=0; i<MAX_ITER_NEWTON; i++)
-  {
-    interp->eval(interp->data, x_prev, &fx_prev);
-    interp->deriv(interp->data, x_prev, &dfdx_prev);
-    if (fabs(dfdx_prev) < 1e-14) 
-    {
-      printf("Warning: derivative too small in Newton iteration.\n");
-      break;
-    }
-    x_curr=x_prev-(fx_prev-*fx_target)/dfdx_prev;
-    interp->eval(interp->data, x_curr, &fx_curr);
-    if(fabs(fx_curr-*fx_target)<epsilon)
-    {
-      *x = x_curr;
-      return;
-    }
-    x_prev = x_curr;
-  }
-  printf("Newton_Raphson_Method: maximum iterations reached.\n");
-  *x = x_curr;
-  return;
-}
+// void Newton_Raphson_Method(double* x, const double* fx_target, Interp1DFunction* interp)
+// {
+//   double x_prev, x_curr;
+//   CubicHerm1dData* data = (CubicHerm1dData*) interp->data;
+//   int nx = data->nx;
+//   x_prev=data->x[0]+(data->x[nx-1]-data->x[0])*1.0e-6;
+//   double fx_prev, dfdx_prev;
+//   double fx_curr;
+//   for(int i=0; i<MAX_ITER_NEWTON; i++)
+//   {
+//     interp->eval(interp->data, x_prev, &fx_prev);
+//     interp->deriv(interp->data, x_prev, &dfdx_prev);
+//     if (fabs(dfdx_prev) < 1e-14) 
+//     {
+//       printf("Warning: derivative too small in Newton iteration.\n");
+//       break;
+//     }
+//     x_curr=x_prev-(fx_prev-*fx_target)/dfdx_prev;
+//     interp->eval(interp->data, x_curr, &fx_curr);
+//     if(fabs(fx_curr-*fx_target)<epsilon)
+//     {
+//       *x = x_curr;
+//       return;
+//     }
+//     x_prev = x_curr;
+//   }
+//   printf("Newton_Raphson_Method: maximum iterations reached.\n");
+//   *x = x_curr;
+//   return;
+// }
 
 //assume cubichermit interpolation, will be update in future.
 void Secant_Method(double* x, const double* fx_target, Interp1DFunction* interp)
@@ -791,3 +790,112 @@ void Secant_Method(double* x, const double* fx_target, Interp1DFunction* interp)
   printf("Secant_Method: maximum iterations reached.\n");
   *x = x_curr;  // fallback
 }
+
+
+
+/********************************************************
+*       New Interface for Differentiation
+* PLEASE DO NOT CONFUSE WITH ABOVE Difference Algorithm
+*********************************************************/
+void central_diff_2nd_2d(const int nx, double *x,
+                         const int ny, double *y,
+                         double **f, double **dfdx, double **dfdy)
+{
+  if (nx < 2 || ny < 2) {
+    fprintf(stderr, "ERROR: Grid size too small for 2nd-order difference!\n");
+    return;
+  }
+
+  // Assume uniform grid
+  double dx = x[1] - x[0];
+  double dy = y[1] - y[0];
+
+  // Internal points: centered difference
+  for (int i = 1; i < nx - 1; i++) {
+    for (int j = 1; j < ny - 1; j++) {
+      dfdx[i][j] = (f[i+1][j] - f[i-1][j]) / (2 * dx);
+      dfdy[i][j] = (f[i][j+1] - f[i][j-1]) / (2 * dy);
+    }
+  }
+
+  // Left and right boundaries
+  for (int j = 1; j < ny - 1; j++) {
+    dfdx[0][j]      = (f[1][j] - f[0][j]) / dx;         // forward
+    dfdx[nx-1][j]   = (f[nx-1][j] - f[nx-2][j]) / dx;   // backward
+    dfdy[0][j]      = (f[0][j+1] - f[0][j-1]) / (2 * dy);
+    dfdy[nx-1][j]   = (f[nx-1][j+1] - f[nx-1][j-1]) / (2 * dy);
+  }
+
+  // Top and bottom boundaries
+  for (int i = 1; i < nx - 1; i++) {
+    dfdx[i][0]      = (f[i+1][0] - f[i-1][0]) / (2 * dx);
+    dfdx[i][ny-1]   = (f[i+1][ny-1] - f[i-1][ny-1]) / (2 * dx);
+    dfdy[i][0]      = (f[i][1] - f[i][0]) / dy;         // forward
+    dfdy[i][ny-1]   = (f[i][ny-1] - f[i][ny-2]) / dy;   // backward
+  }
+
+  // Four corners
+  dfdx[0][0]           = (f[1][0] - f[0][0]) / dx;
+  dfdy[0][0]           = (f[0][1] - f[0][0]) / dy;
+
+  dfdx[0][ny-1]        = (f[1][ny-1] - f[0][ny-1]) / dx;
+  dfdy[0][ny-1]        = (f[0][ny-1] - f[0][ny-2]) / dy;
+
+  dfdx[nx-1][0]        = (f[nx-1][0] - f[nx-2][0]) / dx;
+  dfdy[nx-1][0]        = (f[nx-1][1] - f[nx-1][0]) / dy;
+
+  dfdx[nx-1][ny-1]     = (f[nx-1][ny-1] - f[nx-2][ny-1]) / dx;
+  dfdy[nx-1][ny-1]     = (f[nx-1][ny-1] - f[nx-1][ny-2]) / dy;
+}
+
+
+void central_diff_4th_2d( const int nx, double *x,
+                          const int ny, double *y,
+                          double **f, double **dfdx, double **dfdy)
+  {
+      if (nx < 5 || ny < 5) 
+  {
+    fprintf(stderr, "ERROR: Grid size too small for 4th-order central difference!\n");
+    return;
+  }
+  //assume uniform grid in x and y.
+  double dx = x[1] - x[0];
+  double dy = y[1] - y[0];
+  for (int i=0; i<nx; i++)
+  {
+    for (int j=0; j<ny; j++)
+    {
+      if (i>=2 && i<=nx-3)
+      {
+        dfdx[i][j] = (-f[i+2][j] + 8 * f[i+1][j] - 8 * f[i-1][j] + f[i-2][j])/(12 * dx);
+      }
+      else if (i<2)
+      {
+        dfdx[i][j] = (-3 * f[i][j] + 4 * f[i+1][j] - f[i+2][j]) / (2 * dx);
+      }
+      else if (i>nx-3)
+      {
+        dfdx[i][j] = (3 * f[i][j] - 4 * f[i-1][j] + f[i-2][j]) / (2 * dx);
+      }
+
+      if (j>=2 && j<=ny-3)
+      {
+        dfdy[i][j] = (-f[i][j+2] + 8 * f[i][j+1] - 8 * f[i][j-1] + f[i][j-2])/( 12 * dy);
+      }
+      else if (j<2)
+      {
+        dfdy[i][j] = (-3 * f[i][j] + 4 * f[i][j+1] - f[i][j+2]) / (2 * dy);
+      }
+      else if (j>ny-3)
+      {
+        dfdy[i][j] = (3 * f[i][j] - 4 * f[i][j-1] + f[i][j-2]) / (2 * dy);
+      }
+    }
+  }
+}
+
+
+
+
+
+

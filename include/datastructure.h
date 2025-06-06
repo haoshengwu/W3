@@ -37,6 +37,33 @@ void print_DLList(DLListNode* head);
 // write a double linked list to a file
 void write_DDList(DLListNode* head, const char* title);
 
+//insert a node between a and b
+void insert_between(DLListNode* a, DLListNode* b, double r, double z);  
+// check whether two DDlist are intersected or not.
+// intersec return 1 else 0
+int has_intersection_DDList(DLListNode* head1, DLListNode* head2);
+
+//assunme only 1 intersection point
+// r and z are the intersection point
+int insert_intersections_DDList(DLListNode* head1, DLListNode* head2, double* r, double* z);
+
+// return how many node are delete, cut the NEXT point of (r,z), NOT (r,z) itself
+int cut_intersections_DDList(DLListNode* head, double r, double z);
+
+// split the DDList from point r,z and create a new node with rz and bound to new_head;
+int split_intersections_DDList(DLListNode* head, double r, double z, DLListNode** new_head);
+
+
+
+
+
+
+
+
+
+
+
+
 
 /*
 Following are functions that allocate dynamic memory for 2D,3D,4D arrays

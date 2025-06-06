@@ -62,7 +62,7 @@ TargetCurve* create_target_curve_from_dgtrg(DivGeoTrg* trg, int n)
     double r = trg->target_curves[n]->points[i][0];
     double z = trg->target_curves[n]->points[i][1];
     // printf("DEBUG i=%d\n", i);
-    printf("DEBUG r=%.4f z=%.4f\n", r, z);
+    // printf("DEBUG r=%.4f z=%.4f\n", r, z);
     add_point_target_curve(tgt_cur, r, z);
   }
   return tgt_cur;

@@ -1,5 +1,5 @@
 #include "datastructure.h"
-
+#include <math.h>
 //************** Double linked list related ******************//
 DLListNode* create_DLListNode(double r, double z)
 {
@@ -113,6 +113,206 @@ void write_DDList(DLListNode* head, const char* filename)
     fclose(file);
     printf("write the values in %s\n", filename);
 }
+
+// Determines the orientation of the ordered triplet (x1, y1), (x2, y2), (x3, y3)
+// Returns:
+//   0 → Colinear (all points lie on a straight line)
+//   1 → Clockwise turn (right turn)
+//   2 → Counterclockwise turn (left turn)
+static int orientation(double x1, double y1, double x2, double y2, double x3, double y3) 
+{
+    double val = (y2 - y1)*(x3 - x2) - (x2 - x1)*(y3 - y2);
+
+    if (val > 0) return 1;  // Clockwise
+    if (val < 0) return 2;  // Counterclockwise
+    return 0;               // Colinear
+}
+
+
+// Checks if point (x2, y2) lies on the line segment from (x1, y1) to (x3, y3)
+// Assumes the three points are colinear
+static int on_segment(double x1, double y1, double x2, double y2, double x3, double y3) {
+    return (x2 <= fmax(x1, x3) && x2 >= fmin(x1, x3) &&
+            y2 <= fmax(y1, y3) && y2 >= fmin(y1, y3));
+}
+
+// Returns 1 if the two segments (x1, y1)-(x2, y2) and (x3, y3)-(x4, y4) intersect
+// Returns 0 otherwise
+static int segments_intersect(double x1, double y1, double x2, double y2,
+                       double x3, double y3, double x4, double y4) {
+    // Find orientations of the four combinations
+    int o1 = orientation(x1, y1, x2, y2, x3, y3);
+    int o2 = orientation(x1, y1, x2, y2, x4, y4);
+    int o3 = orientation(x3, y3, x4, y4, x1, y1);
+    int o4 = orientation(x3, y3, x4, y4, x2, y2);
+
+    // General case: two endpoints of one segment lie on opposite sides of the other segment
+    if (o1 != o2 && o3 != o4)
+        return 1;
+
+    // Special colinear cases: check if endpoints lie on the other segment
+    if (o1 == 0 && on_segment(x1, y1, x3, y3, x2, y2)) return 1;
+    if (o2 == 0 && on_segment(x1, y1, x4, y4, x2, y2)) return 1;
+    if (o3 == 0 && on_segment(x3, y3, x1, y1, x4, y4)) return 1;
+    if (o4 == 0 && on_segment(x3, y3, x2, y2, x4, y4)) return 1;
+
+    // No intersection found
+    return 0;
+}
+
+int has_intersection_DDList(DLListNode* head1, DLListNode* head2) 
+{
+  for (DLListNode* a = head1; a && a->next; a = a->next) 
+    {
+      for (DLListNode* b = head2; b && b->next; b = b->next)
+         {
+            if (segments_intersect(
+                    a->r, a->z, a->next->r, a->next->z,
+                    b->r, b->z, b->next->r, b->next->z)) 
+            {
+                return 1;  // Found
+            }
+        }
+    }
+    return 0; // no intersection
+}
+
+// Compute intersection point of two segments (if any)
+// Only works if the intersection is a single point (not overlapping segments)
+// intersect return 1, otherwise return 0S
+static int compute_intersection_point(
+    double x1, double y1, double x2, double y2,
+    double x3, double y3, double x4, double y4,
+    double* ix, double* iy)
+{
+    // Calculate denominators
+    double denom = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4);
+
+    if (denom == 0.0) {
+        // Lines are parallel or coincident
+        return 0;
+    }
+
+    // Compute intersection using determinant formula
+    double px_num = (x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4);
+    double py_num = (x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4);
+
+    double px = px_num / denom;
+    double py = py_num / denom;
+
+    // Check if the intersection point lies on both segments
+    if (px < fmin(x1,x2) - 1e-10 || px > fmax(x1,x2) + 1e-10 ||
+        px < fmin(x3,x4) - 1e-10 || px > fmax(x3,x4) + 1e-10 ||
+        py < fmin(y1,y2) - 1e-10 || py > fmax(y1,y2) + 1e-10 ||
+        py < fmin(y3,y4) - 1e-10 || py > fmax(y3,y4) + 1e-10) {
+        return 0; // Intersection outside the segments
+    }
+
+    *ix = px;
+    *iy = py;
+    return 1;
+}
+
+void insert_between(DLListNode* a, DLListNode* b, double r, double z) 
+{
+    DLListNode* new_node = create_DLListNode(r, z);
+    if (!new_node) return;
+    new_node->prev = a;
+    new_node->next = b;
+    if (a) a->next = new_node;
+    if (b) b->prev = new_node;
+}
+
+int insert_intersections_DDList(DLListNode* head1, DLListNode* head2, double* r_ptr, double* z_ptr) 
+{
+    int count = 0;
+    for (DLListNode* a = head1; a && a->next; a = a->next) {
+        for (DLListNode* b = head2; b && b->next; b = b->next) {
+              if (compute_intersection_point(
+                    a->r, a->z, a->next->r, a->next->z,
+                    b->r, b->z, b->next->r, b->next->z,
+                    r_ptr, z_ptr)) {
+                // Insert the intersection point into both DLLists
+                // Use two separate nodes to avoid sharing the same memory
+                insert_between(a, a->next, *r_ptr, *z_ptr);  // insert into list 1
+                insert_between(b, b->next, *r_ptr, *z_ptr);  // insert into list 2
+                count=1;
+                break; // prevent multiple insertions on the same segment
+            }
+        }
+      if(count) break;
+    }
+    return count; // total number of intersections inserted
+}
+
+
+  
+int cut_intersections_DDList(DLListNode* head, double r, double z) {
+    DLListNode* current = head;
+    const double tol = 1e-10;
+
+    // Step 1: Find the node with matching (r, z)
+    while (current) {
+        if (fabs(current->r - r) < tol && fabs(current->z - z) < tol) {
+            break;
+        }
+        current = current->next;
+    }
+
+    if (!current) {
+        fprintf(stderr, "The point (%.10f, %.10f) is not in the DLList.\n", r, z);
+        return 0;
+    }
+
+    // Step 2: Delete all nodes after current
+    DLListNode* node = current->next;
+    current->next = NULL; // Cut the list here
+    if (node) node->prev = NULL; // Disconnect the next node (optional safety)
+
+    int count = 0;
+    while (node) {
+        DLListNode* next = node->next;
+        free(node);
+        node = next;
+        count++;
+    }
+
+    return count; // Number of nodes deleted
+}
+
+// Split the list at the first (r,z) point — clone (r,z) node as new head
+int split_intersections_DDList(DLListNode* head, double r, double z, DLListNode** new_head) 
+{
+    const double tol = 1e-10;
+    DLListNode* curr = head;
+
+    while (curr) {
+        if (fabs(curr->r - r) < tol && fabs(curr->z - z) < tol) {
+            DLListNode* cloned = create_DLListNode(r, z);
+            if (!cloned) return 0;
+
+            // Set up new_head
+            *new_head = cloned;
+
+            // Connect cloned node to the rest of original list
+            cloned->next = curr->next;
+            if (cloned->next) {
+                cloned->next->prev = cloned;
+            }
+
+            // Cut off the original list at curr
+            curr->next = NULL;
+
+            return 1;
+        }
+        curr = curr->next;
+    }
+
+    *new_head = NULL;
+    return 0;
+}
+
+
 //*****************************************************************
 
 
