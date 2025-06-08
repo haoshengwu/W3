@@ -45,6 +45,14 @@ typedef struct
   double **d2fdxdy;
 } CubicHerm2dData;
 
+//interpl_psi_f can be bound to bilenar2d1f/cubicherm2d1f/etc. which used to interpolate psi value
+typedef void (*interpl_2D_1f)(double target_x, double target_y, int nr, double *r,  int nz, double *z,
+                      double **psi, double *value, double **dfdx, double **dfdy, double **d2fdxdy);
+
+//interpl_Brz_f can be bound to bilenar2d2f/cubicherm2d2f/etc. which used to interpolate Br and Bz value.
+typedef void (*interpl_2D_2f)(double target_x, double target_y, int nx, double *x,  int ny, double *y,
+                double ***f, double *value1, double *value2, double ***dfdx, double ***dfdy, double ***d2fdxdy);
+
 // dfdx dfdy d2fdxdy can be supported or just NULL pointer.
 // here 2d means for 2d-functions f(x,y). 2f means f(x,y,2).
 void bilenar2d2f(double target_x, double target_y, int nx, double *x,  int ny, double *y, 

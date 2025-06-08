@@ -27,6 +27,7 @@
 #include "separatrix.h"
 #include "divgeo.h"
 #include "target.h"
+#include "gradpsi.h"
 
 
 #endif

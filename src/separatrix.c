@@ -49,7 +49,7 @@ void generate_separatrix_bytracing(
   ode_solver* solver  // dound to a ode solver
 )
 {
-  int adjust=0;
+  int adjust=0; //use to expand the box which contain the X-point
   int cx1=xpt->cx1-adjust;
   int cx2=xpt->cx2+adjust;
   int cy1=xpt->cy1-adjust;
@@ -204,14 +204,7 @@ void generate_separatrix_bytracing(
     start_p[1]=second_p[i][1];
     double t=0.00;
     double step_size=0.1; //artifical number.
-    for(int i=0;i<func->ndim;i++) //reset the direction.
-    {
-      func->rescale[i]=-1.0*func->rescale[i];
-    }
 
-
-
-    
     //one step to check whether reverse the direction
     solver->next_step(step_size, &t, start_p, next_p, solver->solver_data, func);
 
@@ -242,7 +235,7 @@ void generate_separatrix_bytracing(
     insert_DLList_at_end(&endnode, start_p[0], start_p[1]);
 
     t=t+step_size;
-    int boundary=10;
+    int boundary=10; //not reach the real boundary but [10:nx-10][10:ny-10]
     while(1)
     {
       start_p[0]=next_p[0];

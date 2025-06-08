@@ -1,4 +1,7 @@
 #include "ode.h"
+#include "mathbase.h"
+#include "magneticfield.h"
+#include "gradpsi.h"
 
 // we assum ndim = 3, y[0] is r (m), y[1] is z(m), y[2] is phi(degree). x is phi. 
 void ode_f_brz_torsys_bilinear(const int ndim, const double *x, const double *y, double *dydx, void *data)
@@ -63,6 +66,31 @@ void ode_f_brz_torsys_cubicherm(const int ndim, const double *x, const double *y
   }
 
 }
+
+
+//This is for ODE dy1/dx, dy2/dx. In here x is t NOT R or Z. y[0] is r, y[1] is z, dydx[0]=dr/dt=gradpsi_x and dydx[1]=dr/dt=gradpsi_y
+void ode_f_gradpsi_cubicherm(const int ndim, 
+                             const double *x, const double *y, 
+                             double *dydx, void *data){
+
+  if(ndim != 2)
+  {
+    fprintf(stderr,"Currently, Only support of ndim=2.\n");
+    exit(EXIT_FAILURE);
+  }
+  GradPsiStr* gradpsi = (GradPsiStr *) data;
+  
+  double gradpsi_r_tmp, gradpsi_z_tmp;
+  cubicherm2d1f(y[0], y[1], gradpsi->nr, gradpsi->r,  gradpsi->nz, gradpsi->z,
+                gradpsi->gradpsi_r, &gradpsi_r_tmp, gradpsi->dgradpsi_r_dr, gradpsi->dgradpsi_r_dz, gradpsi->d2gradpsi_r_drdz);
+
+  cubicherm2d1f(y[0], y[1], gradpsi->nr, gradpsi->r,  gradpsi->nz, gradpsi->z,
+                gradpsi->gradpsi_z, &gradpsi_z_tmp, gradpsi->dgradpsi_z_dr, gradpsi->dgradpsi_z_dz, gradpsi->d2gradpsi_z_drdz);
+
+  dydx[0] = gradpsi_r_tmp;
+  dydx[1] = gradpsi_z_tmp;
+  }
+
 
 
 void euler_next_step(double step_size, const double *x, const double *y, double *y_next, 

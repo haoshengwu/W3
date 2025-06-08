@@ -34,11 +34,11 @@ static int check_xpt_rectangular(const Equilibrium *equilib, const XPointInfo xp
 static int check_xpt_est_range(const Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos, const XPointInfo xpt);
 static int check_xpt_levels(const Equilibrium *equilib,int cx1,int cy1,int cx2,int cy2,int x0,int y0,int bMinMax);
 static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos,
-                                interpl_1D_f interpl_1D_f, interpl_2D_f interpl_2D_f, _XPointInfo *xpt_array);
+                                interpl_2D_1f interpl_2D_1f, interpl_2D_2f interpl_2D_2f, _XPointInfo *xpt_array);
 
 
 void find_xpoint(Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos, 
-                 interpl_1D_f interpl_1D_f, interpl_2D_f interpl_2D_f, _XPointInfo *xpt_array)
+                 interpl_2D_1f interpl_2D_1f, interpl_2D_2f interpl_2D_2f, _XPointInfo *xpt_array)
 {
   // est_xpoint_pos is the estimated postions of xpoint. est_xpoint_pos[:][0] is R, est_xpoint_pos[:][1] is Z. 
   // xpoint_number is the expected X-point number. Currentlu, only suppot ONE Xpoint. 
@@ -112,7 +112,7 @@ void find_xpoint(Equilibrium *equilib, int xpoint_number, double **est_xpoint_po
     printf("Less xpionts are found. Please check the equilibriun/estimated xpoints positions\n");
     exit(1);
   }
-  calculate_xpt_level(equilib, xpoint_number, est_xpoint_pos, interpl_1D_f, interpl_2D_f, xpt_array);
+  calculate_xpt_level(equilib, xpoint_number, est_xpoint_pos, interpl_2D_1f, interpl_2D_2f, xpt_array);
   printf("Finish find the X-points.\n");
   free(xpC);
   return;
@@ -330,7 +330,7 @@ static int check_xpt_levels(const Equilibrium *equilib,int cx1,int cy1,int cx2,i
 
 //Calculate the coordinates and psi values of the X-points 
 static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos,
-                                interpl_1D_f interpl_1D_f, interpl_2D_f interpl_2D_f, _XPointInfo *xpt_array)
+                                interpl_2D_1f interpl_2D_1f, interpl_2D_2f interpl_2D_2f, _XPointInfo *xpt_array)
 {
   
 //currently, assume in the range [cx1:cx2,cy1:cy2] the psi are calculated by bilinear interpolation.
@@ -386,7 +386,7 @@ static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double 
     double dBzdx, dBzdy;
     double L2norm;
     double Br,Bz;
-    interpl_2D_f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+    interpl_2D_2f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
                     magfield.Brz, &Br, &Bz, NULL, NULL, NULL);
     
     L2norm = sqrt(pow(Br,2.0) + pow(Bz,2.0));
@@ -402,10 +402,10 @@ static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double 
     //printf("x: %.12f y: %.12f\n", x, y);
     for (int iter=0; iter<MAXITER; iter++)
     {
-      interpl_2D_f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+      interpl_2D_2f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
                   magfield.dBrzdx, &dBrdx, &dBzdx, NULL, NULL, NULL);
 
-      interpl_2D_f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+      interpl_2D_2f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
                   magfield.dBrzdy, &dBrdy, &dBzdy, NULL, NULL, NULL);
 
       //we always start from the left corner. The Xpoint is in the center.
@@ -419,7 +419,7 @@ static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double 
       y=y+LEARNINGRATE*(fabs(dBrdy)+fabs(dBzdy))/2.0;
 
 
-      interpl_2D_f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+      interpl_2D_2f(x,y, equilib->nw, equilib->r, equilib->nh, equilib->z,
                   magfield.Brz, &Br, &Bz, NULL, NULL, NULL);
     
       L2norm = sqrt(pow(Br,2.0) + pow(Bz,2.0));
@@ -464,7 +464,7 @@ static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double 
 
   for(int i=0; i<xpoint_number; i++)
   {
-    interpl_1D_f(xpt_array[i].centerX, xpt_array[i].centerY, 
+    interpl_2D_1f(xpt_array[i].centerX, xpt_array[i].centerY, 
                 equilib->nw,equilib->r, equilib->nh, equilib->z, equilib->psi,
                 &(xpt_array[i].level), NULL, NULL, NULL);
     printf("The psi of the %d X-Point: %.12f \n", i, xpt_array[i].level);

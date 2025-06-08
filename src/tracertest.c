@@ -400,7 +400,7 @@ void line_tracer_test()
   
   print_equilibrium(&dtt_example);
   XPointTest xp;
-  xp = find_Xpoint(&dtt_example, w3_input.xpt_estimation);
+  xp = find_Xpoint_from_DG(&dtt_example, w3_input.xpt_estimation);
 
   double value;
   double x_point = 2.75;

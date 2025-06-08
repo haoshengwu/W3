@@ -65,7 +65,7 @@ void read_equilib_geqdsk(Equilibrium* equilib, const char* geqdsk_file);
 //void write_equilib_dgequ(Equilibrium* equilib, const char* filename);
 
 // find the accurate Xpoint position, est_pos in double array[2] the estimation positions, n i
-XPointTest find_Xpoint(Equilibrium* equilib, const double* est_pos);
+XPointTest find_Xpoint_from_DG(Equilibrium* equilib, const double* est_pos);
 
 void print_equilibrium(const Equilibrium* equilib);  // print the size of equilibrium
 

@@ -5,8 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "datastructure.h"
-#include "mathbase.h"
-#include "magneticfield.h"
+
 
 // define a structure to abstract the funtion f which is the f of dy/dx = f
 typedef struct {
@@ -43,6 +42,14 @@ void ode_f_brz_torsys_bilinear(const int ndim, const double *x, const double *y,
 void ode_f_brz_torsys_bicubic(const int ndim, const double *x, const double *y, double *dydx, void *data);
 // calcaulte the magnetic B in the R Phi Z coordinates with toroidal sysmmetry. Bpol is calculated by 2d cubicHermite.
 void ode_f_brz_torsys_cubicherm(const int ndim, const double *x, const double *y, double *dydx, void *data);
+
+/****************************************************************
+ *    Following are Specific functions for compute_f for gradpsi
+ *    They are based on the new interpolation interface
+ ****************************************************************/
+// calcaulte the gradpsi_x and gradpsi_y in the RZ coordinate system with toroidal sysmmetry. 
+
+void ode_f_gradpsi_cubicherm(const int ndim, const double *x, const double *y, double *dydx, void *data);
 
 
 /*****************************************************

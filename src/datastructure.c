@@ -1,5 +1,6 @@
 #include "datastructure.h"
 #include <math.h>
+#include <stdio.h>
 //************** Double linked list related ******************//
 DLListNode* create_DLListNode(double r, double z)
 {
@@ -356,6 +357,8 @@ void free_2d_array(double **array)
   free(array[0]);
   free(array);
 } 
+
+
 
 double*** allocate_3d_array(const int d1, const int d2, const int d3)
 {

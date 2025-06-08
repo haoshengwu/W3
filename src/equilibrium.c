@@ -251,7 +251,7 @@ void read_equilib_geqdsk(Equilibrium *equilib, const char *geqdsk_file)
 
 }
 
-XPointTest find_Xpoint(Equilibrium *equilib, const double *est_pos)
+XPointTest find_Xpoint_from_DG(Equilibrium *equilib, const double *est_pos)
 {
   // est_pos is the estimated postion est_pos[0] is R, est_pos[1] is Z. n is the size of est_pos
   // this algorithm is from DivGeo FindXPointRects and FindXPointCenter xpoint.h and xpoint.c files.
@@ -598,6 +598,6 @@ void free_equilibrium(Equilibrium *equilib)
   equilib->nh = 0;
 }
 
-// void find_Xpoint(const Equilibrium* equilib, const double estimate[2], double accurate[2]){
+// void find_Xpoint_from_DG(const Equilibrium* equilib, const double estimate[2], double accurate[2]){
 //
 // };

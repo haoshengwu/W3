@@ -74,6 +74,9 @@ double** allocate_2d_array(const int d1, const int d2);
 // free 2D array
 void free_2d_array(double **array);
 
+//todo
+void write_2d_array(const int d1, const int d2, double** array, const char* filename);
+
 
 // allocate dynamic 2D array and retunre the pointer
 double*** allocate_3d_array(const int d1, const int d2, const int d3);
