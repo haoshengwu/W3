@@ -167,7 +167,7 @@ void free_gradpsiline_default(GradPsiLineStr* gradpsi_lines)
 }
 
 //first line (x2-x1,y2-y1) second line(x3-x2, y3-y2)
-// 1 means the same direction, 0 means not.
+// 0 means the same direction, 1 means not.
 static int same_direction(double x1, double y1, double x2, double y2, double x3, double y3)
 {
   double line1[2];
@@ -178,11 +178,11 @@ static int same_direction(double x1, double y1, double x2, double y2, double x3,
 
   if(direction>0)
   {
-    return 1;
+    return 0;
   }
   else
   {
-    return 0;
+    return 1;
   }
 }
 static void normalize(double v[2]) {
@@ -233,13 +233,14 @@ void generate_gradpsiline_bytracing(
   //prepare the X-point as the first point of the four lines
   double xpt_r = sep->line_list[0]->r;
   double xpt_z = sep->line_list[0]->z;
+  gradpsi_lines->xpt_psi = sep->xpt_psi;
+
   printf("DEBUG xpt_r xpt_z\n");
   printf("%lf %lf\n", xpt_r, xpt_z);
 
   //use for tracing
   double *next_p=malloc(2*sizeof(double));
   double *start_p=malloc(2*sizeof(double));
-
   //file to record
   char filename[100];
 
@@ -270,7 +271,7 @@ void generate_gradpsiline_bytracing(
 
     //one step to check whether reverse the direction
     solver->next_step(step_size, &t, start_p, next_p, solver->solver_data, func);
-    if(same_direction(xpt_r, xpt_z, start_p[0], start_p[1], next_p[0], next_p[1])==0)
+    if(!same_direction(xpt_r, xpt_z, start_p[0], start_p[1], next_p[0], next_p[1])==0)
     {
       printf("DEBUG change direction for gradpsi line%d \n", i);
       for(int i=0;i<func->ndim;i++)

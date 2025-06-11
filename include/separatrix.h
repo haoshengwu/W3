@@ -15,9 +15,12 @@ typedef struct SeparatrixOpt SeparatrixOpt;
 // A Structure for Separatrix
 typedef struct SeparatrixStr
 {
-    double r, z;             // X-point coordinates
-    double psi;              // Magnetic flux at X-point
-    int index[4];            // Indices defining separatrix topology
+    double xpt_r, xpt_z;             // X-point coordinates
+    double xpt_psi;              // Magnetic flux at X-point
+    // Indices defining separatrix topology, use to nominate the four sep lines
+    //index[0] is the the sep line have intersection with Inner Target.
+    //Then index[1],[2],[3] are begin in the counter-clockwise order.
+    int index[4];            
     int order;               // 1st, 2nd, 3rd, or 4th X-point
     DLListNode* line_list[4]; // Pointers to 4 separatrix line segments
 } SeparatrixStr;

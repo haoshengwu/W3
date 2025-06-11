@@ -47,6 +47,9 @@ typedef struct
 {
     double xpt_r, xpt_z;             // X-point coordinates
     double xpt_psi;              // Magnetic flux at X-point
+     // Indices defining separatrix topology, use to nominate the four gradpsi ines
+    //index[0] is the gradpsi line between the sep.index[0] and sep.index[1].
+    //Then index[1],[2],[3] are begin in the counter-clockwise order.
     int index[4];            // Indices defining separatrix topology
     int order;               // 1st, 2nd, 3rd, or 4th gradient psi lines
     DLListNode* line_list[4]; // Pointers to 4 grad psi line segments

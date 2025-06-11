@@ -186,11 +186,11 @@ test magnetic field line calculation
 /*****************************************************
 *  Verify target curve operations
 ******************************************************/
-  // target_curve_test();
+  target_curve_test();
 
 /*****************************************************
 *  Verify grad psi
 ******************************************************/
-  grad_psi_test();
+  // grad_psi_test();
   return 0;
 }

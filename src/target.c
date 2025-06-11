@@ -1,19 +1,19 @@
 #include "target.h"
 
-TargetCurve* create_target_curve()
+TargetDLListCurve* create_target_curve()
 {
-  TargetCurve* tgt_cur = malloc(sizeof(TargetCurve));
+  TargetDLListCurve* tgt_cur = malloc(sizeof(TargetDLListCurve));
   memset(tgt_cur->name, 0, sizeof(tgt_cur->name));  
   tgt_cur->n=-1;
   tgt_cur->head = NULL;
   return tgt_cur;
 }
 
-int add_point_target_curve(TargetCurve* tgt_cur, double r, double z)
+int add_point_target_curve(TargetDLListCurve* tgt_cur, double r, double z)
 {
   if(!tgt_cur)
   {
-    fprintf(stderr,"Empty of TargetCurve!\n");
+    fprintf(stderr,"Empty of TargetDLListCurve!\n");
     exit(EXIT_FAILURE);
   }
 
@@ -31,21 +31,21 @@ int add_point_target_curve(TargetCurve* tgt_cur, double r, double z)
     return 0;
   }
 }
-int change_name_target_curve(TargetCurve* curve, const char* name)
+int change_name_target_curve(TargetDLListCurve* tgt_cur, const char* name)
 {
-  if(!curve || !name)
+  if(!tgt_cur || !name)
   {
     fprintf(stderr,"Wrong input for change_name_target_curve!\n");
     return 1;
   }
-  strncpy(curve->name, name, sizeof(curve->name) - 1);
-  curve->name[sizeof(curve->name) - 1] = '\0';
+  strncpy(tgt_cur->name, name, sizeof(tgt_cur->name) - 1);
+  tgt_cur->name[sizeof(tgt_cur->name) - 1] = '\0';
   return 0;
 }
 
-TargetCurve* create_target_curve_from_dgtrg(DivGeoTrg* trg, int n)
+TargetDLListCurve* create_target_curve_from_dgtrg(DivGeoTrg* trg, int n)
 {
-  TargetCurve* tgt_cur=create_target_curve();
+  TargetDLListCurve* tgt_cur=create_target_curve();
   if (!tgt_cur) 
   {
     fprintf(stderr, "Failed to allocate memmory for target_curve");
@@ -68,26 +68,26 @@ TargetCurve* create_target_curve_from_dgtrg(DivGeoTrg* trg, int n)
   return tgt_cur;
 }
 
-void free_target_curve(TargetCurve* curve)
+void free_target_curve(TargetDLListCurve* tgt_cur)
 {
-  if(!curve->head)
+  if(!tgt_cur->head)
   {
     return;
   }
-  free_DLList(curve->head);
-  free(curve);
+  free_DLList(tgt_cur->head);
+  free(tgt_cur);
 }
 
-TargetCurve* reverse_target_curve(TargetCurve** curve)
+TargetDLListCurve* reverse_target_curve(TargetDLListCurve** tgt_cur)
 {
-  if (!curve || !(*curve) || !(*curve)->head) {
+  if (!tgt_cur || !(*tgt_cur) || !(*tgt_cur)->head) {
     fprintf(stderr, "Input curve is NULL or empty in reverse_and_free_target_curve!\n");
     return NULL;
   }
 
-  TargetCurve* original = *curve;
+  TargetDLListCurve* original = *tgt_cur;
 
-  TargetCurve* reversed = create_target_curve();
+  TargetDLListCurve* reversed = create_target_curve();
   change_name_target_curve(reversed, original->name);
 
 
@@ -98,20 +98,20 @@ TargetCurve* reverse_target_curve(TargetCurve** curve)
   }
 
   free_target_curve(original);
-  *curve = reversed;
+  *tgt_cur = reversed;
 
   return reversed;
 }
 
 
-void printf_target_curve(TargetCurve* curve)
+void printf_target_curve(TargetDLListCurve* tgt_cur)
 {
-  if (!curve) return;
+  if (!tgt_cur) return;
 
-  printf("Target Curve Name: %s", curve->name);
+  printf("Target Curve Name: %s", tgt_cur->name);
   printf("The points R Z:\n");
 
-  DLListNode* node = curve->head;
+  DLListNode* node = tgt_cur->head;
   while (node)
   {
     printf("%lf %lf\n", node->r, node->z);

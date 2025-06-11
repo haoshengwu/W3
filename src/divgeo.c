@@ -2,7 +2,10 @@
 #include "datastructure.h"
 #include <stdlib.h>
 #include <math.h>
+#include "target.h"
 
+#define MAX_ITER 1000
+#define epsilon 1.0E-12
 
 // DGClosedStruc* create_DGClosedStruc(int n_point)
 // {
@@ -340,7 +343,7 @@ int load_dgtrg_from_file(DivGeoTrg* trg, const char* filename)
 
     trg->n_target = count_targets;
     trg->n_region = count_regions;
-    trg->n_zones = count_zones;
+    trg->n_zone = count_zones;
 
     trg->n_target_curve = count_targets > 0 ? malloc(count_targets * sizeof(int)) : NULL;
     trg->target_curves = count_targets > 0 ? malloc(count_targets * sizeof(Curve*)) : NULL;
@@ -413,13 +416,13 @@ int load_dgtrg_from_file(DivGeoTrg* trg, const char* filename)
       if (strcmp(line, "dltr1") == 0) 
       { 
         printf("%s:\n",line);
-        trg->dltr1 = read_doubles(fp, trg->n_zones); 
+        trg->dltr1 = read_doubles(fp, trg->n_zone); 
         continue; 
       }
       if (strcmp(line, "dltrn") == 0) 
       { 
         printf("%s:\n",line);
-        trg->dltrn = read_doubles(fp, trg->n_zones);
+        trg->dltrn = read_doubles(fp, trg->n_zone);
         continue; 
       }
       if (strcmp(line, "pntrat") == 0) 
@@ -491,7 +494,7 @@ void free_dgtrg(DivGeoTrg* trg)
 
   if (trg->zones) 
   {
-    for (int i = 0; i < trg->n_zones; i++) 
+    for (int i = 0; i < trg->n_zone; i++) 
     {
       if (trg->zones[i]) 
       {
@@ -515,5 +518,122 @@ void free_dgtrg(DivGeoTrg* trg)
   free(trg);
 }
 
+
+// along the curve which start from DDLListNode* head, 
+//calcuate the corespoding r, z for the psi value based on the equilibirum and interp2d1f function;
+// the total number of psi is n_psi.
+//We assume the psi is monotic along the curve line.
+//interp2d1f is used to calculate the psi at any position.
+//We also assume the target cureve is linear.
+//DLListNode* head is TargetDDListCurve head
+static void cal_start_points_from_psi(double *psi,double *r, double *z, int n,
+                             DLListNode* head,
+                             Equilibrium* equ,
+                             interpl_2D_1f interp2d1f)
+{
+  double psi_start, psi_end;
+  interp2d1f(r[0],z[0], equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_start, NULL, NULL, NULL);
+  interp2d1f(r[n-1],z[n-1], equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_end, NULL, NULL, NULL);
+
+  double psi_head, psi_tail;
+  DLListNode* end = get_DLList_endnode(head);
+  interp2d1f(head->r,head->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_head, NULL, NULL, NULL);
+  interp2d1f(end->r,end->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_tail, NULL, NULL, NULL);
+
+  if( (psi_start>psi_head&&psi_start<psi_tail) || (psi_start<psi_head&&psi_start>psi_tail))
+  {
+    printf("DEBUG psi_start %lf is in the range psi_head %lf psi_tail %lf\n", psi_start, psi_head, psi_tail);
+  }
+  else
+  {
+    fprintf(stderr, "The psi_start %lf is out of range psi_head %lf psi_tail %lf\n!", psi_start, psi_head, psi_tail);
+  }
+
+  if( (psi_end>psi_head&&psi_end<psi_tail) || (psi_end<psi_head&&psi_end>psi_tail) )
+  {
+    printf("DEBUG psi_start %lf is in the range psi_head %lf psi_tail %lf\n", psi_end, psi_head, psi_tail);
+  }
+  else
+  {
+    fprintf(stderr, "The psi_start %lf is out of range psi_head %lf psi_tail %lf\n!", psi_end, psi_head, psi_tail);
+  }
+
+
+  for(int i=0; i<n; i++)
+  {
+    double psi_prev;
+    double psi_curr;
+    double psi_next;
+    DLListNode* current = head;
+    while(current->next!=NULL)
+    {
+      interp2d1f(head->r,head->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_prev, NULL, NULL, NULL);
+      interp2d1f(head->next->r,head->next->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_curr, NULL, NULL, NULL);
+      if((psi[i]>psi_prev&&psi[i]<psi_curr)||(psi[i]<psi_prev&&psi[i]>psi_curr)) break;
+      else current=current->next;
+    }
+    //use Secant_Method to calcute the position and assume linear between heat and heat->next
+
+    double t_prev=0.0;
+    double t_curr=1.0;
+    double t_next;
+    double psi_target=psi[i];
+    for (int iter = 0; iter < MAX_ITER; ++iter) 
+    {
+      double denom = psi_curr - psi_prev;
+      if (fabs(denom) < 1e-14) 
+      {
+        printf("Warning: function difference too small in Secant iteration.\n");
+        break;
+      }
+      t_next = t_curr - (psi_curr - psi_target) * (t_curr - t_prev) / denom;
+      double r_next = head->r + (head->next->r-head->r)*t_next;
+      double z_next = head->z + (head->next->z-head->z)*t_next;
+      interp2d1f(r_next,z_next, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_next, NULL, NULL, NULL);
+      if (fabs(psi_next - psi_target) < epsilon) 
+      {
+        r[i] = r_next;
+        z[i] = z_next;
+        break;
+      }
+      t_prev=t_curr;
+      psi_prev = psi_curr;
+      t_curr=t_next;
+      psi_curr=psi_next;
+    }
+  }
+}
+
+
+//0 means monotonic psi else 1.
+//todo
+static int check_curve_monotonic_psi(DLListNode* head,
+                                     Equilibrium* equ,
+                                     interpl_2D_1f* interp2d1f);
+
+
+
+void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium equ, SeparatrixStr sep, GradPsiLineStr* gradspsilines)
+{
+  //check the trg is for SNL topology.
+  if(!strcmp(trg->topo,"SNL"))
+  {
+    fprintf(stderr, "This is not SNL topology.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(trg->n_region!=3 || trg->n_region!=3)
+  {
+    fprintf(stderr, "The number of Zone and Regions are not consistent with SNL.\n");
+  }
+
+/****************************************
+*      create TargetDDListCurve
+****************************************/
+int index_target = 1; //start from 0, the second target is the inner target
+TargetDLListCurve* inner_target=create_target_curve_from_dgtrg(trg, index_target);
+
+  
+
+}
 
 

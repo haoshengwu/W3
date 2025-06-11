@@ -13,9 +13,9 @@ SeparatrixStr* init_separatrix_default(void)
     return NULL;
   }
   // initialize all value to zero
-  sep->r=0.00;
-  sep->z=0.00;
-  sep->psi=0.00;
+  sep->xpt_r=0.00;
+  sep->xpt_z=0.00;
+  sep->xpt_psi=0.00;
   sep->order = -1; // default value -1 means not use
   // the index is corespodng to the four line, later to sort the sequence.
   for (int i = 0; i<4; i++)
@@ -50,6 +50,9 @@ void generate_separatrix_bytracing(
 )
 {
   int adjust=0; //use to expand the box which contain the X-point
+  sep->xpt_psi=xpt->level;
+  sep->xpt_r=xpt->centerX;
+  sep->xpt_z=xpt->centerY;
   int cx1=xpt->cx1-adjust;
   int cx2=xpt->cx2+adjust;
   int cy1=xpt->cy1-adjust;

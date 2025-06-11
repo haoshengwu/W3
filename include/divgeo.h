@@ -1,9 +1,10 @@
 #ifndef DIVGEO_H
 #define DIVGEO_H
 
-#include <structuredgrid.h>
-#include <separatrix.h>
-#include <equilibrium.h>
+#include "structuredgrid.h"
+#include "separatrix.h"
+#include "equilibrium.h"
+#include "gradpsi.h"
 
 typedef struct 
 {
@@ -55,7 +56,7 @@ typedef struct
 typedef struct
 {
   char* topo;
-  int n_target;
+  int n_target;//total target number
   int* n_target_curve; //array[i] is the total number of points for target_curves[i]
   Curve** target_curves;
 
@@ -65,7 +66,7 @@ typedef struct
 
   // for the radial distribution of magecit surface
   // !!!Unit is Wb/rad
-  int n_zones;
+  int n_zone;
   DGZone** zones;
 
 
@@ -84,8 +85,9 @@ DivGeoTrg* create_dgtrg(void);
 int load_dgtrg_from_file(DivGeoTrg* trg, const char* filename);
 
 //From here it is already related with topology
-int write_dgtrg_to_input(DivGeoTrg* trg, Equilibrium equ, SeparatrixStr sep);
-int write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium equ, SeparatrixStr sep);
+//TOPOLOGY NEED TO BE CONSIDERED
+void write_dgtrg_to_input(DivGeoTrg* trg, Equilibrium equ, SeparatrixStr sep);
+void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium equ, SeparatrixStr sep, GradPsiLineStr* gradspsilines);
 
 
 void free_dgtrg(DivGeoTrg* trg);

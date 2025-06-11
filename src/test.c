@@ -228,10 +228,10 @@ void get_target_curve_from_trg_test()
   DivGeoTrg* trg=create_dgtrg();
   int status=load_dgtrg_from_file(trg, name);
   int n=0;
-  TargetCurve* tgt_cur1=create_target_curve_from_dgtrg(trg,n);
+  TargetDLListCurve* tgt_cur1=create_target_curve_from_dgtrg(trg,n);
   printf("%d\n" ,trg->n_target_curve[0]);
   // printf("%d\n" ,trg->n_target_curve[1]);
-  // // TargetCurve* tgt_cur2=create_target_curve_from_dgtrg(trg,2);
+  // // TargetDLListCurve* tgt_cur2=create_target_curve_from_dgtrg(trg,2);
   printf_target_curve(tgt_cur1);
   // // printf_target_curve(tgt_cur2);
   free_target_curve(tgt_cur1);
@@ -313,10 +313,10 @@ void target_curve_test()
   DivGeoTrg* trg=create_dgtrg();
   int status=load_dgtrg_from_file(trg, name);
   int n=0;
-  TargetCurve* tgt_cur=create_target_curve_from_dgtrg(trg,n);
+  TargetDLListCurve* tgt_cur=create_target_curve_from_dgtrg(trg,n);
   // printf("%d\n" ,trg->n_target_curve[0]);
   // printf("%d\n" ,trg->n_target_curve[1]);
-  // // TargetCurve* tgt_cur2=create_target_curve_from_dgtrg(trg,2);
+  // // TargetDLListCurve* tgt_cur2=create_target_curve_from_dgtrg(trg,2);
   // printf_target_curve(tgt_cur);
   // // printf_target_curve(tgt_cur2);
   // free_target_curve(tgt_cur1);
@@ -329,7 +329,7 @@ void target_curve_test()
   {
     int value;
     value = has_intersection_DDList(tgt_cur_head, sep->line_list[i]);
-    if(value)
+    if(value==0)
     {
       printf("The %d sep line intersects with target cureve.\n",i);
       insert_intersections_DDList(tgt_cur_head, sep->line_list[i], &itrsct_r, &itrsct_z);

@@ -132,13 +132,18 @@ static int orientation(double x1, double y1, double x2, double y2, double x3, do
 
 // Checks if point (x2, y2) lies on the line segment from (x1, y1) to (x3, y3)
 // Assumes the three points are colinear
-static int on_segment(double x1, double y1, double x2, double y2, double x3, double y3) {
-    return (x2 <= fmax(x1, x3) && x2 >= fmin(x1, x3) &&
-            y2 <= fmax(y1, y3) && y2 >= fmin(y1, y3));
+static int on_segment(double x1, double y1, double x2, double y2, double x3, double y3) 
+{
+  if (x2 <= fmax(x1, x3) && x2 >= fmin(x1, x3) &&
+      y2 <= fmax(y1, y3) && y2 >= fmin(y1, y3))
+      {
+        return 0;
+      }
+      return 1;
 }
 
-// Returns 1 if the two segments (x1, y1)-(x2, y2) and (x3, y3)-(x4, y4) intersect
-// Returns 0 otherwise
+// Returns 0 if the two segments (x1, y1)-(x2, y2) and (x3, y3)-(x4, y4) intersect
+// Returns 1 otherwise
 static int segments_intersect(double x1, double y1, double x2, double y2,
                        double x3, double y3, double x4, double y4) {
     // Find orientations of the four combinations
@@ -149,18 +154,19 @@ static int segments_intersect(double x1, double y1, double x2, double y2,
 
     // General case: two endpoints of one segment lie on opposite sides of the other segment
     if (o1 != o2 && o3 != o4)
-        return 1;
+        return 0;
 
     // Special colinear cases: check if endpoints lie on the other segment
-    if (o1 == 0 && on_segment(x1, y1, x3, y3, x2, y2)) return 1;
-    if (o2 == 0 && on_segment(x1, y1, x4, y4, x2, y2)) return 1;
-    if (o3 == 0 && on_segment(x3, y3, x1, y1, x4, y4)) return 1;
-    if (o4 == 0 && on_segment(x3, y3, x2, y2, x4, y4)) return 1;
+    if (o1 == 0 && on_segment(x1, y1, x3, y3, x2, y2)==0) return 0;
+    if (o2 == 0 && on_segment(x1, y1, x4, y4, x2, y2)==0) return 0;
+    if (o3 == 0 && on_segment(x3, y3, x1, y1, x4, y4)==0) return 0;
+    if (o4 == 0 && on_segment(x3, y3, x2, y2, x4, y4)==0) return 0;
 
     // No intersection found
-    return 0;
+    return 1;
 }
 
+// 0 means have intersection, 1 means no.
 int has_intersection_DDList(DLListNode* head1, DLListNode* head2) 
 {
   for (DLListNode* a = head1; a && a->next; a = a->next) 
@@ -169,18 +175,18 @@ int has_intersection_DDList(DLListNode* head1, DLListNode* head2)
          {
             if (segments_intersect(
                     a->r, a->z, a->next->r, a->next->z,
-                    b->r, b->z, b->next->r, b->next->z)) 
+                    b->r, b->z, b->next->r, b->next->z)==0) 
             {
-                return 1;  // Found
+                return 0;  // Found
             }
         }
     }
-    return 0; // no intersection
+    return 1; // no intersection
 }
 
 // Compute intersection point of two segments (if any)
 // Only works if the intersection is a single point (not overlapping segments)
-// intersect return 1, otherwise return 0S
+// intersect return 0, otherwise return 1
 static int compute_intersection_point(
     double x1, double y1, double x2, double y2,
     double x3, double y3, double x4, double y4,
@@ -189,9 +195,9 @@ static int compute_intersection_point(
     // Calculate denominators
     double denom = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4);
 
-    if (denom == 0.0) {
+    if (fabs(denom) < 1e-10) {
         // Lines are parallel or coincident
-        return 0;
+        return 1;
     }
 
     // Compute intersection using determinant formula
@@ -206,12 +212,12 @@ static int compute_intersection_point(
         px < fmin(x3,x4) - 1e-10 || px > fmax(x3,x4) + 1e-10 ||
         py < fmin(y1,y2) - 1e-10 || py > fmax(y1,y2) + 1e-10 ||
         py < fmin(y3,y4) - 1e-10 || py > fmax(y3,y4) + 1e-10) {
-        return 0; // Intersection outside the segments
+        return 1; // Intersection outside the segments
     }
 
     *ix = px;
     *iy = py;
-    return 1;
+    return 0;
 }
 
 void insert_between(DLListNode* a, DLListNode* b, double r, double z) 
@@ -224,26 +230,28 @@ void insert_between(DLListNode* a, DLListNode* b, double r, double z)
     if (b) b->prev = new_node;
 }
 
+
+//0 means intersect, else 1 means not.
 int insert_intersections_DDList(DLListNode* head1, DLListNode* head2, double* r_ptr, double* z_ptr) 
 {
-    int count = 0;
+    int intersect = 1;
     for (DLListNode* a = head1; a && a->next; a = a->next) {
         for (DLListNode* b = head2; b && b->next; b = b->next) {
               if (compute_intersection_point(
                     a->r, a->z, a->next->r, a->next->z,
                     b->r, b->z, b->next->r, b->next->z,
-                    r_ptr, z_ptr)) {
+                    r_ptr, z_ptr)==0) {
                 // Insert the intersection point into both DLLists
                 // Use two separate nodes to avoid sharing the same memory
                 insert_between(a, a->next, *r_ptr, *z_ptr);  // insert into list 1
                 insert_between(b, b->next, *r_ptr, *z_ptr);  // insert into list 2
-                count=1;
+                intersect=0;
                 break; // prevent multiple insertions on the same segment
             }
         }
-      if(count) break;
+      if(intersect==0) break;
     }
-    return count; // total number of intersections inserted
+    return intersect; // total number of intersections inserted
 }
 
 

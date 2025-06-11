@@ -37,7 +37,7 @@ void print_DLList(DLListNode* head);
 // write a double linked list to a file
 void write_DDList(DLListNode* head, const char* title);
 
-//insert a node between a and b
+//insert a node between a and b, we assume b=a.next.
 void insert_between(DLListNode* a, DLListNode* b, double r, double z);  
 // check whether two DDlist are intersected or not.
 // intersec return 1 else 0
