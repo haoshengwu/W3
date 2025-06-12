@@ -1,1 +1,7 @@
-This is a mesh generator developed by Haosheng, aim to provide the 1D, 2D and 3D computational mesh for edge plasma modelling.
+This is a mesh generator developed by Haosheng Wu, which aims to provide the 1D, 2D and 3D computational mesh for edge plasma modelling.
+
+## License
+
+This code is for personal use only.  
+No license is granted for reuse, redistribution, or modification.  
+© Haosheng Wu, 2025. All rights reserved.
