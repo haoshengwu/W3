@@ -86,8 +86,8 @@ int load_dgtrg_from_file(DivGeoTrg* trg, const char* filename);
 
 //From here it is already related with topology
 //TOPOLOGY NEED TO BE CONSIDERED
-void write_dgtrg_to_input(DivGeoTrg* trg, Equilibrium equ, SeparatrixStr sep);
-void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium equ, SeparatrixStr sep, GradPsiLineStr* gradspsilines);
+void write_dgtrg_to_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep);
+void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradspsilines);
 
 
 void free_dgtrg(DivGeoTrg* trg);

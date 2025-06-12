@@ -20,6 +20,7 @@ SeparatrixStr* init_separatrix_default(void)
   // the index is corespodng to the four line, later to sort the sequence.
   for (int i = 0; i<4; i++)
   {
+    sep->index[i]=-1;
     sep->line_list[i] = NULL;
   }
   return sep;
@@ -257,11 +258,17 @@ void generate_separatrix_bytracing(
           next_p[1] > equ->z[cy1] && next_p[1]<equ->z[cy2]))
       {
         printf("Back to X-Point Rectangular!\n");
+        //insert Xpoint to the sep lines which are the LCFS.
+        insert_DLList_at_end(&endnode, xpt->centerX, xpt->centerY);
+        fprintf(fp, "%.15f %.15f\n", xpt->centerX, xpt->centerY);
         break;
       }
       insert_DLList_at_end(&endnode, next_p[0], next_p[1]);
       fprintf(fp, "%.15f %.15f\n", next_p[0], next_p[1]);
     }
+    
+    //add the X-point again to make sure the sep lines for LCFS is closed.
+
     fclose(fp);
   }
   free(start_p);

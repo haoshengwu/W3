@@ -53,13 +53,8 @@ int cut_intersections_DDList(DLListNode* head, double r, double z);
 // split the DDList from point r,z and create a new node with rz and bound to new_head;
 int split_intersections_DDList(DLListNode* head, double r, double z, DLListNode** new_head);
 
-
-
-
-
-
-
-
+//Reverse the DDList
+void reverse_DLList(DLListNode** head);
 
 
 

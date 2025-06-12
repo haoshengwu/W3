@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 #define MAX_ITER_NEWTON 1000
-#define epsilon 1.0E-12
+#define EPSILON_MB 1.0E-10
 
 
 void swap_double(double* a, double* b) {
@@ -729,7 +729,7 @@ void free_interp1d_function(Interp1DFunction* interp)
 //     }
 //     x_curr=x_prev-(fx_prev-*fx_target)/dfdx_prev;
 //     interp->eval(interp->data, x_curr, &fx_curr);
-//     if(fabs(fx_curr-*fx_target)<epsilon)
+//     if(fabs(fx_curr-*fx_target)<EPSILON_MB)
 //     {
 //       *x = x_curr;
 //       return;
@@ -776,7 +776,7 @@ void Secant_Method(double* x, const double* fx_target, Interp1DFunction* interp)
 
     interp->eval(interp->data, x_next, &fx_next);
 
-    if (fabs(fx_next - *fx_target) < epsilon) {
+    if (fabs(fx_next - *fx_target) < EPSILON_MB) {
       *x = x_next;
       return;
     }

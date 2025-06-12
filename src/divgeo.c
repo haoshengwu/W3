@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include "target.h"
-
-#define MAX_ITER 1000
-#define epsilon 1.0E-12
+#include <stdbool.h>
+#define MAX_ITER_DG 1000
+#define EPSILON_DG 1.0E-10
 
 // DGClosedStruc* create_DGClosedStruc(int n_point)
 // {
@@ -236,10 +236,10 @@ static Curve* read_curve(FILE* fp, int* n_curve_point)
     {
       fgets(line, sizeof(line), fp);
       sscanf(line, "%lf , %lf", &(curve->points[i][0]), &(curve->points[i][1]));
-      printf("%lf %lf\n",curve->points[i][0],curve->points[i][1]);
       //convert from mm to m!!!!
       curve->points[i][0]=curve->points[i][0]/1000.0;
       curve->points[i][1]=curve->points[i][1]/1000.0;
+      printf("%lf %lf\n",curve->points[i][0],curve->points[i][1]);
     }
     return curve;
 }
@@ -526,7 +526,7 @@ void free_dgtrg(DivGeoTrg* trg)
 //interp2d1f is used to calculate the psi at any position.
 //We also assume the target cureve is linear.
 //DLListNode* head is TargetDDListCurve head
-static void cal_start_points_from_psi(double *psi,double *r, double *z, int n,
+static void cal_points_from_psi(double *psi,double *r, double *z, int n,
                              DLListNode* head,
                              Equilibrium* equ,
                              interpl_2D_1f interp2d1f)
@@ -540,7 +540,8 @@ static void cal_start_points_from_psi(double *psi,double *r, double *z, int n,
   interp2d1f(head->r,head->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_head, NULL, NULL, NULL);
   interp2d1f(end->r,end->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_tail, NULL, NULL, NULL);
 
-  if( (psi_start>psi_head&&psi_start<psi_tail) || (psi_start<psi_head&&psi_start>psi_tail))
+  if((psi_start>psi_head-EPSILON_DG&&psi_start<psi_tail+EPSILON_DG) 
+      ||(psi_start<psi_head+EPSILON_DG&&psi_start>psi_tail-EPSILON_DG))
   {
     printf("DEBUG psi_start %lf is in the range psi_head %lf psi_tail %lf\n", psi_start, psi_head, psi_tail);
   }
@@ -549,7 +550,8 @@ static void cal_start_points_from_psi(double *psi,double *r, double *z, int n,
     fprintf(stderr, "The psi_start %lf is out of range psi_head %lf psi_tail %lf\n!", psi_start, psi_head, psi_tail);
   }
 
-  if( (psi_end>psi_head&&psi_end<psi_tail) || (psi_end<psi_head&&psi_end>psi_tail) )
+  if( (psi_end>psi_head-EPSILON_DG&&psi_end<psi_tail+EPSILON_DG) 
+      ||(psi_end<psi_head+EPSILON_DG&&psi_end>psi_tail-EPSILON_DG) )
   {
     printf("DEBUG psi_start %lf is in the range psi_head %lf psi_tail %lf\n", psi_end, psi_head, psi_tail);
   }
@@ -569,7 +571,11 @@ static void cal_start_points_from_psi(double *psi,double *r, double *z, int n,
     {
       interp2d1f(head->r,head->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_prev, NULL, NULL, NULL);
       interp2d1f(head->next->r,head->next->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_curr, NULL, NULL, NULL);
-      if((psi[i]>psi_prev&&psi[i]<psi_curr)||(psi[i]<psi_prev&&psi[i]>psi_curr)) break;
+      if((psi[i]>psi_prev-EPSILON_DG&&psi[i]<psi_curr+EPSILON_DG)
+         ||(psi[i]<psi_prev+EPSILON_DG&&psi[i]>psi_curr-EPSILON_DG)) 
+      {
+        break; //Find the correct point
+      }
       else current=current->next;
     }
     //use Secant_Method to calcute the position and assume linear between heat and heat->next
@@ -578,7 +584,7 @@ static void cal_start_points_from_psi(double *psi,double *r, double *z, int n,
     double t_curr=1.0;
     double t_next;
     double psi_target=psi[i];
-    for (int iter = 0; iter < MAX_ITER; ++iter) 
+    for (int iter = 0; iter < MAX_ITER_DG; ++iter) 
     {
       double denom = psi_curr - psi_prev;
       if (fabs(denom) < 1e-14) 
@@ -590,7 +596,7 @@ static void cal_start_points_from_psi(double *psi,double *r, double *z, int n,
       double r_next = head->r + (head->next->r-head->r)*t_next;
       double z_next = head->z + (head->next->z-head->z)*t_next;
       interp2d1f(r_next,z_next, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_next, NULL, NULL, NULL);
-      if (fabs(psi_next - psi_target) < epsilon) 
+      if (fabs(psi_next - psi_target) < EPSILON_DG) 
       {
         r[i] = r_next;
         z[i] = z_next;
@@ -606,17 +612,55 @@ static void cal_start_points_from_psi(double *psi,double *r, double *z, int n,
 
 
 //0 means monotonic psi else 1.
-//todo
 static int check_curve_monotonic_psi(DLListNode* head,
                                      Equilibrium* equ,
-                                     interpl_2D_1f* interp2d1f);
-
-
-
-void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium equ, SeparatrixStr sep, GradPsiLineStr* gradspsilines)
+                                     interpl_2D_1f interp2d1f)
 {
+  bool increasing = true;
+  bool decreasing = true;
+  DLListNode* newhead=head;
+  while(newhead->next!=NULL)
+  {
+    double psi;
+    interp2d1f(newhead->r,newhead->z,equ->nw,equ->r, equ->nh, equ->z, equ->psi, &psi, NULL, NULL,NULL);
+    double nextpsi;
+    interp2d1f(newhead->next->r,newhead->next->z,equ->nw,equ->r, equ->nh, equ->z, equ->psi, &nextpsi, NULL, NULL,NULL);
+    if (fabs(psi-nextpsi)<EPSILON_DG)
+    {
+      fprintf(stderr,"The psi values are too close!\n");
+      exit(EXIT_FAILURE);
+    }
+    else if(psi>nextpsi) 
+    {
+      increasing=false;
+    }
+    else if (psi<nextpsi)
+    {
+      decreasing=false;
+    }
+
+    newhead = newhead->next;
+  }
+  if(increasing||decreasing)
+  {
+    return 0; // monotonic
+  }
+  else
+  {
+    return 1; // not monotonic
+  }
+}
+
+
+
+void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradpsilines)
+{
+  
+  printf("Begion to create inputfils from DivGeo trg file.\n");
+
+  printf("DEBUG topology: %s\n", trg->topo);
   //check the trg is for SNL topology.
-  if(!strcmp(trg->topo,"SNL"))
+  if(strcmp(trg->topo,"SNL"))
   {
     fprintf(stderr, "This is not SNL topology.\n");
     exit(EXIT_FAILURE);
@@ -626,13 +670,62 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium equ, SeparatrixStr sep,
     fprintf(stderr, "The number of Zone and Regions are not consistent with SNL.\n");
   }
 
-/****************************************
-*      create TargetDDListCurve
-****************************************/
-int index_target = 1; //start from 0, the second target is the inner target
-TargetDLListCurve* inner_target=create_target_curve_from_dgtrg(trg, index_target);
+/***********************************************
+*    STEP1 create TargetDDListCurve
+***********************************************/
+  int idx_inner_tgt = 1; //start from 0, the second target is the inner target
 
+  TargetDLListCurve* inner_tgt_curve=create_target_curve_from_dgtrg(trg, idx_inner_tgt);
+  printf("Inner Target name: %s\n", inner_tgt_curve->name);
+
+/***********************************************
+*    STEP2 Sort index for sep and gradpsi lines
+***********************************************/
+  sort_sep_gradpsiline_by_targetcurve(inner_tgt_curve, sep, gradpsilines);
+
+
+/*************************************************
+*    STEP3 Create the target curve for SOL and PFR
+*************************************************/
+  double itsct_r, itsct_z;
+  // printf("DEBUG sep->index[0] %d\n",sep->index[0]);
+  // write_DDList(sep->line_list[sep->index[0]],"debug_sep1");
+  // write_DDList(inner_tgt_curve->head,"debug_it");
+
+  insert_intersections_DDList(sep->line_list[sep->index[0]],
+                              inner_tgt_curve->head,
+                              &itsct_r, &itsct_z);
   
+  cut_intersections_DDList(sep->line_list[sep->index[0]],itsct_r, itsct_z);
+  // printf("DEBUG intersect:%d\n", 
+  //       has_intersection_DDList(sep->line_list[sep->index[0]],
+  //                               inner_tgt_curve->head));
+  
+  TargetDLListCurve* sol_tgt_curve=create_target_curve();
+  split_intersections_target_curve(inner_tgt_curve, itsct_r, itsct_z, sol_tgt_curve);
+  reverse_DDList_in_target_curve(inner_tgt_curve);
+  //need to update the number and name!
+  change_name_target_curve(inner_tgt_curve, "PFR");
+  change_name_target_curve(sol_tgt_curve, "SOL");
+
+  printf("%s target curve has %d points\n", inner_tgt_curve->name, inner_tgt_curve->n);
+  printf("%s target curve has %d points\n", sol_tgt_curve->name, sol_tgt_curve->n);
+
+  write_DDList(sep->line_list[sep->index[0]],"debug_sep1");
+  write_DDList(inner_tgt_curve->head,"debug_pfr");
+  write_DDList(sol_tgt_curve->head,"debug_sol");
+
+/*************************************************
+*    STEP4 Calculate the start points used for trcing
+*************************************************/
+
+
+
+/*************************************************
+*    Free Memory 
+*************************************************/
+  free_target_curve(inner_tgt_curve);
+  free_target_curve(sol_tgt_curve);
 
 }
 

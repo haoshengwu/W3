@@ -14,4 +14,7 @@ void get_target_curve_from_trg_test();
 void target_curve_test();
 
 void grad_psi_test();
+
+void divgeo_test();
+
 #endif

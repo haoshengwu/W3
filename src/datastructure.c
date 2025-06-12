@@ -1,6 +1,8 @@
 #include "datastructure.h"
 #include <math.h>
 #include <stdio.h>
+#define EPSILON_DATASTR 1.0E-10
+
 //************** Double linked list related ******************//
 DLListNode* create_DLListNode(double r, double z)
 {
@@ -73,6 +75,7 @@ void insert_DLList_at_end(DLListNode** end_ref, double r, double z)
 
 }
 
+
 // free a double linked list
 void free_DLList(DLListNode* head)
 {
@@ -115,55 +118,37 @@ void write_DDList(DLListNode* head, const char* filename)
     printf("write the values in %s\n", filename);
 }
 
-// Determines the orientation of the ordered triplet (x1, y1), (x2, y2), (x3, y3)
-// Returns:
-//   0 → Colinear (all points lie on a straight line)
-//   1 → Clockwise turn (right turn)
-//   2 → Counterclockwise turn (left turn)
-static int orientation(double x1, double y1, double x2, double y2, double x3, double y3) 
-{
-    double val = (y2 - y1)*(x3 - x2) - (x2 - x1)*(y3 - y2);
-
-    if (val > 0) return 1;  // Clockwise
-    if (val < 0) return 2;  // Counterclockwise
-    return 0;               // Colinear
+// Compute the cross product of two vectors
+static double cross(double x1, double y1, double x2, double y2) {
+  return x1 * y2 - x2 * y1;
 }
 
-
-// Checks if point (x2, y2) lies on the line segment from (x1, y1) to (x3, y3)
-// Assumes the three points are colinear
-static int on_segment(double x1, double y1, double x2, double y2, double x3, double y3) 
-{
-  if (x2 <= fmax(x1, x3) && x2 >= fmin(x1, x3) &&
-      y2 <= fmax(y1, y3) && y2 >= fmin(y1, y3))
-      {
-        return 0;
-      }
-      return 1;
+// Check if a value is within [0, 1] considering floating-point tolerance EPSILON
+static int inRange(double value) {
+    return value >= -EPSILON_DATASTR && value <= 1.0 + EPSILON_DATASTR;
 }
 
 // Returns 0 if the two segments (x1, y1)-(x2, y2) and (x3, y3)-(x4, y4) intersect
 // Returns 1 otherwise
 static int segments_intersect(double x1, double y1, double x2, double y2,
                        double x3, double y3, double x4, double y4) {
-    // Find orientations of the four combinations
-    int o1 = orientation(x1, y1, x2, y2, x3, y3);
-    int o2 = orientation(x1, y1, x2, y2, x4, y4);
-    int o3 = orientation(x3, y3, x4, y4, x1, y1);
-    int o4 = orientation(x3, y3, x4, y4, x2, y2);
+    double dx1 = x2 - x1, dy1 = y2 - y1; // Direction vector of the first segment
+    double dx2 = x4 - x3, dy2 = y4 - y3; // Direction vector of the second segment
+    double delta = cross(dx1, dy1, dx2, dy2); // Cross product to check for parallelism
 
-    // General case: two endpoints of one segment lie on opposite sides of the other segment
-    if (o1 != o2 && o3 != o4)
-        return 0;
+    if (fabs(delta) < EPSILON_DATASTR) return 1; // Segments are parallel or colinear
 
-    // Special colinear cases: check if endpoints lie on the other segment
-    if (o1 == 0 && on_segment(x1, y1, x3, y3, x2, y2)==0) return 0;
-    if (o2 == 0 && on_segment(x1, y1, x4, y4, x2, y2)==0) return 0;
-    if (o3 == 0 && on_segment(x3, y3, x1, y1, x4, y4)==0) return 0;
-    if (o4 == 0 && on_segment(x3, y3, x2, y2, x4, y4)==0) return 0;
+    // Calculate the parameters of intersection point on both segments
+    double s = cross(x3 - x1, y3 - y1, dx2, dy2) / delta;
+    double t = cross(x3 - x1, y3 - y1, dx1, dy1) / delta;
 
-    // No intersection found
-    return 1;
+    // Check if the intersection point lies within both segments
+    if (inRange(s) && inRange(t)) 
+    {
+        return 0; // Segments intersect
+     }
+    // printf("WARNING: NO INTERSECTION FOUND.\n");
+    return 1; // Segments do not intersect
 }
 
 // 0 means have intersection, 1 means no.
@@ -187,38 +172,33 @@ int has_intersection_DDList(DLListNode* head1, DLListNode* head2)
 // Compute intersection point of two segments (if any)
 // Only works if the intersection is a single point (not overlapping segments)
 // intersect return 0, otherwise return 1
-static int compute_intersection_point(
-    double x1, double y1, double x2, double y2,
-    double x3, double y3, double x4, double y4,
-    double* ix, double* iy)
-{
-    // Calculate denominators
-    double denom = (x1 - x2)*(y3 - y4) - (y1 - y2)*(x3 - x4);
 
-    if (fabs(denom) < 1e-10) {
-        // Lines are parallel or coincident
-        return 1;
-    }
 
-    // Compute intersection using determinant formula
-    double px_num = (x1*y2 - y1*x2)*(x3 - x4) - (x1 - x2)*(x3*y4 - y3*x4);
-    double py_num = (x1*y2 - y1*x2)*(y3 - y4) - (y1 - y2)*(x3*y4 - y3*x4);
+// Determine whether two line segments intersect and calculate the intersection point
+static int getIntersection(double x1, double y1, double x2, double y2,
+                    double x3, double y3, double x4, double y4,
+                    double *ix, double *iy) {
+    double dx1 = x2 - x1, dy1 = y2 - y1; // Direction vector of the first segment
+    double dx2 = x4 - x3, dy2 = y4 - y3; // Direction vector of the second segment
+    double delta = cross(dx1, dy1, dx2, dy2); // Cross product to check for parallelism
 
-    double px = px_num / denom;
-    double py = py_num / denom;
+    if (fabs(delta) < EPSILON_DATASTR) return 1; // Segments are parallel or colinear
 
-    // Check if the intersection point lies on both segments
-    if (px < fmin(x1,x2) - 1e-10 || px > fmax(x1,x2) + 1e-10 ||
-        px < fmin(x3,x4) - 1e-10 || px > fmax(x3,x4) + 1e-10 ||
-        py < fmin(y1,y2) - 1e-10 || py > fmax(y1,y2) + 1e-10 ||
-        py < fmin(y3,y4) - 1e-10 || py > fmax(y3,y4) + 1e-10) {
-        return 1; // Intersection outside the segments
-    }
+    // Calculate the parameters of intersection point on both segments
+    double s = cross(x3 - x1, y3 - y1, dx2, dy2) / delta;
+    double t = cross(x3 - x1, y3 - y1, dx1, dy1) / delta;
 
-    *ix = px;
-    *iy = py;
-    return 0;
+    // Check if the intersection point lies within both segments
+    if (inRange(s) && inRange(t)) 
+    {
+       *ix = x1 + s * dx1;
+       *iy = y1 + s * dy1;
+        return 0; // Segments intersect
+     }
+    // printf("WARNING: NO INTERSECTION FOUND.\n");
+    return 1; // Segments do not intersect
 }
+
 
 void insert_between(DLListNode* a, DLListNode* b, double r, double z) 
 {
@@ -230,39 +210,46 @@ void insert_between(DLListNode* a, DLListNode* b, double r, double z)
     if (b) b->prev = new_node;
 }
 
-
-//0 means intersect, else 1 means not.
+// Returns 0 if an intersection is found and inserted, 1 otherwise
 int insert_intersections_DDList(DLListNode* head1, DLListNode* head2, double* r_ptr, double* z_ptr) 
 {
-    int intersect = 1;
-    for (DLListNode* a = head1; a && a->next; a = a->next) {
-        for (DLListNode* b = head2; b && b->next; b = b->next) {
-              if (compute_intersection_point(
-                    a->r, a->z, a->next->r, a->next->z,
-                    b->r, b->z, b->next->r, b->next->z,
-                    r_ptr, z_ptr)==0) {
-                // Insert the intersection point into both DLLists
-                // Use two separate nodes to avoid sharing the same memory
-                insert_between(a, a->next, *r_ptr, *z_ptr);  // insert into list 1
-                insert_between(b, b->next, *r_ptr, *z_ptr);  // insert into list 2
-                intersect=0;
-                break; // prevent multiple insertions on the same segment
-            }
+    int found = 1;
+    for (DLListNode* a = head1; a && a->next; a = a->next) 
+    {
+      for (DLListNode* b = head2; b && b->next; b = b->next) 
+      {
+        if (getIntersection(
+                  a->r, a->z, a->next->r, a->next->z,
+                  b->r, b->z, b->next->r, b->next->z,
+                  r_ptr, z_ptr)==0) 
+        {
+              // Insert the intersection point into both DLLists
+              // Use two separate nodes to avoid sharing the same memory
+              insert_between(a, a->next, *r_ptr, *z_ptr);  // insert into list 1
+              insert_between(b, b->next, *r_ptr, *z_ptr);  // insert into list 2
+              found=0;
+              break; // prevent multiple insertions on the same segment
         }
-      if(intersect==0) break;
+      }
+      if(found==0) 
+      {
+        printf("DEBUG intersection point: %lf %lf\n", *r_ptr, *z_ptr);
+        break;
+      }
     }
-    return intersect; // total number of intersections inserted
+    if(found)
+    {
+      printf("WARNING: No intersection point found.\n");
+    }
+    return found;
 }
 
-
-  
 int cut_intersections_DDList(DLListNode* head, double r, double z) {
     DLListNode* current = head;
-    const double tol = 1e-10;
 
     // Step 1: Find the node with matching (r, z)
     while (current) {
-        if (fabs(current->r - r) < tol && fabs(current->z - z) < tol) {
+        if (fabs(current->r - r) < EPSILON_DATASTR && fabs(current->z - z) < EPSILON_DATASTR) {
             break;
         }
         current = current->next;
@@ -289,14 +276,14 @@ int cut_intersections_DDList(DLListNode* head, double r, double z) {
     return count; // Number of nodes deleted
 }
 
+
 // Split the list at the first (r,z) point — clone (r,z) node as new head
+// 0 means slit
 int split_intersections_DDList(DLListNode* head, double r, double z, DLListNode** new_head) 
 {
-    const double tol = 1e-10;
     DLListNode* curr = head;
-
     while (curr) {
-        if (fabs(curr->r - r) < tol && fabs(curr->z - z) < tol) {
+        if (fabs(curr->r - r) < EPSILON_DATASTR && fabs(curr->z - z) < EPSILON_DATASTR) {
             DLListNode* cloned = create_DLListNode(r, z);
             if (!cloned) return 0;
 
@@ -312,15 +299,39 @@ int split_intersections_DDList(DLListNode* head, double r, double z, DLListNode*
             // Cut off the original list at curr
             curr->next = NULL;
 
-            return 1;
+            return 0;
         }
         curr = curr->next;
     }
 
     *new_head = NULL;
-    return 0;
+    return 1;
 }
 
+void reverse_DLList(DLListNode** head)
+{
+    // Check if the list is NULL or empty
+    if (!head || !(*head)) return;
+
+    DLListNode* current = *head;  // Current node in traversal
+    DLListNode* prev = NULL;      // Previous node (will become next after reversal)
+    DLListNode* next = NULL;      // Temporarily holds the original next node
+
+    // Traverse the list and reverse the next and prev pointers
+    while (current != NULL)
+    {
+        next = current->next;     // Save original next node
+
+        current->next = prev;     // Reverse the next pointer
+        current->prev = next;     // Reverse the prev pointer
+
+        prev = current;           // Move prev to current
+        current = next;           // Move to next node in original order
+    }
+
+    // After the loop, prev is the new head
+    *head = prev;
+}
 
 //*****************************************************************
 

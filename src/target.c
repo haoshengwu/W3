@@ -31,6 +31,7 @@ int add_point_target_curve(TargetDLListCurve* tgt_cur, double r, double z)
     return 0;
   }
 }
+
 int change_name_target_curve(TargetDLListCurve* tgt_cur, const char* name)
 {
   if(!tgt_cur || !name)
@@ -51,8 +52,8 @@ TargetDLListCurve* create_target_curve_from_dgtrg(DivGeoTrg* trg, int n)
     fprintf(stderr, "Failed to allocate memmory for target_curve");
     exit(EXIT_FAILURE);
   }
-  char name[32]="Target";
-  snprintf(name, sizeof(name), "TargetCurve_%d\n", n);
+  char name[32];
+  snprintf(name, sizeof(name), "TargetCurve_%d", n);
   change_name_target_curve(tgt_cur, name);
   int n_point=trg->n_target_curve[n];
   //  printf("Target Curve Name: %s\n", tgt_cur->name);
@@ -78,31 +79,48 @@ void free_target_curve(TargetDLListCurve* tgt_cur)
   free(tgt_cur);
 }
 
-TargetDLListCurve* reverse_target_curve(TargetDLListCurve** tgt_cur)
+
+void reverse_DDList_in_target_curve(TargetDLListCurve* tgt_cur)
 {
-  if (!tgt_cur || !(*tgt_cur) || !(*tgt_cur)->head) {
+  if (!tgt_cur || !(tgt_cur->head)) 
+  {
     fprintf(stderr, "Input curve is NULL or empty in reverse_and_free_target_curve!\n");
-    return NULL;
+    return;
   }
-
-  TargetDLListCurve* original = *tgt_cur;
-
-  TargetDLListCurve* reversed = create_target_curve();
-  change_name_target_curve(reversed, original->name);
-
-
-  DLListNode* tail = get_DLList_endnode(original->head);
-  while (tail) {
-    add_point_target_curve(reversed, tail->r, tail->z);
-    tail = tail->prev;
-  }
-
-  free_target_curve(original);
-  *tgt_cur = reversed;
-
-  return reversed;
+  reverse_DLList(&tgt_cur->head);
 }
 
+void split_intersections_target_curve(TargetDLListCurve* tgt_cur, 
+                                      double r, double z, 
+                                      TargetDLListCurve* new_tgt_cur)
+{
+  int status;
+  status=split_intersections_DDList(tgt_cur->head, r, z, &(new_tgt_cur->head));
+  if(status)
+  {
+    fprintf(stderr,"Failed to split the DDList in the target curve.\n");
+    exit(EXIT_FAILURE);
+  }
+  update_number_target_curve(tgt_cur);
+  update_number_target_curve(new_tgt_cur);
+}
+
+void update_number_target_curve(TargetDLListCurve* tgt_cur)
+{
+  if(!tgt_cur)
+  {
+    fprintf(stderr,"Empty input for update_number_target_curve.\n");
+    exit(EXIT_FAILURE);
+  }
+  int n=0;
+  DLListNode* head=tgt_cur->head;
+  while(head!=NULL)
+    {
+      n=n+1;
+      head=head->next;
+    }
+  tgt_cur->n=n;
+}
 
 void printf_target_curve(TargetDLListCurve* tgt_cur)
 {
@@ -116,5 +134,39 @@ void printf_target_curve(TargetDLListCurve* tgt_cur)
   {
     printf("%lf %lf\n", node->r, node->z);
     node = node->next;
+  }
+}
+
+void sort_sep_gradpsiline_by_targetcurve(TargetDLListCurve* tgt_cur,
+                                         SeparatrixStr* sep,
+                                         GradPsiLineStr* gradpsilines)
+{
+  if(!tgt_cur->head)
+  {
+    fprintf(stderr,"Target Curve is NULL!\n");
+    exit(EXIT_FAILURE);
+  }
+  DLListNode* tgt_cur_head = tgt_cur->head;
+  int start=-1;
+  for(int i=0; i<4; i++)
+  {
+    if(has_intersection_DDList(tgt_cur_head, sep->line_list[i])==0)
+    {
+      printf("DEBUG intersection line: %d\n", i);
+      start = i;
+      break;
+    }
+  }
+  if(start==-1)
+  {
+    fprintf(stderr, "No intersection between target curve and separatrix line!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for(int i=0; i<4; i++)
+  {
+    sep->index[i]=(start+i)%4;
+    gradpsilines->index[i] = (start+i)%4;
+    printf("sep index %d: %d\n", i, sep->index[i]);
   }
 }
