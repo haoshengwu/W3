@@ -28,6 +28,12 @@ DLListNode* get_DLList_endnode(DLListNode* head);
 // insert a point at the end of a double linked list
 void insert_DLList_at_end(DLListNode** prt_end, double r, double z);
 
+DLListNode* copy_DLList(DLListNode* head);
+
+//directly connect the DLList head2 to head1. NOT COPY a new one then connection
+//if the tail of head1 is same with the head2, skip=1 will skip the head2 and start from head2.next;
+void connect_DLList(DLListNode* head1,DLListNode** head2, int skip);
+
 // free a double linked list
 void free_DLList(DLListNode* head);
 
@@ -48,6 +54,7 @@ int has_intersection_DDList(DLListNode* head1, DLListNode* head2);
 int insert_intersections_DDList(DLListNode* head1, DLListNode* head2, double* r, double* z);
 
 // return how many node are delete, cut the NEXT point of (r,z), NOT (r,z) itself
+// -1 means not in the line, 0 means r z is the last
 int cut_intersections_DDList(DLListNode* head, double r, double z);
 
 // split the DDList from point r,z and create a new node with rz and bound to new_head;
@@ -55,7 +62,6 @@ int split_intersections_DDList(DLListNode* head, double r, double z, DLListNode*
 
 //Reverse the DDList
 void reverse_DLList(DLListNode** head);
-
 
 
 

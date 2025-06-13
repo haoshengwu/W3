@@ -2,10 +2,15 @@
 #include "datastructure.h"
 #include <stdlib.h>
 #include <math.h>
-#include "target.h"
 #include <stdbool.h>
+
+#include "structuredgrid.h"
+#include "target.h"
 #define MAX_ITER_DG 1000
-#define EPSILON_DG 1.0E-10
+#define EPSILON_DG 5.0E-7
+
+#define TGUARD 0.2
+#define PASMIN 1.0E-3
 
 // DGClosedStruc* create_DGClosedStruc(int n_point)
 // {
@@ -526,51 +531,65 @@ void free_dgtrg(DivGeoTrg* trg)
 //interp2d1f is used to calculate the psi at any position.
 //We also assume the target cureve is linear.
 //DLListNode* head is TargetDDListCurve head
+//int skipfirst=1 means skip the first psi, which is correspoding to sep.
+//int skiplast=1 means skip the last psi, which is correspoding to 2nd sep for Snwoflake/multiple X-points.
+
 static void cal_points_from_psi(double *psi,double *r, double *z, int n,
                              DLListNode* head,
                              Equilibrium* equ,
-                             interpl_2D_1f interp2d1f)
+                             interpl_2D_1f interp2d1f,
+                             int skipfirst, int skiplast)
 {
-  double psi_start, psi_end;
-  interp2d1f(r[0],z[0], equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_start, NULL, NULL, NULL);
-  interp2d1f(r[n-1],z[n-1], equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_end, NULL, NULL, NULL);
 
   double psi_head, psi_tail;
   DLListNode* end = get_DLList_endnode(head);
   interp2d1f(head->r,head->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_head, NULL, NULL, NULL);
   interp2d1f(end->r,end->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_tail, NULL, NULL, NULL);
+  printf("DEBUG psi_head %.15f psi_tail %.15f\n", psi_head, psi_tail);
 
-  if((psi_start>psi_head-EPSILON_DG&&psi_start<psi_tail+EPSILON_DG) 
-      ||(psi_start<psi_head+EPSILON_DG&&psi_start>psi_tail-EPSILON_DG))
+  if((psi[0]>psi_head-1.0E-6&&psi[0]<psi_tail+1.0E-6) 
+      ||(psi[0]<psi_head+1.0E-6&&psi[0]>psi_tail-1.0E-6))
   {
-    printf("DEBUG psi_start %lf is in the range psi_head %lf psi_tail %lf\n", psi_start, psi_head, psi_tail);
+    printf("psi[0] %.15fis in the range psi_head %.15f psi_tail %.15f\n", psi[0], psi_head, psi_tail);
   }
   else
   {
-    fprintf(stderr, "The psi_start %lf is out of range psi_head %lf psi_tail %lf\n!", psi_start, psi_head, psi_tail);
+    fprintf(stderr, "The psi[0]> %.15f is out of range psi_head %.15f psi_tail %.15f\n!", psi[0], psi_head, psi_tail);
+    exit(EXIT_FAILURE);
   }
 
-  if( (psi_end>psi_head-EPSILON_DG&&psi_end<psi_tail+EPSILON_DG) 
-      ||(psi_end<psi_head+EPSILON_DG&&psi_end>psi_tail-EPSILON_DG) )
+  if((psi[n-1]>psi_head-1.0E-6&&psi[n-1]<psi_tail+1.0E-6) 
+      ||(psi[n-1]<psi_head+1.0E-6&&psi[n-1]>psi_tail-1.0E-6))
   {
-    printf("DEBUG psi_start %lf is in the range psi_head %lf psi_tail %lf\n", psi_end, psi_head, psi_tail);
+    printf("psi[n-1] %.15f is in the range psi_head %.15f psi_tail %.15f\n", psi[n-1], psi_head, psi_tail);
   }
   else
   {
-    fprintf(stderr, "The psi_start %lf is out of range psi_head %lf psi_tail %lf\n!", psi_end, psi_head, psi_tail);
+    fprintf(stderr, "psi[n-1] %.15f is out of range psi_head %.15f psi_tail %.15f\n!", psi[n-1], psi_head, psi_tail);
+    exit(EXIT_FAILURE);
   }
-
+  if(fabs(psi[1]-psi[0])<1.0E-5)
+  {
+    fprintf(stderr,"first magnetic surface is too close to separatrix, psi[1]-psi[0] < 1.0E-5. \n");
+    exit(EXIT_FAILURE);
+  }
 
   for(int i=0; i<n; i++)
   {
+    if((i==0&&skipfirst)||(i==n-1&&skiplast))
+    {
+      continue;
+    }
+    DLListNode* current = head;
+    printf("DEBUG create start point: %d\n", i);
     double psi_prev;
     double psi_curr;
     double psi_next;
-    DLListNode* current = head;
+
     while(current->next!=NULL)
     {
-      interp2d1f(head->r,head->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_prev, NULL, NULL, NULL);
-      interp2d1f(head->next->r,head->next->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_curr, NULL, NULL, NULL);
+      interp2d1f(current->r,current->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_prev, NULL, NULL, NULL);
+      interp2d1f(current->next->r,current->next->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_curr, NULL, NULL, NULL);
       if((psi[i]>psi_prev-EPSILON_DG&&psi[i]<psi_curr+EPSILON_DG)
          ||(psi[i]<psi_prev+EPSILON_DG&&psi[i]>psi_curr-EPSILON_DG)) 
       {
@@ -587,14 +606,14 @@ static void cal_points_from_psi(double *psi,double *r, double *z, int n,
     for (int iter = 0; iter < MAX_ITER_DG; ++iter) 
     {
       double denom = psi_curr - psi_prev;
-      if (fabs(denom) < 1e-14) 
+      if (fabs(denom) < EPSILON_DG) 
       {
         printf("Warning: function difference too small in Secant iteration.\n");
         break;
       }
       t_next = t_curr - (psi_curr - psi_target) * (t_curr - t_prev) / denom;
-      double r_next = head->r + (head->next->r-head->r)*t_next;
-      double z_next = head->z + (head->next->z-head->z)*t_next;
+      double r_next = current->r + (current->next->r-current->r)*t_next;
+      double z_next = current->z + (current->next->z-current->z)*t_next;
       interp2d1f(r_next,z_next, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_next, NULL, NULL, NULL);
       if (fabs(psi_next - psi_target) < EPSILON_DG) 
       {
@@ -652,6 +671,22 @@ static int check_curve_monotonic_psi(DLListNode* head,
 }
 
 
+static void write_points_to_file(double *r, double *z, int n, const char *filename)
+{
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL)
+    {
+        fprintf(stderr, "Failed to open file %s for writing.\n", filename);
+        return;
+    }
+
+    for (int i = 0; i < n; i++)
+    {
+        fprintf(fp, "%.12f %.12lf\n", r[i], z[i]);
+    }
+
+    fclose(fp);
+}
 
 void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradpsilines)
 {
@@ -671,6 +706,20 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   }
 
 /***********************************************
+*    STEP0 create GridZone
+***********************************************/
+  GridZone* solgridzone=allocate_GridZone();
+  GridZone* pfrgridzone=allocate_GridZone();
+  GridZone* coregridzone=allocate_GridZone();
+
+  update_GridZone_from_dgtrg(solgridzone, trg, 0);
+  update_GridZone_from_dgtrg(pfrgridzone, trg, 1);
+  update_GridZone_from_dgtrg(coregridzone, trg, 2);
+  printf("DEBUG np %d nr %d\n", solgridzone->np,solgridzone->nr);
+  printf("DEBUG np %d nr %d\n", pfrgridzone->np,pfrgridzone->nr);
+  printf("DEBUG np %d nr %d\n", coregridzone->np,coregridzone->nr);
+
+/***********************************************
 *    STEP1 create TargetDDListCurve
 ***********************************************/
   int idx_inner_tgt = 1; //start from 0, the second target is the inner target
@@ -678,55 +727,266 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   TargetDLListCurve* inner_tgt_curve=create_target_curve_from_dgtrg(trg, idx_inner_tgt);
   printf("Inner Target name: %s\n", inner_tgt_curve->name);
 
+  int idx_outer_tgt = 0; //start from 0, the second target is the inner target
+
+  TargetDLListCurve* outer_tgt_curve=create_target_curve_from_dgtrg(trg, idx_outer_tgt);
+  
 /***********************************************
 *    STEP2 Sort index for sep and gradpsi lines
 ***********************************************/
   sort_sep_gradpsiline_by_targetcurve(inner_tgt_curve, sep, gradpsilines);
 
-
 /*************************************************
-*    STEP3 Create the target curve for SOL and PFR
+*    STEP3 Create the target curve for SOL PFR and CORE
 *************************************************/
   double itsct_r, itsct_z;
-  // printf("DEBUG sep->index[0] %d\n",sep->index[0]);
-  // write_DDList(sep->line_list[sep->index[0]],"debug_sep1");
-  // write_DDList(inner_tgt_curve->head,"debug_it");
-
+  
+  //calcute the intersection point between sep and the inner target
   insert_intersections_DDList(sep->line_list[sep->index[0]],
                               inner_tgt_curve->head,
                               &itsct_r, &itsct_z);
-  
+  write_DDList(inner_tgt_curve->head,"inner_targetcurve");
+
+  //cut the separatrix which intersect with inner target
   cut_intersections_DDList(sep->line_list[sep->index[0]],itsct_r, itsct_z);
-  // printf("DEBUG intersect:%d\n", 
-  //       has_intersection_DDList(sep->line_list[sep->index[0]],
-  //                               inner_tgt_curve->head));
+
+  double itsct_r_outer, itsct_z_outer;
+  //calcute the intersection point between sep and the outer target
+  insert_intersections_DDList(sep->line_list[sep->index[1]],
+                              outer_tgt_curve->head,
+                              &itsct_r_outer, &itsct_z_outer);
+  update_number_target_curve(outer_tgt_curve);
+  write_DDList(outer_tgt_curve->head,"outer_targetcurve");
+
   
+  //cut the separatrix
+  cut_intersections_DDList(sep->line_list[sep->index[1]],itsct_r_outer, itsct_z_outer);
+  
+  //create the curve which will used to store the SOL region
   TargetDLListCurve* sol_tgt_curve=create_target_curve();
+
+  //create the SOL curve and the original inner target became for the PFR curve
   split_intersections_target_curve(inner_tgt_curve, itsct_r, itsct_z, sol_tgt_curve);
+  
+  //reverse the PFR curve which start form sep
   reverse_DDList_in_target_curve(inner_tgt_curve);
-  //need to update the number and name!
+
+  //change the name
   change_name_target_curve(inner_tgt_curve, "PFR");
   change_name_target_curve(sol_tgt_curve, "SOL");
 
+  //create the core curve based on gradpsilines. 2 is the index[2]. The third line!
+  TargetDLListCurve* core_curve=create_core_curve_from_gradpsilines(gradpsilines, 2);
+  change_name_target_curve(core_curve, "CORE");
+
+
   printf("%s target curve has %d points\n", inner_tgt_curve->name, inner_tgt_curve->n);
   printf("%s target curve has %d points\n", sol_tgt_curve->name, sol_tgt_curve->n);
+  printf("%s target curve has %d points\n", core_curve->name, core_curve->n);
 
-  write_DDList(sep->line_list[sep->index[0]],"debug_sep1");
-  write_DDList(inner_tgt_curve->head,"debug_pfr");
-  write_DDList(sol_tgt_curve->head,"debug_sol");
+  // write_DDList(sep->line_list[sep->index[0]],"debug_sep1");
+  // write_DDList(inner_tgt_curve->head,"debug_pfr");
+  // write_DDList(sol_tgt_curve->head,"debug_sol");
 
 /*************************************************
 *    STEP4 Calculate the start points used for trcing
 *************************************************/
+  if(check_curve_monotonic_psi(sol_tgt_curve->head, equ, cubicherm2d1f))
+  {
+    fprintf(stderr, "Target Curve in not monotonic psi.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(check_curve_monotonic_psi(inner_tgt_curve->head, equ, cubicherm2d1f))
+  {
+    fprintf(stderr, "Target Curve in not monotonic psi.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  double *r_tmp=malloc(trg->regions[0]->n_level*sizeof(double));
+  double *z_tmp=malloc(trg->regions[0]->n_level*sizeof(double));
+
+  r_tmp[0]=itsct_r;
+  z_tmp[0]=itsct_z;
+
+  cal_points_from_psi(trg->regions[0]->level, r_tmp, z_tmp, trg->regions[0]->n_level,
+                      sol_tgt_curve->head, equ, cubicherm2d1f, 1,0);
+  write_points_to_file(r_tmp,z_tmp,  trg->regions[0]->n_level, "SOL_start_point");
+  update_GridZone_start_points(solgridzone, r_tmp, z_tmp, solgridzone->nr);
+  write_points_to_file(solgridzone->start_point_R, solgridzone->start_point_Z, 
+                       solgridzone->nr,"SOLGR_RZ");
+
+
+  cal_points_from_psi(trg->regions[1]->level, r_tmp, z_tmp, trg->regions[1]->n_level,
+                      inner_tgt_curve->head, equ, cubicherm2d1f, 1,0);
+  write_points_to_file(r_tmp,z_tmp,  trg->regions[0]->n_level, "PFR_start_point");
+  update_GridZone_start_points(pfrgridzone, r_tmp, z_tmp, pfrgridzone->nr);
+  write_points_to_file(pfrgridzone->start_point_R, pfrgridzone->start_point_Z, 
+                       pfrgridzone->nr,"PFRGR_RZ");
+
+
+  r_tmp[0]=gradpsilines->line_list[0]->r;
+  z_tmp[0]=gradpsilines->line_list[0]->z;
+  cal_points_from_psi(trg->regions[2]->level, r_tmp, z_tmp, trg->regions[2]->n_level,
+                      core_curve->head, equ, cubicherm2d1f, 1,0);
+  write_points_to_file(r_tmp,z_tmp,  trg->regions[0]->n_level, "CORE_start_point");
+  update_GridZone_start_points(coregridzone, r_tmp, z_tmp, coregridzone->nr);
+  write_points_to_file(coregridzone->start_point_R, coregridzone->start_point_Z, 
+                       coregridzone->nr,"COREGR_RZ");
+
+/*************************************************
+*    STEP5 Calculate the boundary curve
+*************************************************/
+  DLListNode* SOL_bnd1=copy_DLList(sep->line_list[sep->index[0]]);
+  reverse_DLList(&SOL_bnd1);
+  //BECAREFUL, the TWO LCFS are not the exactly the same
+  //please use the same one in the follow
+  int nLCFS=3; //here we use the 3(The FOUTH becasue start from 0)
+  DLListNode* SOL_bnd2=copy_DLList(sep->line_list[sep->index[nLCFS]]);
+  DLListNode* SOL_bnd3=copy_DLList(sep->line_list[sep->index[1]]);
+  connect_DLList(SOL_bnd1, &SOL_bnd2,1);
+  connect_DLList(SOL_bnd1, &SOL_bnd3,1);
+  write_DDList(SOL_bnd1,"SOL_bnd");
+
+  DLListNode* PFR_bnd1=copy_DLList(sep->line_list[sep->index[0]]);
+  reverse_DLList(&PFR_bnd1);
+  DLListNode* PFR_bnd2=copy_DLList(sep->line_list[sep->index[1]]);
+  connect_DLList(PFR_bnd1, &PFR_bnd2,1);
+  write_DDList(PFR_bnd1,"PFR_bnd");
+
+  DLListNode* CORE_bnd1=copy_DLList(sep->line_list[sep->index[nLCFS]]);
+  write_DDList(CORE_bnd1,"CORE_bnd");
 
 
 
 /*************************************************
 *    Free Memory 
 *************************************************/
+  free(r_tmp);
+  free(z_tmp);
   free_target_curve(inner_tgt_curve);
-  free_target_curve(sol_tgt_curve);
+  free_target_curve(outer_tgt_curve);
 
+  free_target_curve(sol_tgt_curve);
+  free_target_curve(core_curve);
+  free_GridZone(&solgridzone);
+  free_GridZone(&pfrgridzone);
+  free_GridZone(&coregridzone);
+
+  free_DLList(SOL_bnd1);
+  free_DLList(CORE_bnd1);
+  free_DLList(PFR_bnd1);
+}
+
+
+static void change_name(char **name, const char *str)
+{
+    if (*name) {
+        free(*name);
+        *name = NULL;
+    }
+
+    *name = malloc(strlen(str) + 1);
+    if (*name != NULL) {
+        strcpy(*name, str);
+    } else {
+        fprintf(stderr, "Failed to allocate memory\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void update_GridZone_from_dgtrg(GridZone* gridzone, DivGeoTrg* trg, int index)
+{
+  if(!gridzone||!trg)
+  {
+    fprintf(stderr,"Empty input for update_GridZone_from_dgtrg.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(strcmp(trg->topo,"SNL")==0)
+  {
+    printf("Update Gridzone in SNL topo.\n");
+    if(index==0)
+    {
+      change_name(&(gridzone->name),"SOLGRIDZONE");
+    }
+    else if(index==1)
+    {
+      change_name(&(gridzone->name),"PFRGRIDZONE");
+    }
+    else if(index==2)
+    {
+      change_name(&(gridzone->name),"COREGRIDZONE");
+    }
+    else
+    {
+      fprintf(stderr,"WORNG index in update_GridZone_from_dgtrg.");
+      exit(EXIT_FAILURE);
+    }
+  }
+  int np = trg->nptseg[index];
+  int nr = trg->npr[index];
+  gridzone->np=np;
+  gridzone->nr=nr;
+  gridzone->guard_start=malloc(nr*sizeof(double));
+  gridzone->guard_end=malloc(nr*sizeof(double));
+  gridzone->pasmin=malloc(nr*sizeof(double));
+  gridzone->norm_pol_dist=malloc(np*sizeof(double));
+  if(!gridzone->guard_start||!gridzone->guard_end
+      ||!gridzone->pasmin||!gridzone->norm_pol_dist)
+  {
+    fprintf(stderr,"Faill to alloc memmory in update_GridZone_from_dgtrg.\n");
+    exit(EXIT_FAILURE);
+  }
+  for(int i=0;i<nr;i++)
+  {
+    gridzone->guard_start[i]=TGUARD;
+    gridzone->pasmin[i]=PASMIN;
+  }
+
+  if(!(np==trg->zones[index]->n_points))
+  {
+    fprintf(stderr,"trg np is not consistent with the point of poloidal distribution.\n");
+    exit(EXIT_FAILURE);
+  }
+  for(int i=0;i<np;i++)
+  {
+    gridzone->norm_pol_dist[i]=trg->zones[index]->norm_dist[i];
+  }
+}
+
+void update_GridZone_start_points(GridZone* gridzone, double* r, double* z, int n_points)
+{
+  if(!gridzone||!r||!z)
+  {
+    fprintf(stderr,"Empty input for update_GridZone_start_points.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(gridzone->nr!=n_points)
+  {
+    fprintf(stderr,"The points number is not consistent with GridZone\n");
+    exit(EXIT_FAILURE);
+  }
+  //Check is there is already existing values
+  if(gridzone->start_point_R || gridzone->start_point_Z)
+  {
+    fprintf(stderr,"There are existing values of R and Z.\n");
+    exit(EXIT_FAILURE);
+  }
+  
+  printf("DEBUGE n_point: %d\n", n_points);
+  gridzone->start_point_R = malloc(n_points*sizeof(double));
+  gridzone->start_point_Z = malloc(n_points*sizeof(double));
+
+  if(!gridzone->start_point_R || !gridzone->start_point_Z)
+  {
+    fprintf(stderr,"Failed to alloc memmory for R and Z.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for(int i=0; i<n_points; i++)
+  {
+    gridzone->start_point_R[i]=r[i];
+    gridzone->start_point_Z[i]=z[i];
+  }
 }
 
 

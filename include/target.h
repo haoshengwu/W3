@@ -29,6 +29,10 @@ void split_intersections_target_curve(TargetDLListCurve* tgt_cur,
                                       double r, double z, 
                                       TargetDLListCurve* new_tgt_cur);
 
+//cut the target_curve lines that after the point r,z
+void cut_target_curve(TargetDLListCurve* tgt_cur, 
+                                      double r, double z);
+
 
 //update the number of target curve
 void update_number_target_curve(TargetDLListCurve* tgt_cur);
@@ -51,7 +55,7 @@ void printf_target_curve(TargetDLListCurve* tgt_cur);
 void sort_sep_gradpsiline_by_targetcurve(TargetDLListCurve* tgt_cur, SeparatrixStr* sep, GradPsiLineStr* gradpsilines);
 
 
-
+TargetDLListCurve* create_core_curve_from_gradpsilines(GradPsiLineStr* gradpsilines, int index);
 
 
 #endif

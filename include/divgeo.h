@@ -5,6 +5,8 @@
 #include "separatrix.h"
 #include "equilibrium.h"
 #include "gradpsi.h"
+#include "curve.h"
+#include "structuredgrid.h"
 
 typedef struct 
 {
@@ -89,10 +91,15 @@ int load_dgtrg_from_file(DivGeoTrg* trg, const char* filename);
 void write_dgtrg_to_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep);
 void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradspsilines);
 
-
 void free_dgtrg(DivGeoTrg* trg);
 
 
+
+//update an exist GridZone by DivGeoTrg, index means the regions/zons in DivGeoTrg
+void update_GridZone_from_dgtrg(GridZone* gridzone, DivGeoTrg* trg, int index);
+
+//update the start points in an exist GridZone by DivGeoTrg with r and z
+void update_GridZone_start_points(GridZone* gridzone, double* r, double* z, int n_points);
 
 
 

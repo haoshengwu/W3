@@ -46,8 +46,8 @@ DLListNode* get_DLList_endnode(DLListNode* head)
 {
   if (head == NULL)
   {
-    fprintf(stderr, "The double linked list is empty!\n");
-    return NULL;
+    fprintf(stderr, "Empty input for get_DLList_endnode.\n");
+    exit(EXIT_FAILURE);
   }
 
   while (head->next != NULL)
@@ -74,6 +74,84 @@ void insert_DLList_at_end(DLListNode** end_ref, double r, double z)
   *end_ref = new_node;
 
 }
+
+DLListNode* copy_DLList(DLListNode* head) 
+{
+  if (head == NULL) return NULL;
+
+  DLListNode* new_head = NULL;
+  DLListNode* new_tail = NULL;
+
+  DLListNode* current = head;
+  while (current != NULL) {
+    DLListNode* new_node = (DLListNode*)malloc(sizeof(DLListNode));
+    if (!new_node) 
+    {
+      fprintf(stderr,"malloc failed");
+      exit(EXIT_FAILURE);
+    }
+
+    new_node->r = current->r;
+    new_node->z = current->z;
+    new_node->next = NULL;
+    new_node->prev = new_tail;
+
+    if (new_tail != NULL) 
+    {
+      new_tail->next = new_node;
+    } 
+    else 
+    {
+      new_head = new_node;  
+    }
+
+    new_tail = new_node;
+    current = current->next;
+  }
+    return new_head;
+}
+
+void connect_DLList(DLListNode* head1,DLListNode** head2, int skip)
+{
+  if(!head1||!head2||!(*head2))
+  {
+    fprintf(stderr,"Empty input for connect_DLList.\n");
+    exit(EXIT_FAILURE);
+  }
+  DLListNode* tail1=get_DLList_endnode(head1);
+  DLListNode* cur = *head2;
+  
+  int delete_duplicate=0;
+  if(fabs(tail1->r-cur->r)<EPSILON_DATASTR&&
+      fabs(tail1->z-cur->z)<EPSILON_DATASTR)
+      {
+        if(skip==1)
+        {
+          cur=cur->next;
+          delete_duplicate=1;
+          printf("Duplicate point %lf %lf and will be delted.\n", tail1->r, tail1->z);
+        }
+        else
+        {
+          printf("WARNING: the head2 R Z is same with tail1 R Z.\n");
+          printf("WARNING: they are two same points in the DDList\n");
+        }
+      }
+  if (cur) 
+  {
+    cur->prev = tail1;
+    tail1->next = cur;
+  }
+
+  if(delete_duplicate)
+  {
+    (*head2)->next=NULL;
+    (*head2)->prev=NULL;
+    free(*head2);
+    *head2=NULL;
+  }
+}
+
 
 
 // free a double linked list
@@ -110,7 +188,7 @@ void write_DDList(DLListNode* head, const char* filename)
     while (head !=NULL) 
     {
         // the unit is mm, it can be changed in the future
-        fprintf(file, "%lf  %lf\n", head->r, head->z);  
+        fprintf(file, "%.12f  %.12f\n", head->r, head->z);  
         head = head->next;
     }
 
@@ -256,7 +334,7 @@ int cut_intersections_DDList(DLListNode* head, double r, double z) {
     }
 
     if (!current) {
-        fprintf(stderr, "The point (%.10f, %.10f) is not in the DLList.\n", r, z);
+        printf("The point (%.10f, %.10f) is not in the DLList.\n", r, z);
         return 0;
     }
 

@@ -465,7 +465,7 @@ void grad_psi_test()
 
 void divgeo_test()
 {
-  
+
   InputPara w3_input;
   init_inputpara(&w3_input);
   print_inputpara(&w3_input);
@@ -550,8 +550,15 @@ void divgeo_test()
   DivGeoTrg* trg=create_dgtrg();
   int status=load_dgtrg_from_file(trg, trgname);
 
-  write_dgtrg_to_sn_input(trg, &dtt_example, sep, gradpsilines);
+/***********************************************
+*   Update trg regions(psi valuse)
+***********************************************/
+  for(int i=0; i<3; i++)
+  {
+    trg->regions[i]->level[0]=xpt_array[1].level;
+  }
 
+  write_dgtrg_to_sn_input(trg, &dtt_example, sep, gradpsilines);
 
 
   free_dgtrg(trg);

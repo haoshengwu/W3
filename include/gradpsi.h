@@ -40,8 +40,6 @@ void calc_grad_psi(Equilibrium *equ, GradPsiStr *gradpsi, diff2d_eval_fun func);
 void write_grad_psi(GradPsiStr *gradpsi, const char* filename);
 
 
-
-
 // A Structure for grad of psi lines
 typedef struct 
 {
@@ -67,5 +65,6 @@ void generate_gradpsiline_bytracing(
   ode_function* func,   // bound to a ode function
   ode_solver* solver // dound to a ode solver
 );
+
 
 #endif

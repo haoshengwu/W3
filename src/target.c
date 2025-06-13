@@ -20,7 +20,7 @@ int add_point_target_curve(TargetDLListCurve* tgt_cur, double r, double z)
   if(!tgt_cur->head)
   {
     tgt_cur->head=create_DLListNode(r,z);
-    tgt_cur->n=0;
+    tgt_cur->n=1;
     return 0;
   }
   else
@@ -105,6 +105,27 @@ void split_intersections_target_curve(TargetDLListCurve* tgt_cur,
   update_number_target_curve(new_tgt_cur);
 }
 
+
+void cut_target_curve(TargetDLListCurve* tgt_cur, double r, double z)
+{
+  if(!tgt_cur||!tgt_cur->head)
+  {
+    fprintf(stderr, "Empty input of cut_target_curve");
+    exit(EXIT_FAILURE);
+  }
+  
+  int status;
+  status = cut_intersections_DDList(tgt_cur->head, r ,z);
+  
+  if(status==0)
+  {
+    fprintf(stderr,"The point is not in the target curve!\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+
+
 void update_number_target_curve(TargetDLListCurve* tgt_cur)
 {
   if(!tgt_cur)
@@ -169,4 +190,38 @@ void sort_sep_gradpsiline_by_targetcurve(TargetDLListCurve* tgt_cur,
     gradpsilines->index[i] = (start+i)%4;
     printf("sep index %d: %d\n", i, sep->index[i]);
   }
+}
+
+TargetDLListCurve* create_core_curve_from_gradpsilines(GradPsiLineStr* gradpsilines, int idx)
+{
+  if (!gradpsilines || !gradpsilines->line_list || !gradpsilines->index) {
+    fprintf(stderr, "Invalid gradpsilines or its members are NULL\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if (idx < 0 || idx >= 4) {
+    fprintf(stderr, "Index %d is out of bounds (nlines = %d)\n", idx, 4);
+    exit(EXIT_FAILURE);
+  }
+
+  TargetDLListCurve* core_curve = create_target_curve();
+  if (!core_curve) {
+    fprintf(stderr, "Failed to allocate memory for target_curve\n");
+    exit(EXIT_FAILURE);
+  }
+
+  char name[32];
+  snprintf(name, sizeof(name), "Core");
+  change_name_target_curve(core_curve, name);
+
+  DLListNode* head = gradpsilines->line_list[gradpsilines->index[idx]];
+  core_curve->head = copy_DLList(head);
+
+  if (!core_curve->head) {
+    fprintf(stderr, "Failed to copy DLList for core curve\n");
+    exit(EXIT_FAILURE);
+  }
+
+  update_number_target_curve(core_curve);
+  return core_curve;
 }

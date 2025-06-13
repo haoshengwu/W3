@@ -2,102 +2,24 @@
 #include "datastructure.h"
 #include <stdlib.h>
 
-static int copy_curve(Curve* c1, Curve* c2)
+
+
+GridZone* allocate_GridZone()
 {
-    if (!c1 || !c2) {
-        fprintf(stderr, "Null pointer passed to copy_curve.\n");
-        return 1;
-    }
-
-    if (c1->n_point != c2->n_point) {
-        fprintf(stderr, "The size of two curves is not the same!\n");
-        return 1;
-    }
-
-    for (size_t i = 0; i < c1->n_point; i++) {
-        c1->points[i][0] = c2->points[i][0];
-        c1->points[i][1] = c2->points[i][1];
-    }
-    return 0;
-}
-
-Curve* create_curve(size_t n_point)
-{   
-  if(!n_point)
-  {
-    fprintf(stderr, "Error: n_point is 0!\n");
-    return NULL;
-  }
-  Curve* c = malloc(sizeof(Curve));
-  if (!c)
-  {
-    fprintf(stderr, "Error: Memory allocation failed for a curve!\n");
-    return NULL;
-  } 
-  c->n_point = n_point;
-  c->points = allocate_2d_array(n_point,2);
-  return c;
-}
-
-void free_curve(Curve* c) {
-    if (!c) return;
-    free_2d_array(c->points);  // Free row pointers
-    free(c);         // Free the Curve struct
-}
-
-CurveSet* create_curveset(size_t n_curve, size_t n_point) {
-    CurveSet* cs = malloc(sizeof(CurveSet));
-    if (!cs) {
-        fprintf(stderr, "Error: Failed to allocate CurveSet\n");
-        return NULL;
-    }
-
-    cs->n_curve = n_curve;
-    cs->curves = malloc(sizeof(Curve*) * n_curve);
-
-    for (size_t i = 0; i < n_curve; i++) {
-        cs->curves[i] = create_curve(n_point);  // Return Curve*
-        if (!cs->curves[i]) {
-            fprintf(stderr, "Error: Failed to create curve %zu\n", i);
-            // Free previously allocated curves before exiting
-            for (size_t j = 0; j < i; j++)
-                free_curve(cs->curves[j]);
-            free(cs->curves);
-            free(cs);
-            return NULL;
-        }
-    }
-
-    return cs;
-}
-
-void free_curveset(CurveSet *cs)
-{
-  if (!cs) return;
-  for(size_t i=0; i<cs->n_curve;i++)
-  {
-    free_curve(cs->curves[i]);
-  }
-  free(cs->curves);
-  free(cs);
-}
-
-
-Zone* allocate_zone()
-{
-  Zone* z=malloc(sizeof(Zone));
+  GridZone* z=malloc(sizeof(GridZone));
   if (!z) {
-    fprintf(stderr, "Error: failed to allocate memory for Zone\n");
+    fprintf(stderr, "Error: failed to allocate memory for GridZone\n");
     return NULL;
   }
   z->name=NULL;
   z->np=-1;
   z->nr=-1;
   
-  z->zone_grid=NULL;
+  z->grid_curveset=NULL;
 
-  z->start_points=NULL;
-  z->guard_head=NULL;
+  z->start_point_R=NULL;
+  z->start_point_Z=NULL;
+  z->guard_start=NULL;
   z->guard_end=NULL;
   z->pasmin = NULL;
   z->norm_pol_dist=NULL;
@@ -110,18 +32,18 @@ Zone* allocate_zone()
   return z;
 }
 
-int load_zone_from_file(Zone* z, const char* filename)
+int load_GridZone_from_file(GridZone* z, const char* filename)
 {
   if (!z || !filename) 
   {
-    fprintf(stderr, "Invalid arguments to load_zone_from_file\n");
+    fprintf(stderr, "Invalid arguments to load_GridZone_from_file\n");
     return 1;
   }
   
   // Save the filename into z->name
   z->name = malloc(strlen(filename) + 1);
   if (!z->name) {
-    fprintf(stderr, "Memory allocation failed for zone name\n");
+    fprintf(stderr, "Memory allocation failed for GridZone name\n");
     return 1;
   }
   strcpy(z->name, filename);
@@ -149,13 +71,16 @@ int load_zone_from_file(Zone* z, const char* filename)
   }
 
   // Allocate memory
-  z->start_points = allocate_2d_array(z->nr, 2);
-  z->guard_head = malloc(sizeof(double) * z->nr);
+  z->start_point_R = malloc(sizeof(double) * z->nr);
+  z->start_point_Z = malloc(sizeof(double) * z->nr);
+
+  z->guard_start = malloc(sizeof(double) * z->nr);
   z->guard_end = malloc(sizeof(double) * z->nr);
   z->pasmin = malloc(sizeof(double) * z->nr);
   z->norm_pol_dist = malloc(sizeof(double) * z->np);
 
-  if (!z->start_points || !z->guard_head || !z->guard_end || !z->pasmin || !z->norm_pol_dist) 
+  if (!z->start_point_R || !z->start_point_Z
+      || !z->guard_start || !z->guard_end || !z->pasmin || !z->norm_pol_dist) 
   {
     fprintf(stderr, "Memory allocation failed for start_points or guard arrays.\n");
     goto fail;
@@ -196,8 +121,8 @@ int load_zone_from_file(Zone* z, const char* filename)
   for (int i = 0; i < z->nr; i++) 
   {
     if (sscanf(line, "%lf %lf %lf %lf %lf",
-              &(z->start_points[i][0]), &(z->start_points[i][1]),
-              &(z->guard_head[i]), &(z->guard_end[i]), &(z->pasmin[i])) != 5)
+              &(z->start_point_R[i]), &(z->start_point_Z[i]),
+              &(z->guard_start[i]), &(z->guard_end[i]), &(z->pasmin[i])) != 5)
     {
       fprintf(stderr,
               "Invalid format at line %d for tracing input (expecting 5 values).\n", i + 1);
@@ -220,21 +145,20 @@ int load_zone_from_file(Zone* z, const char* filename)
 fail:
     if (fp) fclose(fp);
     if (z->name) { free(z->name); z->name = NULL; }
-    if (z->start_points) { free_2d_array(z->start_points); z->start_points = NULL; }
-    if (z->guard_head) { free(z->guard_head); z->guard_head = NULL;}
+    if (z->start_point_R) { free(z->start_point_R); z->start_point_R = NULL; }
+    if (z->start_point_Z) { free(z->start_point_Z); z->start_point_Z = NULL; }
+    if (z->guard_start) { free(z->guard_start); z->guard_start = NULL;}
     if (z->guard_end) {free(z->guard_end);  z->guard_end = NULL;}
     if (z->pasmin) {free(z->pasmin);     z->pasmin = NULL;}
     if (z->norm_pol_dist) {free(z->norm_pol_dist); z->norm_pol_dist = NULL;}
     return 1;
 }
 
-
-
-int load_zone_first_boundary(Zone* z, Curve* first_boundary)
+int load_GridZone_first_boundary(GridZone* z, Curve* first_boundary)
 {
     if (!z || !first_boundary) 
     {
-        fprintf(stderr, "Invalid input to load_zone_first_boundary.\n");
+        fprintf(stderr, "Invalid input to load_GridZone_first_boundary.\n");
         return 1;
     }
 
@@ -244,11 +168,11 @@ int load_zone_first_boundary(Zone* z, Curve* first_boundary)
     return copy_curve(z->first_boundary, first_boundary);
 }
 
-int load_zone_second_boundary(Zone* z, Curve* second_boundary)
+int load_GridZone_second_boundary(GridZone* z, Curve* second_boundary)
 {
     if (!z || !second_boundary) 
     {
-        fprintf(stderr, "Invalid input to load_zone_second_boundary.\n");
+        fprintf(stderr, "Invalid input to load_GridZone_second_boundary.\n");
         return 1;
     }
 
@@ -258,11 +182,11 @@ int load_zone_second_boundary(Zone* z, Curve* second_boundary)
     return copy_curve(z->second_boundary, second_boundary);
 }
 
-int load_zone_target_curve(Zone* z, Curve* target_curve)
+int load_GridZone_target_curve(GridZone* z, Curve* target_curve)
 {
     if (!z || !target_curve) 
     {
-        fprintf(stderr, "Invalid input to load_zone_target_curve.\n");
+        fprintf(stderr, "Invalid input to load_GridZone_target_curve.\n");
         return 1;
     }
 
@@ -272,7 +196,7 @@ int load_zone_target_curve(Zone* z, Curve* target_curve)
     return copy_curve(z->target_curve, target_curve);
 }
 
-void free_zone(Zone** z)
+void free_GridZone(GridZone** z)
 {
   if (!z) return;
 
@@ -280,20 +204,26 @@ void free_zone(Zone** z)
   free((*z)->name);
   (*z)->name=NULL;
 
-  free_curveset((*z)->zone_grid);
-  (*z)->zone_grid=NULL;
+  free_curveset((*z)->grid_curveset);
+  (*z)->grid_curveset=NULL;
 
-  free_2d_array((*z)->start_points);
-  (*z)->start_points=NULL;
+  free((*z)->start_point_R);
+  (*z)->start_point_R=NULL;
 
-  free((*z)->guard_head);
-  (*z)->guard_head=NULL;
+  free((*z)->start_point_Z);
+  (*z)->start_point_Z=NULL;
+
+  free((*z)->guard_start);
+  (*z)->guard_start=NULL;
 
   free((*z)->guard_end);
   (*z)->guard_end=NULL;
 
   free((*z)->pasmin);
   (*z)->pasmin=NULL;
+
+  free((*z)->norm_pol_dist);
+  (*z)->norm_pol_dist=NULL;
 
   free_curve((*z)->first_boundary);
   (*z)->first_boundary=NULL;
@@ -311,3 +241,4 @@ void free_zone(Zone** z)
   free(*z); 
   *z = NULL;
 }
+
