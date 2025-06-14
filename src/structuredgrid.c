@@ -12,7 +12,7 @@ GridZone* allocate_GridZone()
     return NULL;
   }
   z->name=NULL;
-  z->np=-1;
+  z->npoint=-1;
   z->nr=-1;
   
   z->grid_curveset=NULL;
@@ -25,9 +25,9 @@ GridZone* allocate_GridZone()
   z->norm_pol_dist=NULL;
  
   z->first_boundary=NULL;
-  z->second_boundary=NULL;
+//  z->second_boundary=NULL;
 
-  z->target_curve=NULL;
+  z->end_curve=NULL;
 
   return z;
 }
@@ -63,10 +63,10 @@ int load_GridZone_from_file(GridZone* z, const char* filename)
     break;
   }
 
-  // Read np and nr
-  if (sscanf(line, "%d %d", &(z->np), &(z->nr)) != 2) 
+  // Read npoint and nr
+  if (sscanf(line, "%d %d", &(z->npoint), &(z->nr)) != 2) 
   {
-    fprintf(stderr, "Invalid format for np and nr in file: %s\n", filename);
+    fprintf(stderr, "Invalid format for npoint and nr in file: %s\n", filename);
     goto fail;
   }
 
@@ -77,7 +77,7 @@ int load_GridZone_from_file(GridZone* z, const char* filename)
   z->guard_start = malloc(sizeof(double) * z->nr);
   z->guard_end = malloc(sizeof(double) * z->nr);
   z->pasmin = malloc(sizeof(double) * z->nr);
-  z->norm_pol_dist = malloc(sizeof(double) * z->np);
+  z->norm_pol_dist = malloc(sizeof(double) * z->npoint);
 
   if (!z->start_point_R || !z->start_point_Z
       || !z->guard_start || !z->guard_end || !z->pasmin || !z->norm_pol_dist) 
@@ -93,7 +93,7 @@ int load_GridZone_from_file(GridZone* z, const char* filename)
     break;
   }
 
-  for (int i = 0; i<z->np; i++)
+  for (int i = 0; i<z->npoint; i++)
   {
     if (sscanf(line, "%lf", &z->norm_pol_dist[i]) != 1) 
     {
@@ -168,32 +168,32 @@ int load_GridZone_first_boundary(GridZone* z, Curve* first_boundary)
     return copy_curve(z->first_boundary, first_boundary);
 }
 
-int load_GridZone_second_boundary(GridZone* z, Curve* second_boundary)
+// int load_GridZone_second_boundary(GridZone* z, Curve* second_boundary)
+// {
+//     if (!z || !second_boundary) 
+//     {
+//         fprintf(stderr, "Invalid input to load_GridZone_second_boundary.\n");
+//         return 1;
+//     }
+
+//     if (z->second_boundary == NULL)
+//         z->second_boundary = create_curve(second_boundary->n_point);
+
+//     return copy_curve(z->second_boundary, second_boundary);
+// }
+
+int load_GridZone_end_curve(GridZone* z, Curve* end_curve)
 {
-    if (!z || !second_boundary) 
+    if (!z || !end_curve) 
     {
-        fprintf(stderr, "Invalid input to load_GridZone_second_boundary.\n");
+        fprintf(stderr, "Invalid input to load_GridZone_end_curve.\n");
         return 1;
     }
 
-    if (z->second_boundary == NULL)
-        z->second_boundary = create_curve(second_boundary->n_point);
+    if (z->end_curve == NULL)
+        z->end_curve = create_curve(end_curve->n_point);
 
-    return copy_curve(z->second_boundary, second_boundary);
-}
-
-int load_GridZone_target_curve(GridZone* z, Curve* target_curve)
-{
-    if (!z || !target_curve) 
-    {
-        fprintf(stderr, "Invalid input to load_GridZone_target_curve.\n");
-        return 1;
-    }
-
-    if (z->target_curve == NULL)
-        z->target_curve = create_curve(target_curve->n_point);
-
-    return copy_curve(z->target_curve, target_curve);
+    return copy_curve(z->end_curve, end_curve);
 }
 
 void free_GridZone(GridZone** z)
@@ -229,14 +229,14 @@ void free_GridZone(GridZone** z)
   (*z)->first_boundary=NULL;
 
 //NOT always has senond boudanry curve;
-  if((*z)->second_boundary)
-  {
-    free_curve((*z)->second_boundary);
-    (*z)->second_boundary=NULL;
-  }
+  // if((*z)->second_boundary)
+  // {
+  //   free_curve((*z)->second_boundary);
+  //   (*z)->second_boundary=NULL;
+  // }
 
-  free_curve((*z)->target_curve);
-  (*z)->target_curve=NULL;
+  free_curve((*z)->end_curve);
+  (*z)->end_curve=NULL;
 
   free(*z); 
   *z = NULL;

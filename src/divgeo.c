@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 #include "structuredgrid.h"
-#include "target.h"
+#include "utils.h"
 #define MAX_ITER_DG 1000
 #define EPSILON_DG 5.0E-7
 
@@ -38,105 +38,105 @@ void free_DGClosedStruc(DGClosedStruc* struc)
   free(struc);
 }
 
-DGRegion* create_DGRegion(int n_level, const char* name)
+DGRadRegion* create_DGRadRegion(int n_level, const char* name)
 {
-  DGRegion* region = malloc(sizeof(DGRegion));
-  if (!region) {
-    fprintf(stderr, "Error: failed to allocate memory for DGRegion\n");
+  DGRadRegion* radregion = malloc(sizeof(DGRadRegion));
+  if (!radregion) {
+    fprintf(stderr, "Error: failed to allocate memory for DGRadRegion\n");
     return NULL;
   }
 
   // Allocate memory for name
-  region->name = malloc(strlen(name) + 1);  // +1 for null terminator
-  if (!region->name) 
+  radregion->name = malloc(strlen(name) + 1);  // +1 for null terminator
+  if (!radregion->name) 
   {
-    fprintf(stderr, "Error: failed to allocate memory for region name\n");
-    free(region);
+    fprintf(stderr, "Error: failed to allocate memory for radregion name\n");
+    free(radregion);
     return NULL;
   }
-  strcpy(region->name, name);  // Now safe
+  strcpy(radregion->name, name);  // Now safe
 
 
-  region->n_level = n_level;
-  region->level = malloc(sizeof(double) * n_level);
-  if (!region->level) {
-    fprintf(stderr, "Error: failed to allocate memory for region levels\n");
-    free(region);
+  radregion->n_level = n_level;
+  radregion->level = malloc(sizeof(double) * n_level);
+  if (!radregion->level) {
+    fprintf(stderr, "Error: failed to allocate memory for radregion levels\n");
+    free(radregion);
     return NULL;
   }
 
-  return region;
+  return radregion;
 }
 
-void free_DGRegion(DGRegion* region)
+void free_DGRadRegion(DGRadRegion* radregion)
 {
-  if (!region) return;
+  if (!radregion) return;
 
-  if (region->name) 
+  if (radregion->name) 
   {
-    free(region->name);
-    region->name = NULL;
+    free(radregion->name);
+    radregion->name = NULL;
   }
 
-  if (region->level) 
+  if (radregion->level) 
   {
-    free(region->level);
-    region->level = NULL;
+    free(radregion->level);
+    radregion->level = NULL;
   }
 
-  free(region);
+  free(radregion);
 }
 
-DGZone* create_DGZone(int n_points, const char* name)
+DGPolZone* create_DGPolZone(int n_points, const char* name)
 {
   if(!name)
   {
     fprintf(stderr, "Error: The name is NULL\n");
     return NULL;
   }
-  DGZone* zone = malloc(sizeof(DGZone));
-  if (!zone) 
+  DGPolZone* polzone = malloc(sizeof(DGPolZone));
+  if (!polzone) 
   {
-    fprintf(stderr, "Error: failed to allocate memory for DGZone\n");
+    fprintf(stderr, "Error: failed to allocate memory for DGPolZone\n");
     return NULL;
   }
 
-  zone->name = malloc(strlen(name) + 1);
-  if (!zone->name) 
+  polzone->name = malloc(strlen(name) + 1);
+  if (!polzone->name) 
   {
-    fprintf(stderr, "Error: failed to allocate memory for zone name\n");
-    free(zone);
+    fprintf(stderr, "Error: failed to allocate memory for polzone name\n");
+    free(polzone);
     return NULL;
   }
-  strcpy(zone->name, name);
+  strcpy(polzone->name, name);
 
-  zone->n_points = n_points;
-  zone->norm_dist = malloc(sizeof(double) * n_points);
-  if (!zone->n_points) 
+  polzone->n_points = n_points;
+  polzone->norm_dist = malloc(sizeof(double) * n_points);
+  if (!polzone->n_points) 
   {
-    fprintf(stderr, "Error: failed to allocate memory for zone levels\n");
-    free(zone->name);
-    free(zone);
+    fprintf(stderr, "Error: failed to allocate memory for polzone levels\n");
+    free(polzone->name);
+    free(polzone);
     return NULL;
   }
 
-  return zone;
+  return polzone;
 }
 
-void free_DGZone(DGZone* zone)
+void free_DGPolZone(DGPolZone* polzone)
 {
-  if (!zone) return;
+  if (!polzone) return;
 
-  if (zone->name) {
-    free(zone->name);
-    zone->name = NULL;
+  if (polzone->name) {
+    free(polzone->name);
+    polzone->name = NULL;
   }
 
-  if (zone->norm_dist) {
-    free(zone->norm_dist);
-    zone->norm_dist = NULL;
+  if (polzone->norm_dist) {
+    free(polzone->norm_dist);
+    polzone->norm_dist = NULL;
   }
-  free(zone);
+  free(polzone);
 }
 
 DivGeoTrg* create_dgtrg(void)
@@ -173,33 +173,33 @@ static int is_keyword(const char* line, const char* keyword) {
     return strncmp(line, keyword, strlen(keyword)) == 0;
 }
 
-static DGRegion* read_region(FILE* fp, int n_level, const char* name)
+static DGRadRegion* read_region(FILE* fp, int n_level, const char* name)
 {
     char line[256];
-    DGRegion* region = create_DGRegion(n_level, name);
-    region->level[0]=NAN;
+    DGRadRegion* radregion = create_DGRadRegion(n_level, name);
+    radregion->level[0]=NAN;
     fgets(line, sizeof(line), fp);//skip the line which is 'level'
     for(int i=1; i<n_level; i++)
     {
       fgets(line, sizeof(line), fp);
       line[strcspn(line, "\r\n")] = '\0';
-      sscanf(line, "%lf",&(region->level[i]));
+      sscanf(line, "%lf",&(radregion->level[i]));
     }
-    printf("%s\n",region->name);
+    printf("%s\n",radregion->name);
     printf("n_level: %d\n",n_level);
     for(int i=0; i<n_level; i++)
     {
-      printf("%lf\n", region->level[i]);
+      printf("%lf\n", radregion->level[i]);
     }
-    return region;
+    return radregion;
 }
-static DGZone* read_zone(FILE* fp, int n_points, const char* name)
+static DGPolZone* read_zone(FILE* fp, int n_points, const char* name)
 {
     char line[256];
 
-    DGZone* zone = create_DGZone(n_points, name);
-    zone->norm_dist[0]=0.00;
-    zone->norm_dist[n_points-1]=1.00;
+    DGPolZone* polzone = create_DGPolZone(n_points, name);
+    polzone->norm_dist[0]=0.00;
+    polzone->norm_dist[n_points-1]=1.00;
 
     fgets(line, sizeof(line), fp);//skip the line which is 'points'
 
@@ -207,16 +207,16 @@ static DGZone* read_zone(FILE* fp, int n_points, const char* name)
     {
       fgets(line, sizeof(line), fp);
       line[strcspn(line, "\r\n")] = '\0';
-      sscanf(line, "%lf", &(zone->norm_dist[i]));
+      sscanf(line, "%lf", &(polzone->norm_dist[i]));
     }
-    printf("%s", zone->name);
+    printf("%s", polzone->name);
     printf("n_points: %d\n",n_points);
 
     for(int i=0; i<n_points; i++)
     {
-      printf("%lf\n", zone->norm_dist[i]);
+      printf("%lf\n", polzone->norm_dist[i]);
     }
-    return zone;
+    return polzone;
 }
 
 static Curve* read_curve(FILE* fp, int* n_curve_point)
@@ -352,8 +352,8 @@ int load_dgtrg_from_file(DivGeoTrg* trg, const char* filename)
 
     trg->n_target_curve = count_targets > 0 ? malloc(count_targets * sizeof(int)) : NULL;
     trg->target_curves = count_targets > 0 ? malloc(count_targets * sizeof(Curve*)) : NULL;
-    trg->regions = count_regions > 0 ? malloc(count_regions * sizeof(DGRegion*)) : NULL;
-    trg->zones = count_zones > 0 ? malloc(count_zones * sizeof(DGZone*)) : NULL;
+    trg->regions = count_regions > 0 ? malloc(count_regions * sizeof(DGRadRegion*)) : NULL;
+    trg->zones = count_zones > 0 ? malloc(count_zones * sizeof(DGPolZone*)) : NULL;
 
     trg->dltr1 = trg->dltrn = NULL;
     trg->npr = NULL;
@@ -459,6 +459,31 @@ fail:
     return 1;
 }
 
+TargetDLListCurve* create_target_curve_from_dgtrg(DivGeoTrg* trg, int n)
+{
+  TargetDLListCurve* tgt_cur=create_target_curve();
+  if (!tgt_cur) 
+  {
+    fprintf(stderr, "Failed to allocate memmory for target_curve");
+    exit(EXIT_FAILURE);
+  }
+  char name[32];
+  snprintf(name, sizeof(name), "TargetCurve_%d", n);
+  change_name_target_curve(tgt_cur, name);
+  int n_point=trg->n_target_curve[n];
+  //  printf("Target Curve Name: %s\n", tgt_cur->name);
+  for(int i=0; i<n_point;i++)
+  {
+    // printf("DEBUG r=%.4f z=%.4f\n", r, z);
+    double r = trg->target_curves[n]->points[i][0];
+    double z = trg->target_curves[n]->points[i][1];
+    // printf("DEBUG i=%d\n", i);
+    // printf("DEBUG r=%.4f z=%.4f\n", r, z);
+    add_point_target_curve(tgt_cur, r, z);
+  }
+  return tgt_cur;
+}
+
 void free_dgtrg(DivGeoTrg* trg)
 {
   if (!trg) return;
@@ -489,7 +514,7 @@ void free_dgtrg(DivGeoTrg* trg)
     {
       if (trg->regions[i]) 
       {
-        free_DGRegion(trg->regions[i]);
+        free_DGRadRegion(trg->regions[i]);
         trg->regions[i] = NULL;
       }
     }
@@ -503,7 +528,7 @@ void free_dgtrg(DivGeoTrg* trg)
     {
       if (trg->zones[i]) 
       {
-        free_DGZone(trg->zones[i]);
+        free_DGPolZone(trg->zones[i]);
         trg->zones[i] = NULL;
       }
     }
@@ -550,22 +575,22 @@ static void cal_points_from_psi(double *psi,double *r, double *z, int n,
   if((psi[0]>psi_head-1.0E-6&&psi[0]<psi_tail+1.0E-6) 
       ||(psi[0]<psi_head+1.0E-6&&psi[0]>psi_tail-1.0E-6))
   {
-    printf("psi[0] %.15fis in the range psi_head %.15f psi_tail %.15f\n", psi[0], psi_head, psi_tail);
+    printf("psi[0] %.15fis in the range psi_head %.15f psi_tail %.15f with delta %.15f\n", psi[0], psi_head, psi_tail ,EPSILON_DG);
   }
   else
   {
-    fprintf(stderr, "The psi[0]> %.15f is out of range psi_head %.15f psi_tail %.15f\n!", psi[0], psi_head, psi_tail);
+    fprintf(stderr, "The psi[0]> %.15f is out of range psi_head %.15f psi_tail %.15f with delta %.15f\n!", psi[0], psi_head, psi_tail,EPSILON_DG);
     exit(EXIT_FAILURE);
   }
 
   if((psi[n-1]>psi_head-1.0E-6&&psi[n-1]<psi_tail+1.0E-6) 
       ||(psi[n-1]<psi_head+1.0E-6&&psi[n-1]>psi_tail-1.0E-6))
   {
-    printf("psi[n-1] %.15f is in the range psi_head %.15f psi_tail %.15f\n", psi[n-1], psi_head, psi_tail);
+    printf("psi[n-1] %.15f is in the range psi_head %.15f psi_tail %.15f with delta %.15f\n", psi[n-1], psi_head, psi_tail,EPSILON_DG);
   }
   else
   {
-    fprintf(stderr, "psi[n-1] %.15f is out of range psi_head %.15f psi_tail %.15f\n!", psi[n-1], psi_head, psi_tail);
+    fprintf(stderr, "psi[n-1] %.15f is out of range psi_head %.15f psi_tail %.15f with delta %.15f\n!", psi[n-1], psi_head, psi_tail,EPSILON_DG);
     exit(EXIT_FAILURE);
   }
   if(fabs(psi[1]-psi[0])<1.0E-5)
@@ -670,22 +695,105 @@ static int check_curve_monotonic_psi(DLListNode* head,
   }
 }
 
-
-static void write_points_to_file(double *r, double *z, int n, const char *filename)
+static double* compute_differences(const double* arr, int n)
 {
-    FILE *fp = fopen(filename, "w");
-    if (fp == NULL)
+    if (!arr || n < 2)
     {
-        fprintf(stderr, "Failed to open file %s for writing.\n", filename);
-        return;
+        fprintf(stderr, "Invalid input for compute_differences.\n");
+        exit(EXIT_FAILURE);
     }
 
-    for (int i = 0; i < n; i++)
+    double* diff = (double*)malloc((n - 1) * sizeof(double));
+    if (!diff)
     {
-        fprintf(fp, "%.12f %.12lf\n", r[i], z[i]);
+        fprintf(stderr, "Memory allocation failed in compute_differences.\n");
+        exit(EXIT_FAILURE);
     }
 
-    fclose(fp);
+    for (int i = 0; i < n - 1; ++i)
+    {
+        diff[i] = arr[i + 1] - arr[i];
+    }
+
+    return diff;
+}
+
+static void reverse_array(double* arr, size_t n)
+{
+    if (!arr || n < 2) return;
+
+    size_t i = 0, j = n - 1;
+    while (i < j)
+    {
+        double tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+        i++;
+        j--;
+    }
+}
+
+static void scale_array(double* arr, size_t n, double factor)
+{
+    if (!arr || n == 0) return;
+
+    for (size_t i = 0; i < n; ++i)
+    {
+        arr[i] *= factor;
+    }
+}
+
+static double* connect_arrays(const double* arr1, size_t n1,
+                              const double* arr2, size_t n2,
+                              const double* arr3, size_t n3,
+                              const double* arr4, size_t n4)
+{
+    size_t total = n1 + n2 + n3 + n4;
+
+    if ((n1 && !arr1) || (n2 && !arr2) || (n3 && !arr3) || (n4 && !arr4))
+    {
+        fprintf(stderr, "Null array passed to connect_arrays.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    double* result = malloc(total * sizeof(double));
+    if (!result)
+    {
+        fprintf(stderr, "Memory allocation failed in connect_arrays.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    size_t offset = 0;
+    if (n1) { for (size_t i = 0; i < n1; ++i) result[offset++] = arr1[i]; }
+    if (n2) { for (size_t i = 0; i < n2; ++i) result[offset++] = arr2[i]; }
+    if (n3) { for (size_t i = 0; i < n3; ++i) result[offset++] = arr3[i]; }
+    if (n4) { for (size_t i = 0; i < n4; ++i) result[offset++] = arr4[i]; }
+
+    return result;
+}
+
+static double* recover_array_from_diff(const double* diff, int n, double first_value)
+{
+    if (!diff || n < 2)
+    {
+        fprintf(stderr, "Invalid input for recover_array_from_diff.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    double* arr = malloc((n+1) * sizeof(double));
+    if (!arr)
+    {
+        fprintf(stderr, "Memory allocation failed in recover_array_from_diff.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    arr[0] = first_value;
+    for (int i = 1; i < n+1; ++i)
+    {
+        arr[i] = arr[i - 1] + diff[i - 1];
+    }
+
+    return arr;
 }
 
 void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradpsilines)
@@ -715,9 +823,6 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   update_GridZone_from_dgtrg(solgridzone, trg, 0);
   update_GridZone_from_dgtrg(pfrgridzone, trg, 1);
   update_GridZone_from_dgtrg(coregridzone, trg, 2);
-  printf("DEBUG np %d nr %d\n", solgridzone->np,solgridzone->nr);
-  printf("DEBUG np %d nr %d\n", pfrgridzone->np,pfrgridzone->nr);
-  printf("DEBUG np %d nr %d\n", coregridzone->np,coregridzone->nr);
 
 /***********************************************
 *    STEP1 create TargetDDListCurve
@@ -731,6 +836,7 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
 
   TargetDLListCurve* outer_tgt_curve=create_target_curve_from_dgtrg(trg, idx_outer_tgt);
   
+  
 /***********************************************
 *    STEP2 Sort index for sep and gradpsi lines
 ***********************************************/
@@ -739,16 +845,16 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
 /*************************************************
 *    STEP3 Create the target curve for SOL PFR and CORE
 *************************************************/
-  double itsct_r, itsct_z;
+  double itsct_r_inner, itsct_z_inner;
   
   //calcute the intersection point between sep and the inner target
   insert_intersections_DDList(sep->line_list[sep->index[0]],
                               inner_tgt_curve->head,
-                              &itsct_r, &itsct_z);
+                              &itsct_r_inner, &itsct_z_inner);
   write_DDList(inner_tgt_curve->head,"inner_targetcurve");
 
   //cut the separatrix which intersect with inner target
-  cut_intersections_DDList(sep->line_list[sep->index[0]],itsct_r, itsct_z);
+  cut_intersections_DDList(sep->line_list[sep->index[0]],itsct_r_inner, itsct_z_inner);
 
   double itsct_r_outer, itsct_z_outer;
   //calcute the intersection point between sep and the outer target
@@ -758,15 +864,24 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   update_number_target_curve(outer_tgt_curve);
   write_DDList(outer_tgt_curve->head,"outer_targetcurve");
 
-  
+/****************************************************************************
+* Update ene curve for SOL and PFR
+* CORE GridZone no need for end curve becase the end is the start point
+****************************************************************************/
+
+  update_GridZone_end_curve(solgridzone,outer_tgt_curve);
+  update_GridZone_end_curve(pfrgridzone,outer_tgt_curve);
+
+
+
   //cut the separatrix
   cut_intersections_DDList(sep->line_list[sep->index[1]],itsct_r_outer, itsct_z_outer);
   
-  //create the curve which will used to store the SOL region
+  //create the curve which will used to store the SOL radregion
   TargetDLListCurve* sol_tgt_curve=create_target_curve();
 
   //create the SOL curve and the original inner target became for the PFR curve
-  split_intersections_target_curve(inner_tgt_curve, itsct_r, itsct_z, sol_tgt_curve);
+  split_intersections_target_curve(inner_tgt_curve, itsct_r_inner, itsct_z_inner, sol_tgt_curve);
   
   //reverse the PFR curve which start form sep
   reverse_DDList_in_target_curve(inner_tgt_curve);
@@ -779,14 +894,16 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   TargetDLListCurve* core_curve=create_core_curve_from_gradpsilines(gradpsilines, 2);
   change_name_target_curve(core_curve, "CORE");
 
-
   printf("%s target curve has %d points\n", inner_tgt_curve->name, inner_tgt_curve->n);
   printf("%s target curve has %d points\n", sol_tgt_curve->name, sol_tgt_curve->n);
   printf("%s target curve has %d points\n", core_curve->name, core_curve->n);
 
   // write_DDList(sep->line_list[sep->index[0]],"debug_sep1");
   // write_DDList(inner_tgt_curve->head,"debug_pfr");
-  // write_DDList(sol_tgt_curve->head,"debug_sol");
+  // write_DDList(sol_tgt_curve->head,"debug_sol")
+  
+  //update end curve
+  
 
 /*************************************************
 *    STEP4 Calculate the start points used for trcing
@@ -805,22 +922,22 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   double *r_tmp=malloc(trg->regions[0]->n_level*sizeof(double));
   double *z_tmp=malloc(trg->regions[0]->n_level*sizeof(double));
 
-  r_tmp[0]=itsct_r;
-  z_tmp[0]=itsct_z;
+  r_tmp[0]=itsct_r_inner;
+  z_tmp[0]=itsct_z_inner;
 
   cal_points_from_psi(trg->regions[0]->level, r_tmp, z_tmp, trg->regions[0]->n_level,
                       sol_tgt_curve->head, equ, cubicherm2d1f, 1,0);
-  write_points_to_file(r_tmp,z_tmp,  trg->regions[0]->n_level, "SOL_start_point");
+  write_array2f(r_tmp,z_tmp,  trg->regions[0]->n_level, "SOL_start_point");
   update_GridZone_start_points(solgridzone, r_tmp, z_tmp, solgridzone->nr);
-  write_points_to_file(solgridzone->start_point_R, solgridzone->start_point_Z, 
+  write_array2f(solgridzone->start_point_R, solgridzone->start_point_Z, 
                        solgridzone->nr,"SOLGR_RZ");
 
 
   cal_points_from_psi(trg->regions[1]->level, r_tmp, z_tmp, trg->regions[1]->n_level,
                       inner_tgt_curve->head, equ, cubicherm2d1f, 1,0);
-  write_points_to_file(r_tmp,z_tmp,  trg->regions[0]->n_level, "PFR_start_point");
+  write_array2f(r_tmp,z_tmp,  trg->regions[0]->n_level, "PFR_start_point");
   update_GridZone_start_points(pfrgridzone, r_tmp, z_tmp, pfrgridzone->nr);
-  write_points_to_file(pfrgridzone->start_point_R, pfrgridzone->start_point_Z, 
+  write_array2f(pfrgridzone->start_point_R, pfrgridzone->start_point_Z, 
                        pfrgridzone->nr,"PFRGR_RZ");
 
 
@@ -828,24 +945,64 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   z_tmp[0]=gradpsilines->line_list[0]->z;
   cal_points_from_psi(trg->regions[2]->level, r_tmp, z_tmp, trg->regions[2]->n_level,
                       core_curve->head, equ, cubicherm2d1f, 1,0);
-  write_points_to_file(r_tmp,z_tmp,  trg->regions[0]->n_level, "CORE_start_point");
+  write_array2f(r_tmp,z_tmp,  trg->regions[0]->n_level, "CORE_start_point");
   update_GridZone_start_points(coregridzone, r_tmp, z_tmp, coregridzone->nr);
-  write_points_to_file(coregridzone->start_point_R, coregridzone->start_point_Z, 
+  write_array2f(coregridzone->start_point_R, coregridzone->start_point_Z, 
                        coregridzone->nr,"COREGR_RZ");
 
-/*************************************************
-*    STEP5 Calculate the boundary curve
-*************************************************/
+/********************************************************************************
+*    STEP5 Calculate the boundary curve and normalize poloidal distribution
+********************************************************************************/
+//The main idea here is read the lines and then connect them. 
+//And also for the distribution. because in DG, the distribution given in separated line
+
+  //1. FOR SOL radregion
+  //for DLList curve
   DLListNode* SOL_bnd1=copy_DLList(sep->line_list[sep->index[0]]);
   reverse_DLList(&SOL_bnd1);
+  //for distribution
+  int tmp_np1=trg->zones[0]->n_points;
+  double len_bnd1=total_length_DDList(SOL_bnd1);
+  double* dtbt_bnd1=compute_differences(trg->zones[0]->norm_dist, tmp_np1);
+  scale_array(dtbt_bnd1, tmp_np1-1, len_bnd1);
+  reverse_array(dtbt_bnd1, tmp_np1-1);
+
   //BECAREFUL, the TWO LCFS are not the exactly the same
   //please use the same one in the follow
+
+  //for DLList curve
   int nLCFS=3; //here we use the 3(The FOUTH becasue start from 0)
   DLListNode* SOL_bnd2=copy_DLList(sep->line_list[sep->index[nLCFS]]);
+  //for distribution
+  int tmp_np2=trg->zones[2]->n_points;
+  double len_bnd2=total_length_DDList(SOL_bnd2);
+  double* dtbt_bnd2=compute_differences(trg->zones[2]->norm_dist, tmp_np2);
+  scale_array(dtbt_bnd2, tmp_np2-1, len_bnd2);
+  reverse_array(dtbt_bnd2, tmp_np2-1);
+  
+  //for DLList curve
   DLListNode* SOL_bnd3=copy_DLList(sep->line_list[sep->index[1]]);
+  //for distribution
+  int tmp_np3=trg->zones[1]->n_points;
+  double* dtbt_bnd3=compute_differences(trg->zones[1]->norm_dist, tmp_np3);
+  double len_bnd3=total_length_DDList(SOL_bnd3);
+  scale_array(dtbt_bnd3, tmp_np3-1, len_bnd3);
+
+  //Final DLList curve
   connect_DLList(SOL_bnd1, &SOL_bnd2,1);
   connect_DLList(SOL_bnd1, &SOL_bnd3,1);
   write_DDList(SOL_bnd1,"SOL_bnd");
+
+  //Final distribution
+  double* dtbt_SOL=connect_arrays(dtbt_bnd1,tmp_np1-1,dtbt_bnd2, tmp_np2-1,
+                                  dtbt_bnd3,tmp_np3-1, NULL, 0);
+  int npsol=tmp_np1-1+tmp_np2-1+tmp_np3-1;
+  scale_array(dtbt_SOL, npsol, 1/(len_bnd1+len_bnd2+len_bnd3));
+  double* dtbt_norm_SOL=recover_array_from_diff(dtbt_SOL, npsol, 0.0);
+
+  write_array(dtbt_norm_SOL, npsol+1, "SOL_norm_pol_dtbt");
+
+  //2. FOR PFR radregion
 
   DLListNode* PFR_bnd1=copy_DLList(sep->line_list[sep->index[0]]);
   reverse_DLList(&PFR_bnd1);
@@ -853,8 +1010,33 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   connect_DLList(PFR_bnd1, &PFR_bnd2,1);
   write_DDList(PFR_bnd1,"PFR_bnd");
 
+  //Final distribution
+  double* dtbt_PFR=connect_arrays(dtbt_bnd1,tmp_np1-1,dtbt_bnd3,tmp_np3-1,NULL,0, NULL, 0);
+  int nppfr=tmp_np1-1+tmp_np3-1;
+  scale_array(dtbt_PFR, nppfr, 1/(len_bnd1+len_bnd3));
+  double* dtbt_norm_PFR=recover_array_from_diff(dtbt_PFR, nppfr, 0.0);
+  write_array(dtbt_norm_PFR, nppfr+1, "PFR_norm_pol_dtbt");
+
+
+  //3. FOR COREE radregion
   DLListNode* CORE_bnd1=copy_DLList(sep->line_list[sep->index[nLCFS]]);
   write_DDList(CORE_bnd1,"CORE_bnd");
+
+  //Final distribution
+  int npcore=tmp_np2-1;
+  double* dtbt_CORE=connect_arrays(dtbt_bnd2,tmp_np2-1,NULL,0,NULL,0, NULL, 0);
+  scale_array(dtbt_CORE, npcore, 1/(len_bnd2));
+  double* dtbt_norm_CORE=recover_array_from_diff(dtbt_CORE, npcore, 0.0);
+  write_array(dtbt_norm_CORE, npcore+1, "CORE_norm_pol_dtbt");
+
+  update_GridZone_pol_norm_distrb(solgridzone, dtbt_norm_SOL, npsol+1);
+  update_GridZone_pol_norm_distrb(pfrgridzone, dtbt_norm_PFR, nppfr+1);
+  update_GridZone_pol_norm_distrb(coregridzone, dtbt_norm_CORE, npcore+1);
+
+  update_GridZone_first_boudary(solgridzone, SOL_bnd1);
+  update_GridZone_first_boudary(pfrgridzone, PFR_bnd1);
+  update_GridZone_first_boudary(coregridzone, CORE_bnd1);
+
 
 
 
@@ -875,8 +1057,17 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   free_DLList(SOL_bnd1);
   free_DLList(CORE_bnd1);
   free_DLList(PFR_bnd1);
-}
 
+  free(dtbt_bnd1);
+  free(dtbt_bnd2);
+  free(dtbt_bnd3);
+  free(dtbt_SOL);
+  free(dtbt_norm_SOL);
+  free(dtbt_PFR);
+  free(dtbt_norm_PFR);
+  free(dtbt_CORE);
+  free(dtbt_norm_CORE);
+}
 
 static void change_name(char **name, const char *str)
 {
@@ -922,16 +1113,14 @@ void update_GridZone_from_dgtrg(GridZone* gridzone, DivGeoTrg* trg, int index)
       exit(EXIT_FAILURE);
     }
   }
-  int np = trg->nptseg[index];
+
   int nr = trg->npr[index];
-  gridzone->np=np;
   gridzone->nr=nr;
   gridzone->guard_start=malloc(nr*sizeof(double));
   gridzone->guard_end=malloc(nr*sizeof(double));
   gridzone->pasmin=malloc(nr*sizeof(double));
-  gridzone->norm_pol_dist=malloc(np*sizeof(double));
   if(!gridzone->guard_start||!gridzone->guard_end
-      ||!gridzone->pasmin||!gridzone->norm_pol_dist)
+      ||!gridzone->pasmin)
   {
     fprintf(stderr,"Faill to alloc memmory in update_GridZone_from_dgtrg.\n");
     exit(EXIT_FAILURE);
@@ -941,26 +1130,16 @@ void update_GridZone_from_dgtrg(GridZone* gridzone, DivGeoTrg* trg, int index)
     gridzone->guard_start[i]=TGUARD;
     gridzone->pasmin[i]=PASMIN;
   }
-
-  if(!(np==trg->zones[index]->n_points))
-  {
-    fprintf(stderr,"trg np is not consistent with the point of poloidal distribution.\n");
-    exit(EXIT_FAILURE);
-  }
-  for(int i=0;i<np;i++)
-  {
-    gridzone->norm_pol_dist[i]=trg->zones[index]->norm_dist[i];
-  }
 }
 
-void update_GridZone_start_points(GridZone* gridzone, double* r, double* z, int n_points)
+void update_GridZone_start_points(GridZone* gridzone, double* r, double* z, int n_point)
 {
   if(!gridzone||!r||!z)
   {
     fprintf(stderr,"Empty input for update_GridZone_start_points.\n");
     exit(EXIT_FAILURE);
   }
-  if(gridzone->nr!=n_points)
+  if(gridzone->nr!=n_point)
   {
     fprintf(stderr,"The points number is not consistent with GridZone\n");
     exit(EXIT_FAILURE);
@@ -972,9 +1151,9 @@ void update_GridZone_start_points(GridZone* gridzone, double* r, double* z, int 
     exit(EXIT_FAILURE);
   }
   
-  printf("DEBUGE n_point: %d\n", n_points);
-  gridzone->start_point_R = malloc(n_points*sizeof(double));
-  gridzone->start_point_Z = malloc(n_points*sizeof(double));
+  printf("DEBUGE n_point: %d\n", n_point);
+  gridzone->start_point_R = malloc(n_point*sizeof(double));
+  gridzone->start_point_Z = malloc(n_point*sizeof(double));
 
   if(!gridzone->start_point_R || !gridzone->start_point_Z)
   {
@@ -982,11 +1161,105 @@ void update_GridZone_start_points(GridZone* gridzone, double* r, double* z, int 
     exit(EXIT_FAILURE);
   }
 
-  for(int i=0; i<n_points; i++)
+  for(int i=0; i<n_point; i++)
   {
     gridzone->start_point_R[i]=r[i];
     gridzone->start_point_Z[i]=z[i];
   }
 }
 
+void update_GridZone_pol_norm_distrb(GridZone* gridzone, const double* norm_distb, int n_point)
+{
+  if (!gridzone || !norm_distb || n_point < 1)
+  {
+    fprintf(stderr, "Invalid input to update_GridZone_pol_norm_distrb.\n");
+    exit(EXIT_FAILURE);
+  }
 
+  if (gridzone->npoint != -1 || gridzone->norm_pol_dist)
+  {
+    fprintf(stderr, "GridZone already contains norm_pol_dist data.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  gridzone->norm_pol_dist = malloc(n_point * sizeof(double));
+  if (!gridzone->norm_pol_dist)
+  {
+    fprintf(stderr, "Memory allocation failed for norm_pol_dist.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = 0; i < n_point; ++i)
+  {
+    gridzone->norm_pol_dist[i] = norm_distb[i];
+  }
+
+  gridzone->npoint = n_point;
+}
+
+void update_GridZone_end_curve(GridZone* gridzone, const TargetDLListCurve* tgt_cur)
+{
+    if (!gridzone || !tgt_cur || !tgt_cur->head || tgt_cur->n < 2)
+    {
+        fprintf(stderr, "Invalid input to update_GridZone_end_curve.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int n = tgt_cur->n;
+    gridzone->end_curve = create_curve(n);
+    if (!gridzone->end_curve)
+    {
+        fprintf(stderr, "Memory allocation failed for end_curve.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    DLListNode* node = tgt_cur->head;
+    for (int i = 0; i < n; ++i)
+    {
+        if (!node)  // enough node
+        {
+            fprintf(stderr, "tgt_cur->n is larger than actual linked list length.\n");
+            exit(EXIT_FAILURE);
+        }
+        gridzone->end_curve->points[i][0] = node->r;
+        gridzone->end_curve->points[i][1] = node->z;
+        node = node->next;
+    }
+
+    if (node != NULL)
+    {
+        fprintf(stderr, "tgt_cur->n is smaller than actual linked list length.\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void update_GridZone_first_boudary(GridZone* gridzone, DLListNode* head)
+{
+  if (!gridzone || !head)
+  {
+    fprintf(stderr, "Invalid input to update_GridZone_end_curve.\n");
+    exit(EXIT_FAILURE);
+  }
+  gridzone->n_boundary=1;
+  DLListNode* node = head;
+
+  int n = 0;
+  while(node)
+  {
+    n++;
+    node=node->next;
+  }
+  gridzone->first_boundary = create_curve(n);
+  if (!gridzone->first_boundary) 
+  {
+    fprintf(stderr, "Memory allocation failed for first_boundary.\n");
+    exit(EXIT_FAILURE);
+  }
+  node=head;
+  for(int i=0;i<n;i++)
+  {
+    gridzone->first_boundary->points[i][0]=node->r;
+    gridzone->first_boundary->points[i][1]=node->z;
+    node=node->next;
+  }
+}

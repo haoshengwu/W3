@@ -63,7 +63,8 @@ int split_intersections_DDList(DLListNode* head, double r, double z, DLListNode*
 //Reverse the DDList
 void reverse_DLList(DLListNode** head);
 
-
+//
+double total_length_DDList(DLListNode* head);
 
 
 /*

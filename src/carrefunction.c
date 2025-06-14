@@ -228,7 +228,7 @@ void calc_points_CARRE(CarreMeshTube *tube)
     fclose(first);
     printf("write the tracing line in %s\n", firstname);
     //************************************************************
-    //todo: store the ortho value for the whole region
+    //todo: store the ortho value for the whole radregion
     // somort(ir)= somort(ir)+ (ort1(ipol)/nppol)
     // somortpur(ir)= somortpur (ir)+ (ortpur1(ipol)/nppol)
     // sompropo(ir)= sompropo(ir)+ (propo1(ipol)/nppol)
@@ -372,7 +372,7 @@ int indcrb_CARRE(double **curve, size_t n_curve, double point[2], double d)
       }
     } 
   }
-  return indcrb;    
+  return indcrb;
 }
 
 double long_CARRE(double **curve, size_t n) 

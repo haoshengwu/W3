@@ -15,11 +15,11 @@ typedef struct
 **********************************/
     //point number of the previous curve.
     size_t n_prev_curve;
-    //previous curve points prev_curve[n_prev_curve][0] x coordinate, prev_curve[n_prev_curve][0] x coordinate
+    //previous curve points prev_curve[n_prev_curve][0] x coordinate, prev_curve[n_prev_curve][1] y coordinate
     double **prev_curve;
     //point number of the curve.
     size_t n_curve;
-    //curve points curve[n_curve][0] x coordinate, curve[n_curve][0] x coordinate
+    //curve points curve[n_curve][0] x coordinate, curve[n_curve][1] y coordinate
     double **curve;
     
     //the number of points for the mesh in X direction

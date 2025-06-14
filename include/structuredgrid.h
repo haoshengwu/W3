@@ -6,7 +6,7 @@
 typedef struct {
     // --- 1. Basic information ---
     char* name;
-    int np; //points in the poloidal magnetic line, elements number is np-1;
+    int npoint; //points in the poloidal magnetic line, elements number is np-1;
     int nr; //magnetic line number in radial direction, elements number is nr-1;
 
     // --- 2. Grid data ---
@@ -18,15 +18,17 @@ typedef struct {
     double* guard_start;    // [nr]
     double* guard_end;      // [nr]
     double* pasmin;         // [nr]
-    double* norm_pol_dist;  // distribution of points in the poloidal direction， from 0.0 to 1.0
+    double* norm_pol_dist;  // [np]distribution of points in the poloidal direction， from 0.0 to 1.0
 
     // --- 4. Boundary info ---
     int n_boundary;
     Curve* first_boundary;
-    Curve* second_boundary;
+
+    //TODO
+    //Curve* second_boundary;
 
     // --- 5. Target info ---
-    Curve* target_curve;
+    Curve* end_curve;
 } GridZone;
 
 // Create a new GridZone
@@ -38,7 +40,7 @@ int load_GridZone_from_file(GridZone* z, const char* filename);
 // Load individual curve components
 int load_GridZone_first_boundary(GridZone* z, Curve* first_boundary);
 int load_GridZone_second_boundary(GridZone* z, Curve* second_boundary);
-int load_GridZone_target_curve(GridZone* z, Curve* target_curve);
+// int load_GridZone_end_curve(GridZone* z, Curve* end_curve);
 
 //free the GridZone
 void free_GridZone(GridZone** z);

@@ -2,7 +2,6 @@
 #define TARGET_H
 
 #include "datastructure.h"
-#include "divgeo.h"
 #include "separatrix.h"
 #include "gradpsi.h"
 
@@ -15,8 +14,7 @@ typedef struct
 
 TargetDLListCurve* create_target_curve();
 
-//n indicate which target curve in trg
-TargetDLListCurve* create_target_curve_from_dgtrg(DivGeoTrg* trg, int n);
+
 
 int add_point_target_curve(TargetDLListCurve* tgt_cur, double r, double z);
 

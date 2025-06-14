@@ -411,6 +411,27 @@ void reverse_DLList(DLListNode** head)
     *head = prev;
 }
 
+
+double total_length_DDList(DLListNode* head)
+{
+  if (!head || !head->next)
+  {
+    fprintf(stderr, "Empty or too short input for total_length_DDList.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  double length = 0.0;
+  DLListNode* cur = head;
+
+  while (cur->next)
+  {
+    length += hypot(cur->r - cur->next->r, cur->z - cur->next->z);
+    cur = cur->next;
+  }
+
+  return length;
+}
+
 //*****************************************************************
 
 

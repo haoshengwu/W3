@@ -44,30 +44,6 @@ int change_name_target_curve(TargetDLListCurve* tgt_cur, const char* name)
   return 0;
 }
 
-TargetDLListCurve* create_target_curve_from_dgtrg(DivGeoTrg* trg, int n)
-{
-  TargetDLListCurve* tgt_cur=create_target_curve();
-  if (!tgt_cur) 
-  {
-    fprintf(stderr, "Failed to allocate memmory for target_curve");
-    exit(EXIT_FAILURE);
-  }
-  char name[32];
-  snprintf(name, sizeof(name), "TargetCurve_%d", n);
-  change_name_target_curve(tgt_cur, name);
-  int n_point=trg->n_target_curve[n];
-  //  printf("Target Curve Name: %s\n", tgt_cur->name);
-  for(int i=0; i<n_point;i++)
-  {
-    // printf("DEBUG r=%.4f z=%.4f\n", r, z);
-    double r = trg->target_curves[n]->points[i][0];
-    double z = trg->target_curves[n]->points[i][1];
-    // printf("DEBUG i=%d\n", i);
-    // printf("DEBUG r=%.4f z=%.4f\n", r, z);
-    add_point_target_curve(tgt_cur, r, z);
-  }
-  return tgt_cur;
-}
 
 void free_target_curve(TargetDLListCurve* tgt_cur)
 {
