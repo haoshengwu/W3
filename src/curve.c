@@ -62,7 +62,7 @@ void free_curveset(CurveSet *cs)
   free(cs);
 }
 
- int copy_curve(Curve* c1, Curve* c2)
+int copy_curve(Curve* c1, Curve* c2)
 {
     if (!c1 || !c2) {
         fprintf(stderr, "Null pointer passed to copy_curve.\n");

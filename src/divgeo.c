@@ -866,13 +866,11 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
 
 /****************************************************************************
 * Update ene curve for SOL and PFR
-* CORE GridZone no need for end curve becase the end is the start point
+* CORE GridZone will be updated later by the start points itself
 ****************************************************************************/
 
   update_GridZone_end_curve(solgridzone,outer_tgt_curve);
   update_GridZone_end_curve(pfrgridzone,outer_tgt_curve);
-
-
 
   //cut the separatrix
   cut_intersections_DDList(sep->line_list[sep->index[1]],itsct_r_outer, itsct_z_outer);
@@ -949,6 +947,9 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   update_GridZone_start_points(coregridzone, r_tmp, z_tmp, coregridzone->nr);
   write_array2f(coregridzone->start_point_R, coregridzone->start_point_Z, 
                        coregridzone->nr,"COREGR_RZ");
+
+  //Use start points to update coregridzone end curve;
+  update_COREGridZone_end_curve(coregridzone);
 
 /********************************************************************************
 *    STEP5 Calculate the boundary curve and normalize poloidal distribution
@@ -1037,6 +1038,12 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   update_GridZone_first_boudary(pfrgridzone, PFR_bnd1);
   update_GridZone_first_boudary(coregridzone, CORE_bnd1);
 
+/********************************************************************************
+*    STEP6 Write the input based on GridZone
+********************************************************************************/
+  write_input_from_GridZone(solgridzone,"input_SOL");
+  write_input_from_GridZone(pfrgridzone,"input_PFR");
+  write_input_from_GridZone(coregridzone,"input_CORE");
 
 
 
@@ -1128,6 +1135,7 @@ void update_GridZone_from_dgtrg(GridZone* gridzone, DivGeoTrg* trg, int index)
   for(int i=0;i<nr;i++)
   {
     gridzone->guard_start[i]=TGUARD;
+    gridzone->guard_end[i]=TGUARD;
     gridzone->pasmin[i]=PASMIN;
   }
 }
@@ -1261,5 +1269,33 @@ void update_GridZone_first_boudary(GridZone* gridzone, DLListNode* head)
     gridzone->first_boundary->points[i][0]=node->r;
     gridzone->first_boundary->points[i][1]=node->z;
     node=node->next;
+  }
+}
+
+void update_COREGridZone_end_curve(GridZone* gridzone)
+{
+    if (!gridzone || !gridzone->start_point_R 
+        ||!gridzone->start_point_Z || gridzone->nr < 2) 
+    {
+        fprintf(stderr, "Empty or invalid input to update_COREGridZone_end_curve.\n");
+        exit(EXIT_FAILURE);
+    }
+  if(gridzone->end_curve)
+  {
+    fprintf(stderr,"There is already end curve for COREgridzone\n");
+  }
+  
+  int n = gridzone->nr;
+  gridzone->end_curve = create_curve(n);  // Create first, then assign points
+
+  if (!gridzone->end_curve)
+  {
+    fprintf(stderr, "Memory allocation failed for end_curve.\n");
+    exit(EXIT_FAILURE);
+  }
+  for(int i=0; i<n; i++)
+  {
+    gridzone->end_curve->points[i][0]=gridzone->start_point_R[i];
+    gridzone->end_curve->points[i][1]=gridzone->start_point_Z[i];
   }
 }

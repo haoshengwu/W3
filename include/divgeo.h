@@ -63,8 +63,7 @@ typedef struct
   int* n_target_curve; //array[i] is the total number of points for target_curves[i]
   Curve** target_curves;
 
-
-    // for the radial distribution of magecit surface
+  // for the radial distribution of magecit surface
   // !!!Unit is Wb/rad
   int n_region;
   DGRadRegion** regions;
@@ -112,6 +111,9 @@ void update_GridZone_pol_norm_distrb(GridZone* gridzone, const double* norm_dist
 void update_GridZone_end_curve(GridZone* gridzone, const TargetDLListCurve* tgt_cur);
 
 void update_GridZone_first_boudary(GridZone* gridzone, DLListNode* head);
+
+//For CORE the start points is also the end point becase of closed surface.
+void update_COREGridZone_end_curve(GridZone* gridzone);
 
 
 

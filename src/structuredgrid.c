@@ -32,169 +32,6 @@ GridZone* allocate_GridZone()
   return z;
 }
 
-int load_GridZone_from_file(GridZone* z, const char* filename)
-{
-  if (!z || !filename) 
-  {
-    fprintf(stderr, "Invalid arguments to load_GridZone_from_file\n");
-    return 1;
-  }
-  
-  // Save the filename into z->name
-  z->name = malloc(strlen(filename) + 1);
-  if (!z->name) {
-    fprintf(stderr, "Memory allocation failed for GridZone name\n");
-    return 1;
-  }
-  strcpy(z->name, filename);
-
-  FILE* fp = fopen(filename, "r");
-  if (!fp) 
-  {
-    fprintf(stderr, "Fail to open the file: %s\n", filename);
-    goto fail;
-  }
-
-  char line[256];
-
-  while (fgets(line, sizeof(line), fp))
-  {
-    if (line[0] == '#' || line[0] == '\n') continue;
-    break;
-  }
-
-  // Read npoint and nr
-  if (sscanf(line, "%d %d", &(z->npoint), &(z->nr)) != 2) 
-  {
-    fprintf(stderr, "Invalid format for npoint and nr in file: %s\n", filename);
-    goto fail;
-  }
-
-  // Allocate memory
-  z->start_point_R = malloc(sizeof(double) * z->nr);
-  z->start_point_Z = malloc(sizeof(double) * z->nr);
-
-  z->guard_start = malloc(sizeof(double) * z->nr);
-  z->guard_end = malloc(sizeof(double) * z->nr);
-  z->pasmin = malloc(sizeof(double) * z->nr);
-  z->norm_pol_dist = malloc(sizeof(double) * z->npoint);
-
-  if (!z->start_point_R || !z->start_point_Z
-      || !z->guard_start || !z->guard_end || !z->pasmin || !z->norm_pol_dist) 
-  {
-    fprintf(stderr, "Memory allocation failed for start_points or guard arrays.\n");
-    goto fail;
-  }
-
-  // Skip to next valid line for distribution
-  while (fgets(line, sizeof(line), fp))
-  {
-    if (line[0] == '#' || line[0] == '\n') continue;
-    break;
-  }
-
-  for (int i = 0; i<z->npoint; i++)
-  {
-    if (sscanf(line, "%lf", &z->norm_pol_dist[i]) != 1) 
-    {
-      fprintf(stderr, "Failed to read norm_pol_dist[%d] from file.\n", i);
-      goto fail;
-    }
-    if (!fgets(line, sizeof(line), fp)) 
-    {
-      fprintf(stderr, "Unexpected EOF while reading norm_pol_dist.\n");
-      goto fail;
-    }
-  }
-
-// Skip to next valid line for distribution
-  while (line[0] == '#' || line[0] == '\n') 
-  {
-    if (!fgets(line, sizeof(line), fp)) 
-    {
-      fprintf(stderr, "Unexpected EOF before tracing data.\n");
-      goto fail;
-    }
-}
-
-  // Read data for each tracing line
-  for (int i = 0; i < z->nr; i++) 
-  {
-    if (sscanf(line, "%lf %lf %lf %lf %lf",
-              &(z->start_point_R[i]), &(z->start_point_Z[i]),
-              &(z->guard_start[i]), &(z->guard_end[i]), &(z->pasmin[i])) != 5)
-    {
-      fprintf(stderr,
-              "Invalid format at line %d for tracing input (expecting 5 values).\n", i + 1);
-      goto fail;
-    }
-    if (!fgets(line, sizeof(line), fp) && i < z->nr - 1) 
-    {
-      fprintf(stderr, "Unexpected EOF when reading tracing points.\n");
-      goto fail;
-    }
-  }
-
-  if (!feof(fp)) 
-  {
-    printf("Warning: File %s has additional lines after expected input.\n", filename);
-  }
-  fclose(fp);
-  return 0;
-  
-fail:
-    if (fp) fclose(fp);
-    if (z->name) { free(z->name); z->name = NULL; }
-    if (z->start_point_R) { free(z->start_point_R); z->start_point_R = NULL; }
-    if (z->start_point_Z) { free(z->start_point_Z); z->start_point_Z = NULL; }
-    if (z->guard_start) { free(z->guard_start); z->guard_start = NULL;}
-    if (z->guard_end) {free(z->guard_end);  z->guard_end = NULL;}
-    if (z->pasmin) {free(z->pasmin);     z->pasmin = NULL;}
-    if (z->norm_pol_dist) {free(z->norm_pol_dist); z->norm_pol_dist = NULL;}
-    return 1;
-}
-
-int load_GridZone_first_boundary(GridZone* z, Curve* first_boundary)
-{
-    if (!z || !first_boundary) 
-    {
-        fprintf(stderr, "Invalid input to load_GridZone_first_boundary.\n");
-        return 1;
-    }
-
-    if (z->first_boundary == NULL)
-        z->first_boundary = create_curve(first_boundary->n_point);
-
-    return copy_curve(z->first_boundary, first_boundary);
-}
-
-// int load_GridZone_second_boundary(GridZone* z, Curve* second_boundary)
-// {
-//     if (!z || !second_boundary) 
-//     {
-//         fprintf(stderr, "Invalid input to load_GridZone_second_boundary.\n");
-//         return 1;
-//     }
-
-//     if (z->second_boundary == NULL)
-//         z->second_boundary = create_curve(second_boundary->n_point);
-
-//     return copy_curve(z->second_boundary, second_boundary);
-// }
-
-int load_GridZone_end_curve(GridZone* z, Curve* end_curve)
-{
-    if (!z || !end_curve) 
-    {
-        fprintf(stderr, "Invalid input to load_GridZone_end_curve.\n");
-        return 1;
-    }
-
-    if (z->end_curve == NULL)
-        z->end_curve = create_curve(end_curve->n_point);
-
-    return copy_curve(z->end_curve, end_curve);
-}
 
 void free_GridZone(GridZone** z)
 {
@@ -242,3 +79,224 @@ void free_GridZone(GridZone** z)
   *z = NULL;
 }
 
+void write_input_from_GridZone(GridZone* gridzone, const char* filename)
+{
+    if (!gridzone || !filename) {
+        fprintf(stderr, "Invalid input to write_input_from_GridZone.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    FILE* fp = fopen(filename, "w");
+    if (!fp) {
+        fprintf(stderr, "Invalid input to write_input_from_GridZone.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    // --- 1. Basic information ---
+    fprintf(fp, "#name\n%s\n", gridzone->name ? gridzone->name : "Unnamed");
+    fprintf(fp, "#nr\n%d\n", gridzone->nr);
+
+    // --- 2. Start & end tracing info ---
+    fprintf(fp, "#start_point_R Start_point_Z guardstart guardend pasmin\n");
+    for (int i = 0; i < gridzone->nr; ++i) {
+        fprintf(fp, "%.10f %.10f %.10f %.10f %.10f\n",
+                gridzone->start_point_R[i],
+                gridzone->start_point_Z[i],
+                gridzone->guard_start[i],
+                gridzone->guard_end[i],
+                gridzone->pasmin[i]);
+    }
+
+    // --- first line distribution ---
+    fprintf(fp, "#npoint\n%d\n", gridzone->npoint);
+    fprintf(fp, "#norm_pol_dist\n");
+    for (int i = 0; i < gridzone->npoint; ++i) {
+        fprintf(fp, "%.10f\n", gridzone->norm_pol_dist[i]);
+    }
+
+    // --- 3. Boundary info ---
+    fprintf(fp, "#first_boundary\n");
+    if (gridzone->first_boundary && gridzone->first_boundary->points) {
+        fprintf(fp, "%zu\n", gridzone->first_boundary->n_point);  // Number of points
+        for (int i = 0; i < gridzone->first_boundary->n_point; ++i) {
+            fprintf(fp, "%.10f %.10f\n",
+                    gridzone->first_boundary->points[i][0],
+                    gridzone->first_boundary->points[i][1]);
+        }
+    } else {
+        fprintf(fp, "0\n# No first_boundary defined.\n");
+    }
+
+    // --- 4. Target info ---
+    fprintf(fp, "#end_curve\n");
+    if (gridzone->end_curve && gridzone->end_curve->points) {
+        fprintf(fp, "%zu\n", gridzone->end_curve->n_point);  // Number of points
+        for (int i = 0; i < gridzone->end_curve->n_point; ++i) {
+            fprintf(fp, "%.10f %.10f\n",
+                    gridzone->end_curve->points[i][0],
+                    gridzone->end_curve->points[i][1]);
+        }
+    } else {
+        fprintf(fp, "0\n# No end_curve defined.\n");
+    }
+    fclose(fp);
+    printf("Finish writing the %s to file %s\n",gridzone->name, filename);
+}
+
+GridZone* load_GridZone_from_input(const char* filename)
+{
+    FILE* fp = fopen(filename, "r");
+    if (!fp) {
+        perror("Failed to open input file");
+        exit(EXIT_FAILURE);
+    }
+
+    GridZone* z = allocate_GridZone();
+
+    char line[256];
+
+    while (fgets(line, sizeof(line), fp)) {
+        if (strncmp(line, "#name", 5) == 0) {
+            fgets(line, sizeof(line), fp);
+            line[strcspn(line, "\r\n")] = 0;
+            size_t len = strlen(line);
+            z->name = malloc(len + 1);
+            if (!z->name) {
+                fprintf(stderr, "Memory allocation failed for name.\n");
+                exit(EXIT_FAILURE);
+            }
+            strcpy(z->name, line);
+        }
+
+        else if (strncmp(line, "#nr", 3) == 0) {
+            fgets(line, sizeof(line), fp);
+            sscanf(line, "%d", &z->nr);
+            int nr = z->nr;
+            z->start_point_R = malloc(nr * sizeof(double));
+            z->start_point_Z = malloc(nr * sizeof(double));
+            z->guard_start   = malloc(nr * sizeof(double));
+            z->guard_end     = malloc(nr * sizeof(double));
+            z->pasmin        = malloc(nr * sizeof(double));
+            if (!z->start_point_R || !z->start_point_Z || !z->guard_start ||
+                !z->guard_end || !z->pasmin) {
+                fprintf(stderr, "Memory allocation failed for tracing arrays.\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        else if (strncmp(line, "#start_point_R", 14) == 0) {
+            for (int i = 0; i < z->nr; ++i) {
+                fgets(line, sizeof(line), fp);
+                sscanf(line, "%lf %lf %lf %lf %lf",
+                       &z->start_point_R[i],
+                       &z->start_point_Z[i],
+                       &z->guard_start[i],
+                       &z->guard_end[i],
+                       &z->pasmin[i]);
+            }
+        }
+
+        else if (strncmp(line, "#npoint", 7) == 0) {
+            fgets(line, sizeof(line), fp);
+            sscanf(line, "%d", &z->npoint);
+            z->norm_pol_dist = malloc(z->npoint * sizeof(double));
+            if (!z->norm_pol_dist) {
+                fprintf(stderr, "Memory allocation failed for norm_pol_dist.\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        else if (strncmp(line, "#norm_pol_dist", 14) == 0) {
+            for (int i = 0; i < z->npoint; ++i) {
+                fgets(line, sizeof(line), fp);
+                sscanf(line, "%lf", &z->norm_pol_dist[i]);
+            }
+        }
+
+        else if (strncmp(line, "#first_boundary", 15) == 0) {
+            fgets(line, sizeof(line), fp);
+            size_t n;
+            sscanf(line, "%zu", &n);
+            if (n > 0) {
+                z->first_boundary = create_curve(n);
+                if (!z->first_boundary) {
+                    fprintf(stderr, "Memory allocation failed for first_boundary.\n");
+                    exit(EXIT_FAILURE);
+                }
+                for (size_t i = 0; i < n; ++i) {
+                    fgets(line, sizeof(line), fp);
+                    sscanf(line, "%lf %lf",
+                           &z->first_boundary->points[i][0],
+                           &z->first_boundary->points[i][1]);
+                }
+            }
+        }
+
+        else if (strncmp(line, "#end_curve", 10) == 0) {
+            fgets(line, sizeof(line), fp);
+            size_t n;
+            sscanf(line, "%zu", &n);
+            if (n > 0) {
+                z->end_curve = create_curve(n);
+                if (!z->end_curve) {
+                    fprintf(stderr, "Memory allocation failed for end_curve.\n");
+                    exit(EXIT_FAILURE);
+                }
+                for (size_t i = 0; i < n; ++i) {
+                    fgets(line, sizeof(line), fp);
+                    sscanf(line, "%lf %lf",
+                           &z->end_curve->points[i][0],
+                           &z->end_curve->points[i][1]);
+                }
+            }
+        }
+    }
+    fclose(fp);
+    printf("Finish loading %s from file %s\n",z->name, filename);
+    return z;
+}
+
+void print_GridZone(GridZone* gridzone)
+{
+    if (!gridzone) {
+        printf("GridZone is NULL.\n");
+        return;
+    }
+
+    // --- 1. Basic information ---
+    printf("== GridZone Basic Info ==\n");
+    printf("Name: %s\n", gridzone->name ? gridzone->name : "(null)");
+    printf("nr: %d\n", gridzone->nr);
+    printf("npoint: %d\n", gridzone->npoint);  // ✅ 显式打印 npoint
+
+    // --- 2. Start & end tracing info ---
+    printf("\n== Tracing Start Points ==\n");
+    for (int i = 0; i < gridzone->nr; ++i) {
+        printf("[%d] R=%.10f  Z=%.10f  guard_start=%.10f  guard_end=%.10f  pasmin=%.10f\n",
+               i,
+               gridzone->start_point_R[i],
+               gridzone->start_point_Z[i],
+               gridzone->guard_start[i],
+               gridzone->guard_end[i],
+               gridzone->pasmin[i]);
+    }
+
+    // --- 3. norm_pol_dist ---
+    printf("\n== Norm Poloidal Distribution (%d points) ==\n", gridzone->npoint);
+    for (int i = 0; i < gridzone->npoint; ++i) {
+        printf("[%d] %.10f\n", i, gridzone->norm_pol_dist[i]);
+    }
+
+    // --- 4. End curve ---
+    if (gridzone->end_curve && gridzone->end_curve->points) {
+        printf("\n== End Curve (%zu points) ==\n", gridzone->end_curve->n_point);
+        for (size_t i = 0; i < gridzone->end_curve->n_point; ++i) {
+            printf("[%zu] R=%.10f  Z=%.10f\n",
+                   i,
+                   gridzone->end_curve->points[i][0],
+                   gridzone->end_curve->points[i][1]);
+        }
+    } else {
+        printf("\n== End Curve: NULL ==\n");
+    }
+}

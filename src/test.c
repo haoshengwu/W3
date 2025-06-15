@@ -559,7 +559,25 @@ void divgeo_test()
   }
 
   write_dgtrg_to_sn_input(trg, &dtt_example, sep, gradpsilines);
+  
 
+
+/***********************************************
+*   Read input of GridZone
+***********************************************/
+  GridZone* solgridzone=load_GridZone_from_input("input_SOL");
+  GridZone* pfrgridzone=load_GridZone_from_input("input_PFR");
+  GridZone* coregridzone=load_GridZone_from_input("input_CORE");
+
+  print_GridZone(solgridzone);
+  print_GridZone(pfrgridzone);
+  print_GridZone(coregridzone);
+
+
+  
+  free_GridZone(&solgridzone);
+  free_GridZone(&pfrgridzone);
+  free_GridZone(&coregridzone);
 
   free_dgtrg(trg);
   free_gradpsiline_default(gradpsilines);

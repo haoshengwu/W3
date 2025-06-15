@@ -109,17 +109,18 @@ void calc_ortho_CARRE(size_t n_point, double *length_prev_points, double **prev_
     double f1,f2,f3;
     f1 = cs2+cs3-cs1-cs4;
     // this is according to the CARRE paper.
-    // f2 = -(pow(g1/length_points[i],2.0) 
-    //        +pow(g2/(length_points[n_point-1] - length_points[i]),2.0))
-    //      *(length_points[i] 
-    //        -length_prev_points[i]/length_prev_points[n_point-1]*length_points[n_point-1])
-    //       /(pasmin + g1 + g2);
-    //this is according to the CARRE source code clort.F
-    f2 = -(pow(g1/length_prev_points[i],2.0) 
-           +pow(g2/(length_prev_points[n_point-1] - length_prev_points[i]),2.0))
+    // in the latest version, CARRE paper is more reasonble
+    f2 = -(pow(g1/length_points[i],2.0) 
+           +pow(g2/(length_points[n_point-1] - length_points[i]),2.0))
          *(length_points[i] 
            -length_prev_points[i]/length_prev_points[n_point-1]*length_points[n_point-1])
           /(pasmin + g1 + g2);
+    //this is according to the CARRE source code clort.F
+    // f2 = -(pow(g1/length_prev_points[i],2.0) 
+    //        +pow(g2/(length_prev_points[n_point-1] - length_prev_points[i]),2.0))
+    //      *(length_points[i] 
+    //        -length_prev_points[i]/length_prev_points[n_point-1]*length_points[n_point-1])
+    //       /(pasmin + g1 + g2);
     f3 = (pow(pasmin/(length_points[i]-length_points[i-1]),2.0)
           -pow(pasmin/(length_points[i+1]-length_points[i]),2.0));
     
