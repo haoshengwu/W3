@@ -555,7 +555,7 @@ void free_dgtrg(DivGeoTrg* trg)
 //We assume the psi is monotic along the curve line.
 //interp2d1f is used to calculate the psi at any position.
 //We also assume the target cureve is linear.
-//DLListNode* head is TargetDDListCurve head
+//DLListNode* head is TargetDLListCurve head
 //int skipfirst=1 means skip the first psi, which is correspoding to sep.
 //int skiplast=1 means skip the last psi, which is correspoding to 2nd sep for Snwoflake/multiple X-points.
 
@@ -796,6 +796,88 @@ static double* recover_array_from_diff(const double* diff, int n, double first_v
     return arr;
 }
 
+static DLListNode* cal_pol_points(DLListNode* head,
+                                  const double*     pol_dis,
+                                  int               n)
+{
+    if (!head || !pol_dis || n <= 0)
+    {
+      fprintf(stderr,"Empty input for cal_pol_points.\n");
+      exit(EXIT_FAILURE);
+    }
+
+    // 1. Compute total arc length of the original curve
+    double total_len = total_length_DLList(head);
+
+    DLListNode* new_head = NULL;
+    DLListNode* new_tail = NULL;
+
+    // 2. Interpolate points at each normalized distance
+    for (int k = 0; k < n; ++k) {
+        const double target_d = pol_dis[k] * total_len;
+
+        const DLListNode* seg = head;
+        double accum = 0.0;
+        DLListNode* new_node = NULL;
+
+        // Walk through the original curve to find the segment where target_d lies
+        while (seg && seg->next) {
+            double dx = seg->next->r - seg->r;
+            double dy = seg->next->z - seg->z;
+            double seg_len = sqrt(dx*dx + dy*dy);
+
+            // Check if target_d is within this segment, with floating point tolerance
+            if (accum - 1.0E-10 <= target_d && target_d <= accum + seg_len +  1.0E-10)
+            {
+                double remain = target_d - accum;
+                if (fabs(remain) <= 1.0E-10) {
+                    // Point lies at the start of the segment
+                    new_node = create_DLListNode(seg->r, seg->z);
+                } else if (fabs(remain - seg_len) <= 1.0E-10) {
+                    // Point lies at the end of the segment
+                    new_node = create_DLListNode(seg->next->r, seg->next->z);
+                } else {
+                    // Linear interpolation within the segment
+                    double ratio = remain / seg_len;
+                    double r_int = seg->r + ratio * dx;
+                    double z_int = seg->z + ratio * dy;
+                    new_node = create_DLListNode(r_int, z_int);
+                }
+                break;
+            }
+            accum += seg_len;
+            seg = seg->next;
+        }
+
+        // If no segment matched due to floating point rounding, use the last point as fallback
+        if (!new_node && seg) {
+            const DLListNode* tail = seg->next ? seg->next : seg;
+            new_node = create_DLListNode(tail->r, tail->z);
+        }
+
+        // Append the new node to the output linked list
+        if (!new_head) {
+            new_head = new_tail = new_node;
+        } else {
+            new_tail->next = new_node;
+            new_node->prev = new_tail;
+            new_tail = new_node;
+        }
+    }
+    if(pol_dis[0]<1.0E-10)
+    {
+      new_head->r=head->r;
+      new_head->z=head->z;
+    }
+    if((pol_dis[n-1]-1.0)<1.0E-10)
+    {
+      DLListNode* tail = get_DLList_endnode(head);
+      new_tail->r=tail->r;
+      new_tail->z=tail->z;
+    }
+    return new_head;
+}
+
 void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradpsilines)
 {
   
@@ -825,7 +907,7 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   update_GridZone_from_dgtrg(coregridzone, trg, 2);
 
 /***********************************************
-*    STEP1 create TargetDDListCurve
+*    STEP1 create TargetDLListCurve
 ***********************************************/
   int idx_inner_tgt = 1; //start from 0, the second target is the inner target
 
@@ -848,21 +930,21 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   double itsct_r_inner, itsct_z_inner;
   
   //calcute the intersection point between sep and the inner target
-  insert_intersections_DDList(sep->line_list[sep->index[0]],
+  insert_intersections_DLList(sep->line_list[sep->index[0]],
                               inner_tgt_curve->head,
                               &itsct_r_inner, &itsct_z_inner);
-  write_DDList(inner_tgt_curve->head,"inner_targetcurve");
+  write_DLList(inner_tgt_curve->head,"inner_targetcurve");
 
   //cut the separatrix which intersect with inner target
-  cut_intersections_DDList(sep->line_list[sep->index[0]],itsct_r_inner, itsct_z_inner);
+  cut_intersections_DLList(sep->line_list[sep->index[0]],itsct_r_inner, itsct_z_inner);
 
   double itsct_r_outer, itsct_z_outer;
   //calcute the intersection point between sep and the outer target
-  insert_intersections_DDList(sep->line_list[sep->index[1]],
+  insert_intersections_DLList(sep->line_list[sep->index[1]],
                               outer_tgt_curve->head,
                               &itsct_r_outer, &itsct_z_outer);
   update_number_target_curve(outer_tgt_curve);
-  write_DDList(outer_tgt_curve->head,"outer_targetcurve");
+  write_DLList(outer_tgt_curve->head,"outer_targetcurve");
 
 /****************************************************************************
 * Update ene curve for SOL and PFR
@@ -873,7 +955,7 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   update_GridZone_end_curve(pfrgridzone,outer_tgt_curve);
 
   //cut the separatrix
-  cut_intersections_DDList(sep->line_list[sep->index[1]],itsct_r_outer, itsct_z_outer);
+  cut_intersections_DLList(sep->line_list[sep->index[1]],itsct_r_outer, itsct_z_outer);
   
   //create the curve which will used to store the SOL radregion
   TargetDLListCurve* sol_tgt_curve=create_target_curve();
@@ -882,7 +964,7 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   split_intersections_target_curve(inner_tgt_curve, itsct_r_inner, itsct_z_inner, sol_tgt_curve);
   
   //reverse the PFR curve which start form sep
-  reverse_DDList_in_target_curve(inner_tgt_curve);
+  reverse_DLList_in_target_curve(inner_tgt_curve);
 
   //change the name
   change_name_target_curve(inner_tgt_curve, "PFR");
@@ -896,9 +978,9 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   printf("%s target curve has %d points\n", sol_tgt_curve->name, sol_tgt_curve->n);
   printf("%s target curve has %d points\n", core_curve->name, core_curve->n);
 
-  // write_DDList(sep->line_list[sep->index[0]],"debug_sep1");
-  // write_DDList(inner_tgt_curve->head,"debug_pfr");
-  // write_DDList(sol_tgt_curve->head,"debug_sol")
+  // write_DLList(sep->line_list[sep->index[0]],"debug_sep1");
+  // write_DLList(inner_tgt_curve->head,"debug_pfr");
+  // write_DLList(sol_tgt_curve->head,"debug_sol")
   
   //update end curve
   
@@ -952,7 +1034,7 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   update_COREGridZone_end_curve(coregridzone);
 
 /********************************************************************************
-*    STEP5 Calculate the boundary curve and normalize poloidal distribution
+*    STEP5 Calculate the first poloidal points and normalize poloidal distribution
 ********************************************************************************/
 //The main idea here is read the lines and then connect them. 
 //And also for the distribution. because in DG, the distribution given in separated line
@@ -961,12 +1043,20 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   //for DLList curve
   DLListNode* SOL_bnd1=copy_DLList(sep->line_list[sep->index[0]]);
   reverse_DLList(&SOL_bnd1);
+  // write_DLList(SOL_bnd1,"DEBUG_SOL_BND1");
   //for distribution
   int tmp_np1=trg->zones[0]->n_points;
-  double len_bnd1=total_length_DDList(SOL_bnd1);
+  double len_bnd1=total_length_DLList(SOL_bnd1);
   double* dtbt_bnd1=compute_differences(trg->zones[0]->norm_dist, tmp_np1);
   scale_array(dtbt_bnd1, tmp_np1-1, len_bnd1);
   reverse_array(dtbt_bnd1, tmp_np1-1);
+
+  //for poloidal points
+  DLListNode* SOL_pol_p1=cal_pol_points(sep->line_list[sep->index[0]],trg->zones[0]->norm_dist, tmp_np1);
+  reverse_DLList(&SOL_pol_p1);
+  // write_DLList(SOL_pol_p1,"DEBUG_SOL_pol_p1");
+
+
 
   //BECAREFUL, the TWO LCFS are not the exactly the same
   //please use the same one in the follow
@@ -974,25 +1064,35 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   //for DLList curve
   int nLCFS=3; //here we use the 3(The FOUTH becasue start from 0)
   DLListNode* SOL_bnd2=copy_DLList(sep->line_list[sep->index[nLCFS]]);
+  reverse_DLList(&SOL_bnd2);
+
   //for distribution
   int tmp_np2=trg->zones[2]->n_points;
-  double len_bnd2=total_length_DDList(SOL_bnd2);
+  double len_bnd2=total_length_DLList(SOL_bnd2);
   double* dtbt_bnd2=compute_differences(trg->zones[2]->norm_dist, tmp_np2);
   scale_array(dtbt_bnd2, tmp_np2-1, len_bnd2);
   reverse_array(dtbt_bnd2, tmp_np2-1);
-  
+
+  //for poloidal points
+  DLListNode* SOL_pol_p2=cal_pol_points(sep->line_list[sep->index[nLCFS]],trg->zones[2]->norm_dist, tmp_np2);
+  reverse_DLList(&SOL_pol_p2);
+
+
   //for DLList curve
   DLListNode* SOL_bnd3=copy_DLList(sep->line_list[sep->index[1]]);
   //for distribution
   int tmp_np3=trg->zones[1]->n_points;
   double* dtbt_bnd3=compute_differences(trg->zones[1]->norm_dist, tmp_np3);
-  double len_bnd3=total_length_DDList(SOL_bnd3);
+  double len_bnd3=total_length_DLList(SOL_bnd3);
   scale_array(dtbt_bnd3, tmp_np3-1, len_bnd3);
+  //for poloidal points
+  DLListNode* SOL_pol_p3=cal_pol_points(sep->line_list[sep->index[1]],trg->zones[1]->norm_dist, tmp_np3);
+
 
   //Final DLList curve
   connect_DLList(SOL_bnd1, &SOL_bnd2,1);
   connect_DLList(SOL_bnd1, &SOL_bnd3,1);
-  write_DDList(SOL_bnd1,"SOL_bnd");
+  write_DLList(SOL_bnd1,"SOL_bnd");
 
   //Final distribution
   double* dtbt_SOL=connect_arrays(dtbt_bnd1,tmp_np1-1,dtbt_bnd2, tmp_np2-1,
@@ -1000,8 +1100,12 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   int npsol=tmp_np1-1+tmp_np2-1+tmp_np3-1;
   scale_array(dtbt_SOL, npsol, 1/(len_bnd1+len_bnd2+len_bnd3));
   double* dtbt_norm_SOL=recover_array_from_diff(dtbt_SOL, npsol, 0.0);
-
   write_array(dtbt_norm_SOL, npsol+1, "SOL_norm_pol_dtbt");
+
+  //Final poloidal points
+  connect_DLList(SOL_pol_p1, &SOL_pol_p2,1);
+  connect_DLList(SOL_pol_p1, &SOL_pol_p3,1);
+  write_DLList(SOL_pol_p1,"SOL_pol_point");
 
   //2. FOR PFR radregion
 
@@ -1009,7 +1113,8 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   reverse_DLList(&PFR_bnd1);
   DLListNode* PFR_bnd2=copy_DLList(sep->line_list[sep->index[1]]);
   connect_DLList(PFR_bnd1, &PFR_bnd2,1);
-  write_DDList(PFR_bnd1,"PFR_bnd");
+  write_DLList(PFR_bnd1,"PFR_bnd");
+  
 
   //Final distribution
   double* dtbt_PFR=connect_arrays(dtbt_bnd1,tmp_np1-1,dtbt_bnd3,tmp_np3-1,NULL,0, NULL, 0);
@@ -1018,10 +1123,18 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   double* dtbt_norm_PFR=recover_array_from_diff(dtbt_PFR, nppfr, 0.0);
   write_array(dtbt_norm_PFR, nppfr+1, "PFR_norm_pol_dtbt");
 
+  //poloidal points
+  DLListNode* PFR_pol_p1=cal_pol_points(sep->line_list[sep->index[0]],trg->zones[0]->norm_dist, tmp_np1);
+  reverse_DLList(&PFR_pol_p1);
+  DLListNode* PFR_pol_p2=cal_pol_points(sep->line_list[sep->index[1]],trg->zones[1]->norm_dist, tmp_np1);
+  connect_DLList(PFR_pol_p1, &PFR_pol_p2,1);
+  write_DLList(PFR_pol_p1,"PFR_pol_point");
+
+
 
   //3. FOR COREE radregion
   DLListNode* CORE_bnd1=copy_DLList(sep->line_list[sep->index[nLCFS]]);
-  write_DDList(CORE_bnd1,"CORE_bnd");
+  write_DLList(CORE_bnd1,"CORE_bnd");
 
   //Final distribution
   int npcore=tmp_np2-1;
@@ -1030,13 +1143,19 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   double* dtbt_norm_CORE=recover_array_from_diff(dtbt_CORE, npcore, 0.0);
   write_array(dtbt_norm_CORE, npcore+1, "CORE_norm_pol_dtbt");
 
+  //Poloidal points
+  DLListNode* CORE_pol_p1=cal_pol_points(sep->line_list[sep->index[nLCFS]],trg->zones[2]->norm_dist, tmp_np2);
+  write_DLList(CORE_pol_p1,"CORE_pol_point");
+
+
+
   update_GridZone_pol_norm_distrb(solgridzone, dtbt_norm_SOL, npsol+1);
   update_GridZone_pol_norm_distrb(pfrgridzone, dtbt_norm_PFR, nppfr+1);
   update_GridZone_pol_norm_distrb(coregridzone, dtbt_norm_CORE, npcore+1);
 
-  update_GridZone_first_boudary(solgridzone, SOL_bnd1);
-  update_GridZone_first_boudary(pfrgridzone, PFR_bnd1);
-  update_GridZone_first_boudary(coregridzone, CORE_bnd1);
+  update_GridZone_first_pol_points(solgridzone, SOL_pol_p1);
+  update_GridZone_first_pol_points(pfrgridzone, PFR_pol_p1);
+  update_GridZone_first_pol_points(coregridzone, CORE_pol_p1);
 
 /********************************************************************************
 *    STEP6 Write the input based on GridZone
@@ -1044,8 +1163,6 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   write_input_from_GridZone(solgridzone,"input_SOL");
   write_input_from_GridZone(pfrgridzone,"input_PFR");
   write_input_from_GridZone(coregridzone,"input_CORE");
-
-
 
 /*************************************************
 *    Free Memory 
@@ -1064,6 +1181,11 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   free_DLList(SOL_bnd1);
   free_DLList(CORE_bnd1);
   free_DLList(PFR_bnd1);
+
+  free_DLList(SOL_pol_p1);
+  free_DLList(PFR_pol_p1);
+  free_DLList(CORE_pol_p1);
+
 
   free(dtbt_bnd1);
   free(dtbt_bnd2);
@@ -1241,14 +1363,13 @@ void update_GridZone_end_curve(GridZone* gridzone, const TargetDLListCurve* tgt_
     }
 }
 
-void update_GridZone_first_boudary(GridZone* gridzone, DLListNode* head)
+void update_GridZone_first_pol_points(GridZone* gridzone, DLListNode* head)
 {
   if (!gridzone || !head)
   {
     fprintf(stderr, "Invalid input to update_GridZone_end_curve.\n");
     exit(EXIT_FAILURE);
   }
-  gridzone->n_boundary=1;
   DLListNode* node = head;
 
   int n = 0;
@@ -1257,17 +1378,17 @@ void update_GridZone_first_boudary(GridZone* gridzone, DLListNode* head)
     n++;
     node=node->next;
   }
-  gridzone->first_boundary = create_curve(n);
-  if (!gridzone->first_boundary) 
+  gridzone->first_pol_points = create_curve(n);
+  if (!gridzone->first_pol_points) 
   {
-    fprintf(stderr, "Memory allocation failed for first_boundary.\n");
+    fprintf(stderr, "Memory allocation failed for first_pol_points.\n");
     exit(EXIT_FAILURE);
   }
   node=head;
   for(int i=0;i<n;i++)
   {
-    gridzone->first_boundary->points[i][0]=node->r;
-    gridzone->first_boundary->points[i][1]=node->z;
+    gridzone->first_pol_points->points[i][0]=node->r;
+    gridzone->first_pol_points->points[i][1]=node->z;
     node=node->next;
   }
 }

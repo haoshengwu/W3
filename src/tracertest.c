@@ -420,10 +420,10 @@ void line_tracer_test()
   {
     cal_separatrix_line(&dtt_example, xp, i, &(line_list[i]));
   }
-  write_DDList(line_list[0],"sep0");
-  write_DDList(line_list[1],"sep1");
-  write_DDList(line_list[2],"sep2");
-  write_DDList(line_list[3],"sep3");
+  write_DLList(line_list[0],"sep0");
+  write_DLList(line_list[1],"sep1");
+  write_DLList(line_list[2],"sep2");
+  write_DLList(line_list[3],"sep3");
 
   for (int i=0; i<4; i++)
   {

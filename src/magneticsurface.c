@@ -100,7 +100,7 @@ int calc_surface_line(const Equilibrium *equlib,int cx,int cy,double level,int n
 
   if ((*ptr_line_list) != NULL)
   {
-    printf("!!!the DDListNod in not empty, are you sure????\n");
+    printf("!!!the DLListNod in not empty, are you sure????\n");
   }
 
   calc_surf_data(equlib, cx, cy, level, &sc, nw, nh);

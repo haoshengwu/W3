@@ -56,7 +56,7 @@ void free_target_curve(TargetDLListCurve* tgt_cur)
 }
 
 
-void reverse_DDList_in_target_curve(TargetDLListCurve* tgt_cur)
+void reverse_DLList_in_target_curve(TargetDLListCurve* tgt_cur)
 {
   if (!tgt_cur || !(tgt_cur->head)) 
   {
@@ -71,10 +71,10 @@ void split_intersections_target_curve(TargetDLListCurve* tgt_cur,
                                       TargetDLListCurve* new_tgt_cur)
 {
   int status;
-  status=split_intersections_DDList(tgt_cur->head, r, z, &(new_tgt_cur->head));
+  status=split_intersections_DLList(tgt_cur->head, r, z, &(new_tgt_cur->head));
   if(status)
   {
-    fprintf(stderr,"Failed to split the DDList in the target curve.\n");
+    fprintf(stderr,"Failed to split the DLList in the target curve.\n");
     exit(EXIT_FAILURE);
   }
   update_number_target_curve(tgt_cur);
@@ -91,7 +91,7 @@ void cut_target_curve(TargetDLListCurve* tgt_cur, double r, double z)
   }
   
   int status;
-  status = cut_intersections_DDList(tgt_cur->head, r ,z);
+  status = cut_intersections_DLList(tgt_cur->head, r ,z);
   
   if(status==0)
   {
@@ -147,7 +147,7 @@ void sort_sep_gradpsiline_by_targetcurve(TargetDLListCurve* tgt_cur,
   int start=-1;
   for(int i=0; i<4; i++)
   {
-    if(has_intersection_DDList(tgt_cur_head, sep->line_list[i])==0)
+    if(has_intersection_DLList(tgt_cur_head, sep->line_list[i])==0)
     {
       printf("DEBUG intersection line: %d\n", i);
       start = i;

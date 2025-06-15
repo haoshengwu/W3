@@ -22,7 +22,7 @@ int change_name_target_curve(TargetDLListCurve* tgt_cur, const char* name);
 
 void free_target_curve(TargetDLListCurve* tgt_cur);
 
-//split the DDList in a target curve and the new DDList will be bound to new_tgt_cur
+//split the DLList in a target curve and the new DLList will be bound to new_tgt_cur
 void split_intersections_target_curve(TargetDLListCurve* tgt_cur, 
                                       double r, double z, 
                                       TargetDLListCurve* new_tgt_cur);
@@ -36,7 +36,7 @@ void cut_target_curve(TargetDLListCurve* tgt_cur,
 void update_number_target_curve(TargetDLListCurve* tgt_cur);
 
 //reverse the DLList in target_cureve
-void reverse_DDList_in_target_curve(TargetDLListCurve* tgt_cur);
+void reverse_DLList_in_target_curve(TargetDLListCurve* tgt_cur);
 
 void printf_target_curve(TargetDLListCurve* tgt_cur);
 

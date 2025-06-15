@@ -134,7 +134,7 @@ void connect_DLList(DLListNode* head1,DLListNode** head2, int skip)
         else
         {
           printf("WARNING: the head2 R Z is same with tail1 R Z.\n");
-          printf("WARNING: they are two same points in the DDList\n");
+          printf("WARNING: they are two same points in the DLList\n");
         }
       }
   if (cur) 
@@ -176,7 +176,7 @@ void print_DLList(DLListNode* head)
 }
 
 // write a double linked list to a file
-void write_DDList(DLListNode* head, const char* filename)
+void write_DLList(DLListNode* head, const char* filename)
 {
     FILE* file = fopen(filename, "w");
     if (!file) 
@@ -230,7 +230,7 @@ static int segments_intersect(double x1, double y1, double x2, double y2,
 }
 
 // 0 means have intersection, 1 means no.
-int has_intersection_DDList(DLListNode* head1, DLListNode* head2) 
+int has_intersection_DLList(DLListNode* head1, DLListNode* head2) 
 {
   for (DLListNode* a = head1; a && a->next; a = a->next) 
     {
@@ -289,7 +289,7 @@ void insert_between(DLListNode* a, DLListNode* b, double r, double z)
 }
 
 // Returns 0 if an intersection is found and inserted, 1 otherwise
-int insert_intersections_DDList(DLListNode* head1, DLListNode* head2, double* r_ptr, double* z_ptr) 
+int insert_intersections_DLList(DLListNode* head1, DLListNode* head2, double* r_ptr, double* z_ptr) 
 {
     int found = 1;
     for (DLListNode* a = head1; a && a->next; a = a->next) 
@@ -322,7 +322,7 @@ int insert_intersections_DDList(DLListNode* head1, DLListNode* head2, double* r_
     return found;
 }
 
-int cut_intersections_DDList(DLListNode* head, double r, double z) {
+int cut_intersections_DLList(DLListNode* head, double r, double z) {
     DLListNode* current = head;
 
     // Step 1: Find the node with matching (r, z)
@@ -357,7 +357,7 @@ int cut_intersections_DDList(DLListNode* head, double r, double z) {
 
 // Split the list at the first (r,z) point — clone (r,z) node as new head
 // 0 means slit
-int split_intersections_DDList(DLListNode* head, double r, double z, DLListNode** new_head) 
+int split_intersections_DLList(DLListNode* head, double r, double z, DLListNode** new_head) 
 {
     DLListNode* curr = head;
     while (curr) {
@@ -412,11 +412,11 @@ void reverse_DLList(DLListNode** head)
 }
 
 
-double total_length_DDList(DLListNode* head)
+double total_length_DLList(DLListNode* head)
 {
   if (!head || !head->next)
   {
-    fprintf(stderr, "Empty or too short input for total_length_DDList.\n");
+    fprintf(stderr, "Empty or too short input for total_length_DLList.\n");
     exit(EXIT_FAILURE);
   }
 

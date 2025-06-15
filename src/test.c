@@ -35,10 +35,10 @@ void separatrix_test()
   {
     cal_separatrix_line(&dtt_example, xp, i, &(line_list[i]));
   }
-  write_DDList(line_list[0],"sep0");
-  write_DDList(line_list[1],"sep1");
-  write_DDList(line_list[2],"sep2");
-  write_DDList(line_list[3],"sep3");
+  write_DLList(line_list[0],"sep0");
+  write_DLList(line_list[1],"sep1");
+  write_DLList(line_list[2],"sep2");
+  write_DLList(line_list[3],"sep3");
 
   for (int i=0; i<4; i++)
   {
@@ -328,11 +328,11 @@ void target_curve_test()
   for(int i=0; i<4; i++)
   {
     int value;
-    value = has_intersection_DDList(tgt_cur_head, sep->line_list[i]);
+    value = has_intersection_DLList(tgt_cur_head, sep->line_list[i]);
     if(value==0)
     {
       printf("The %d sep line intersects with target cureve.\n",i);
-      insert_intersections_DDList(tgt_cur_head, sep->line_list[i], &itrsct_r, &itrsct_z);
+      insert_intersections_DLList(tgt_cur_head, sep->line_list[i], &itrsct_r, &itrsct_z);
       printf("intersection:\n");
       printf("%lf %lf\n", itrsct_r,itrsct_z);
       num_itrsct=i;
@@ -343,12 +343,12 @@ void target_curve_test()
     }
   }
   int n_cut;
-  n_cut = cut_intersections_DDList(sep->line_list[num_itrsct], itrsct_r,itrsct_z);
+  n_cut = cut_intersections_DLList(sep->line_list[num_itrsct], itrsct_r,itrsct_z);
   printf("Deleted points: %d\n", n_cut);
   char* cut_sep="sep_cut_baseline";
-  write_DDList(sep->line_list[num_itrsct], cut_sep);
+  write_DLList(sep->line_list[num_itrsct], cut_sep);
   char* name_tgt_cur="target_curve";
-  write_DDList(tgt_cur_head, name_tgt_cur);
+  write_DLList(tgt_cur_head, name_tgt_cur);
 
 
 

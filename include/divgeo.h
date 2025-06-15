@@ -110,7 +110,7 @@ void update_GridZone_pol_norm_distrb(GridZone* gridzone, const double* norm_dist
 
 void update_GridZone_end_curve(GridZone* gridzone, const TargetDLListCurve* tgt_cur);
 
-void update_GridZone_first_boudary(GridZone* gridzone, DLListNode* head);
+void update_GridZone_first_pol_points(GridZone* gridzone, DLListNode* head);
 
 //For CORE the start points is also the end point becase of closed surface.
 void update_COREGridZone_end_curve(GridZone* gridzone);

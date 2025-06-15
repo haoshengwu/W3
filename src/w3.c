@@ -21,7 +21,7 @@ int main(){
 //**********Test one line of the separatrix tracing**********************/
   // DLListNode* line_list=NULL;
   // cal_separatrix_line(&dtt_example, xp, 0,&(line_list));
-  // write_DDList(line_list,"sep0");
+  // write_DLList(line_list,"sep0");
   // free_DLList(line_list);
 //**********************************************************************/
 

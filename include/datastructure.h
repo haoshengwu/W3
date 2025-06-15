@@ -41,30 +41,30 @@ void free_DLList(DLListNode* head);
 void print_DLList(DLListNode* head);
 
 // write a double linked list to a file
-void write_DDList(DLListNode* head, const char* title);
+void write_DLList(DLListNode* head, const char* title);
 
 //insert a node between a and b, we assume b=a.next.
 void insert_between(DLListNode* a, DLListNode* b, double r, double z);  
-// check whether two DDlist are intersected or not.
+// check whether two DLList are intersected or not.
 // intersec return 1 else 0
-int has_intersection_DDList(DLListNode* head1, DLListNode* head2);
+int has_intersection_DLList(DLListNode* head1, DLListNode* head2);
 
 //assunme only 1 intersection point
 // r and z are the intersection point
-int insert_intersections_DDList(DLListNode* head1, DLListNode* head2, double* r, double* z);
+int insert_intersections_DLList(DLListNode* head1, DLListNode* head2, double* r, double* z);
 
 // return how many node are delete, cut the NEXT point of (r,z), NOT (r,z) itself
 // -1 means not in the line, 0 means r z is the last
-int cut_intersections_DDList(DLListNode* head, double r, double z);
+int cut_intersections_DLList(DLListNode* head, double r, double z);
 
-// split the DDList from point r,z and create a new node with rz and bound to new_head;
-int split_intersections_DDList(DLListNode* head, double r, double z, DLListNode** new_head);
+// split the DLList from point r,z and create a new node with rz and bound to new_head;
+int split_intersections_DLList(DLListNode* head, double r, double z, DLListNode** new_head);
 
-//Reverse the DDList
+//Reverse the DLList
 void reverse_DLList(DLListNode** head);
 
 //
-double total_length_DDList(DLListNode* head);
+double total_length_DLList(DLListNode* head);
 
 
 /*

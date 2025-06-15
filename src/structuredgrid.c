@@ -1,6 +1,8 @@
 #include "structuredgrid.h"
 #include "datastructure.h"
 #include <stdlib.h>
+#include <stdio.h>
+#include "curve.h"
 
 
 
@@ -24,7 +26,7 @@ GridZone* allocate_GridZone()
   z->pasmin = NULL;
   z->norm_pol_dist=NULL;
  
-  z->first_boundary=NULL;
+  z->first_pol_points=NULL;
 //  z->second_boundary=NULL;
 
   z->end_curve=NULL;
@@ -62,8 +64,8 @@ void free_GridZone(GridZone** z)
   free((*z)->norm_pol_dist);
   (*z)->norm_pol_dist=NULL;
 
-  free_curve((*z)->first_boundary);
-  (*z)->first_boundary=NULL;
+  free_curve((*z)->first_pol_points);
+  (*z)->first_pol_points=NULL;
 
 //NOT always has senond boudanry curve;
   // if((*z)->second_boundary)
@@ -115,16 +117,16 @@ void write_input_from_GridZone(GridZone* gridzone, const char* filename)
     }
 
     // --- 3. Boundary info ---
-    fprintf(fp, "#first_boundary\n");
-    if (gridzone->first_boundary && gridzone->first_boundary->points) {
-        fprintf(fp, "%zu\n", gridzone->first_boundary->n_point);  // Number of points
-        for (int i = 0; i < gridzone->first_boundary->n_point; ++i) {
+    fprintf(fp, "#first_pol_points\n");
+    if (gridzone->first_pol_points && gridzone->first_pol_points->points) {
+        fprintf(fp, "%zu\n", gridzone->first_pol_points->n_point);  // Number of points
+        for (int i = 0; i < gridzone->first_pol_points->n_point; ++i) {
             fprintf(fp, "%.10f %.10f\n",
-                    gridzone->first_boundary->points[i][0],
-                    gridzone->first_boundary->points[i][1]);
+                    gridzone->first_pol_points->points[i][0],
+                    gridzone->first_pol_points->points[i][1]);
         }
     } else {
-        fprintf(fp, "0\n# No first_boundary defined.\n");
+        fprintf(fp, "0\n# No first_pol_points defined.\n");
     }
 
     // --- 4. Target info ---
@@ -213,21 +215,21 @@ GridZone* load_GridZone_from_input(const char* filename)
             }
         }
 
-        else if (strncmp(line, "#first_boundary", 15) == 0) {
+        else if (strncmp(line, "#first_pol_points", 17) == 0) {
             fgets(line, sizeof(line), fp);
             size_t n;
             sscanf(line, "%zu", &n);
             if (n > 0) {
-                z->first_boundary = create_curve(n);
-                if (!z->first_boundary) {
-                    fprintf(stderr, "Memory allocation failed for first_boundary.\n");
+                z->first_pol_points = create_curve(n);
+                if (!z->first_pol_points) {
+                    fprintf(stderr, "Memory allocation failed for first_pol_points.\n");
                     exit(EXIT_FAILURE);
                 }
                 for (size_t i = 0; i < n; ++i) {
                     fgets(line, sizeof(line), fp);
                     sscanf(line, "%lf %lf",
-                           &z->first_boundary->points[i][0],
-                           &z->first_boundary->points[i][1]);
+                           &z->first_pol_points->points[i][0],
+                           &z->first_pol_points->points[i][1]);
                 }
             }
         }
@@ -286,8 +288,19 @@ void print_GridZone(GridZone* gridzone)
     for (int i = 0; i < gridzone->npoint; ++i) {
         printf("[%d] %.10f\n", i, gridzone->norm_pol_dist[i]);
     }
-
-    // --- 4. End curve ---
+    // --- 4. norm_pol_dist ---
+    if (gridzone->end_curve && gridzone->end_curve->points) {
+        printf("\n== first_pol_points (%zu points) ==\n", gridzone->first_pol_points->n_point);
+        for (size_t i = 0; i < gridzone->first_pol_points->n_point; ++i) {
+            printf("[%zu] R=%.10f  Z=%.10f\n",
+                   i,
+                   gridzone->first_pol_points->points[i][0],
+                   gridzone->first_pol_points->points[i][1]);
+        }
+    } else {
+        printf("\n== first_pol_points: NULL ==\n");
+    }
+    // --- 5. End curve ---
     if (gridzone->end_curve && gridzone->end_curve->points) {
         printf("\n== End Curve (%zu points) ==\n", gridzone->end_curve->n_point);
         for (size_t i = 0; i < gridzone->end_curve->n_point; ++i) {
