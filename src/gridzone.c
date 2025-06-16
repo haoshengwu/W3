@@ -1,4 +1,4 @@
-#include "structuredgrid.h"
+#include "gridzone.h"
 #include "datastructure.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,7 +17,6 @@ GridZone* allocate_GridZone()
   z->npoint=-1;
   z->nr=-1;
   
-  z->grid_curveset=NULL;
 
   z->start_point_R=NULL;
   z->start_point_Z=NULL;
@@ -42,9 +41,6 @@ void free_GridZone(GridZone** z)
   //free name
   free((*z)->name);
   (*z)->name=NULL;
-
-  free_curveset((*z)->grid_curveset);
-  (*z)->grid_curveset=NULL;
 
   free((*z)->start_point_R);
   (*z)->start_point_R=NULL;

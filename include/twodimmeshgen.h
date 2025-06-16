@@ -2,7 +2,7 @@
 #define TWODIMMESHGEN_H
 
 #include "carrefunction.h"
-#include "structuredgrid.h"
+#include "gridzone.h"
 #include "ode.h"
 
 void generate_CARRE_mesh(GridZone* GridZone, 

@@ -4,7 +4,7 @@
 #include <math.h>
 #include <stdbool.h>
 
-#include "structuredgrid.h"
+#include "gridzone.h"
 #include "utils.h"
 #define MAX_ITER_DG 1000
 #define EPSILON_DG 5.0E-7

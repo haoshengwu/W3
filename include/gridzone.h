@@ -1,5 +1,5 @@
-#ifndef STRUCTUREDGRID_H
-#define STRUCTUREDGRID_H
+#ifndef GRIDZONE_H
+#define GRIDZONE_H
 #include "curve.h"
 
 typedef struct {
@@ -23,8 +23,6 @@ typedef struct {
     //Curve* second_boundary;
     Curve* end_curve;
 
-    // --- 5. Grid data ---
-    CurveSet* grid_curveset;
 } GridZone;
 
 // Create a new GridZone

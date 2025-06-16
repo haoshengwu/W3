@@ -1,12 +1,11 @@
 #ifndef DIVGEO_H
 #define DIVGEO_H
 
-#include "structuredgrid.h"
+#include "gridzone.h"
 #include "separatrix.h"
 #include "equilibrium.h"
 #include "gradpsi.h"
 #include "curve.h"
-#include "structuredgrid.h"
 #include "target.h"
 
 typedef struct 
