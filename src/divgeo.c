@@ -219,7 +219,7 @@ static DGPolZone* read_zone(FILE* fp, int n_points, const char* name)
     return polzone;
 }
 
-static Curve* read_curve(FILE* fp, int* n_curve_point)
+static OldCurve* read_curve(FILE* fp, int* n_curve_point)
 {
     char line[256];
     int n_point = 0;
@@ -236,7 +236,7 @@ static Curve* read_curve(FILE* fp, int* n_curve_point)
     *n_curve_point=n_point;
     fseek(fp, pos, SEEK_SET);
 
-    Curve* curve = create_curve(n_point);
+    OldCurve* curve = create_oldcurve(n_point);
     for (int i = 0; i < n_point; i++) 
     {
       fgets(line, sizeof(line), fp);
@@ -351,7 +351,7 @@ int load_dgtrg_from_file(DivGeoTrg* trg, const char* filename)
     trg->n_zone = count_zones;
 
     trg->n_target_curve = count_targets > 0 ? malloc(count_targets * sizeof(int)) : NULL;
-    trg->target_curves = count_targets > 0 ? malloc(count_targets * sizeof(Curve*)) : NULL;
+    trg->target_curves = count_targets > 0 ? malloc(count_targets * sizeof(OldCurve*)) : NULL;
     trg->regions = count_regions > 0 ? malloc(count_regions * sizeof(DGRadRegion*)) : NULL;
     trg->zones = count_zones > 0 ? malloc(count_zones * sizeof(DGPolZone*)) : NULL;
 
@@ -471,7 +471,7 @@ TargetDLListCurve* create_target_curve_from_dgtrg(DivGeoTrg* trg, int n)
   snprintf(name, sizeof(name), "TargetCurve_%d", n);
   change_name_target_curve(tgt_cur, name);
   int n_point=trg->n_target_curve[n];
-  //  printf("Target Curve Name: %s\n", tgt_cur->name);
+  //  printf("Target OldCurve Name: %s\n", tgt_cur->name);
   for(int i=0; i<n_point;i++)
   {
     // printf("DEBUG r=%.4f z=%.4f\n", r, z);
@@ -500,7 +500,7 @@ void free_dgtrg(DivGeoTrg* trg)
     {
       if (trg->target_curves[i]) 
       {
-        free_curve(trg->target_curves[i]);
+        free_oldcurve(trg->target_curves[i]);
         trg->target_curves[i] = NULL;
       }
     }
@@ -1335,7 +1335,14 @@ void update_GridZone_end_curve(GridZone* gridzone, const TargetDLListCurve* tgt_
         exit(EXIT_FAILURE);
     }
 
+    if (gridzone->end_curve)
+    {
+        fprintf(stderr, "WARNING: There is alread an end_cure.\n");
+        exit(EXIT_FAILURE);
+    }
+
     int n = tgt_cur->n;
+    //gridzone->end_curve = create_oldcurve(n);
     gridzone->end_curve = create_curve(n);
     if (!gridzone->end_curve)
     {
@@ -1351,8 +1358,7 @@ void update_GridZone_end_curve(GridZone* gridzone, const TargetDLListCurve* tgt_
             fprintf(stderr, "tgt_cur->n is larger than actual linked list length.\n");
             exit(EXIT_FAILURE);
         }
-        gridzone->end_curve->points[i][0] = node->r;
-        gridzone->end_curve->points[i][1] = node->z;
+        add_last_point_curve(gridzone->end_curve, node->r,node->z);
         node = node->next;
     }
 
@@ -1378,7 +1384,7 @@ void update_GridZone_first_pol_points(GridZone* gridzone, DLListNode* head)
     n++;
     node=node->next;
   }
-  gridzone->first_pol_points = create_curve(n);
+  gridzone->first_pol_points = create_oldcurve(n);
   if (!gridzone->first_pol_points) 
   {
     fprintf(stderr, "Memory allocation failed for first_pol_points.\n");
@@ -1407,7 +1413,9 @@ void update_COREGridZone_end_curve(GridZone* gridzone)
   }
   
   int n = gridzone->nr;
+  //gridzone->end_curve = create_oldcurve(n);  // Create first, then assign points
   gridzone->end_curve = create_curve(n);  // Create first, then assign points
+
 
   if (!gridzone->end_curve)
   {
@@ -1416,7 +1424,10 @@ void update_COREGridZone_end_curve(GridZone* gridzone)
   }
   for(int i=0; i<n; i++)
   {
-    gridzone->end_curve->points[i][0]=gridzone->start_point_R[i];
-    gridzone->end_curve->points[i][1]=gridzone->start_point_Z[i];
+    add_last_point_curve(gridzone->end_curve, 
+                         gridzone->start_point_R[i], 
+                         gridzone->start_point_Z[i]);
+//    gridzone->end_curve->points[i][0]=gridzone->start_point_R[i];
+//    gridzone->end_curve->points[i][1]=gridzone->start_point_Z[i];
   }
 }

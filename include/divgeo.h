@@ -60,7 +60,7 @@ typedef struct
   char* topo;
   int n_target;//total target number
   int* n_target_curve; //array[i] is the total number of points for target_curves[i]
-  Curve** target_curves;
+  OldCurve** target_curves;
 
   // for the radial distribution of magecit surface
   // !!!Unit is Wb/rad

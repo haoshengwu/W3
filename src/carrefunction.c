@@ -340,7 +340,7 @@ int indcrb_CARRE(double **curve, size_t n_curve, double point[2], double d)
                                      +pow(curve[1][1] - curve[0][1], 2));
   if (dist < EPS && first_segment_length > d) 
   {
-    return 1;
+    return 0;
   }
 
   for (size_t i = 0; i < n_curve - 1; i++) 

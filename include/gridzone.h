@@ -13,14 +13,17 @@ typedef struct {
     double* guard_end;      // [nr]
     double* pasmin;         // [nr]
 
-    //first line distribution
+    // --- 3. norm_pol_dist ---
     int npoint; //points in the poloidal magnetic line, elements number is np-1;
     double* norm_pol_dist;  // [np]distribution of points in the poloidal direction， from 0.0 to 1.0
 
-    // --- 3. Boundary info ---
-    Curve* first_pol_points;
+    // --- 4. first_pol_points ---
+    OldCurve* first_pol_points;
     //TODO
-    //Curve* second_boundary;
+    //OldCurve* second_boundary;
+    // --- 5. End curve ---
+
+    //OldCurve* end_curve;
     Curve* end_curve;
 
 } GridZone;
