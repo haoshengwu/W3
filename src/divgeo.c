@@ -1384,7 +1384,7 @@ void update_GridZone_first_pol_points(GridZone* gridzone, DLListNode* head)
     n++;
     node=node->next;
   }
-  gridzone->first_pol_points = create_oldcurve(n);
+  gridzone->first_pol_points = create_curve(n);
   if (!gridzone->first_pol_points) 
   {
     fprintf(stderr, "Memory allocation failed for first_pol_points.\n");
@@ -1393,8 +1393,7 @@ void update_GridZone_first_pol_points(GridZone* gridzone, DLListNode* head)
   node=head;
   for(int i=0;i<n;i++)
   {
-    gridzone->first_pol_points->points[i][0]=node->r;
-    gridzone->first_pol_points->points[i][1]=node->z;
+    add_last_point_curve(gridzone->first_pol_points,node->r,node->z);
     node=node->next;
   }
 }

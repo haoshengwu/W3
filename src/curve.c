@@ -2,8 +2,10 @@
 #include <stdio.h>
 #include <math.h>
 
+
 #define TOL_CURVE 1.0E-10 // Tolerance for in-segment comparison
-    
+#define EPS_CURVE 1.0E-12 // Tolerance for in-segment comparison
+
 OldCurve* create_oldcurve(size_t n_point)
 {   
   if(!n_point)
@@ -177,6 +179,119 @@ void print_curve(const Curve *c)
 }
 
 
+/* 2D cross product: (B - A) × (C - A) */
+static inline double cross(double ax, double ay, 
+                           double bx, double by,
+                           double cx, double cy) 
+{
+    return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+}
+
+/* Check if (cx, cy) lies on segment (ax, ay)-(bx, by) */
+static inline int on_segment(double ax, double ay, 
+                             double bx, double by, 
+                             double cx, double cy) 
+{
+    return fmin(ax, bx) - EPS_CURVE <= cx && cx <= fmax(ax, bx) + EPS_CURVE &&
+           fmin(ay, by) - EPS_CURVE <= cy && cy <= fmax(ay, by) + EPS_CURVE;
+}
+
+/* Return 0 if segments intersect (including endpoints), 1 if not */
+int has_intersection(double x1, double y1, double x2, double y2,
+                     double x3, double y3, double x4, double y4)
+{
+    // Step 1: Bounding box check
+    if (fmax(x1, x2) + EPS_CURVE < fmin(x3, x4) ||
+        fmax(x3, x4) + EPS_CURVE < fmin(x1, x2) ||
+        fmax(y1, y2) + EPS_CURVE < fmin(y3, y4) ||
+        fmax(y3, y4) + EPS_CURVE < fmin(y1, y2)) 
+    {
+        return 1;
+    }
+
+    // Step 2: Cross product signs
+    double d1 = cross(x3, y3, x4, y4, x1, y1);
+    double d2 = cross(x3, y3, x4, y4, x2, y2);
+    double d3 = cross(x1, y1, x2, y2, x3, y3);
+    double d4 = cross(x1, y1, x2, y2, x4, y4);
+
+    if ((d1 * d2 < 0) && (d3 * d4 < 0)) return 0;
+
+    if (fabs(d1) < EPS_CURVE && on_segment(x3, y3, x4, y4, x1, y1)) return 0;
+    if (fabs(d2) < EPS_CURVE && on_segment(x3, y3, x4, y4, x2, y2)) return 0;
+    if (fabs(d3) < EPS_CURVE && on_segment(x1, y1, x2, y2, x3, y3)) return 0;
+    if (fabs(d4) < EPS_CURVE && on_segment(x1, y1, x2, y2, x4, y4)) return 0;
+
+    return 1;
+}
+
+int get_intersection_point(double x1, double y1, double x2, double y2,
+                           double x3, double y3, double x4, double y4,
+                           double* intsect_x, double* intsect_y)
+{
+    // First check if they intersect
+    // Bounding box rejection
+    if (fmax(x1, x2) + EPS_CURVE < fmin(x3, x4) ||
+        fmax(x3, x4) + EPS_CURVE < fmin(x1, x2) ||
+        fmax(y1, y2) + EPS_CURVE < fmin(y3, y4) ||
+        fmax(y3, y4) + EPS_CURVE < fmin(y1, y2)) 
+    {
+        *intsect_x=NAN;
+        *intsect_y=NAN;
+        return 1;
+    }
+
+    // Cross products
+    double d1 = cross(x3, y3, x4, y4, x1, y1);
+    double d2 = cross(x3, y3, x4, y4, x2, y2);
+    double d3 = cross(x1, y1, x2, y2, x3, y3);
+    double d4 = cross(x1, y1, x2, y2, x4, y4);
+
+    // General case
+    if ((d1 * d2 < 0) && (d3 * d4 < 0)) {
+        // Use parametric intersection: compute t
+        double dx1 = x2 - x1;
+        double dy1 = y2 - y1;
+        double dx2 = x4 - x3;
+        double dy2 = y4 - y3;
+
+        double denom = dx1 * dy2 - dy1 * dx2;
+        if (fabs(denom) < EPS_CURVE) 
+        {
+            *intsect_x=NAN;
+            *intsect_y=NAN;
+            return 1; // Parallel or degenerate
+        }
+        double t = ((x3 - x1) * dy2 - (y3 - y1) * dx2) / denom;
+
+        *intsect_x = x1 + t * dx1;
+        *intsect_y = y1 + t * dy1;
+        return 0;
+    }
+
+    // Special cases: endpoints overlap
+    if (fabs(d1) < EPS_CURVE && fmin(x3,x4)-EPS_CURVE <= x1 && x1 <= fmax(x3,x4)+EPS_CURVE &&
+                                 fmin(y3,y4)-EPS_CURVE <= y1 && y1 <= fmax(y3,y4)+EPS_CURVE) 
+    {
+        *intsect_x = x1; *intsect_y = y1; return 0;
+    }
+    if (fabs(d2) < EPS_CURVE && fmin(x3,x4)-EPS_CURVE <= x2 && x2 <= fmax(x3,x4)+EPS_CURVE &&
+                                 fmin(y3,y4)-EPS_CURVE <= y2 && y2 <= fmax(y3,y4)+EPS_CURVE) 
+    {
+        *intsect_x = x2; *intsect_y = y2; return 0;
+    }
+    if (fabs(d3) < EPS_CURVE && fmin(x1,x2)-EPS_CURVE <= x3 && x3 <= fmax(x1,x2)+EPS_CURVE &&
+                                 fmin(y1,y2)-EPS_CURVE <= y3 && y3 <= fmax(y1,y2)+EPS_CURVE) 
+    {
+        *intsect_x = x3; *intsect_y = y3; return 0;
+    }
+    if (fabs(d4) < EPS_CURVE && fmin(x1,x2)-EPS_CURVE <= x4 && x4 <= fmax(x1,x2)+EPS_CURVE &&
+                                 fmin(y1,y2)-EPS_CURVE <= y4 && y4 <= fmax(y1,y2)+EPS_CURVE) 
+    {
+        *intsect_x = x4; *intsect_y = y4; return 0;
+    }
+    return 1;
+}
 /*************************************************
  * Use for TwoDim Grid Generation
 **************************************************/

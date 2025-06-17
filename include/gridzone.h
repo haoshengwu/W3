@@ -18,12 +18,12 @@ typedef struct {
     double* norm_pol_dist;  // [np]distribution of points in the poloidal direction， from 0.0 to 1.0
 
     // --- 4. first_pol_points ---
-    OldCurve* first_pol_points;
+    //OldCurve* first_pol_points;
+    Curve* first_pol_points;
     //TODO
     //OldCurve* second_boundary;
-    // --- 5. End curve ---
 
-    //OldCurve* end_curve;
+    // --- 5. End curve ---
     Curve* end_curve;
 
 } GridZone;

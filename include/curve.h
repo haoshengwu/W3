@@ -54,6 +54,16 @@ void write_curve(const char *filename, const Curve *c);
 void print_curve(const Curve *c);
 
 
+//Deterime whether there is a intersection betwee segement1 (x1,y1----x2,y2) segement2 (x3,y3-----x4,y4)
+//Return 0 means has intersection, othwise 1.
+int has_intersection(double x1, double y1, double x2, double y2,
+                     double x3, double y3, double x4, double y4);
+//Deterime whether there is a intersection betwee segement1 (x1,y1----x2,y2) segement2 (x3,y3-----x4,y4)
+//Return 0 means has intersection, othwise 1.
+int get_intersection_point(double x1, double y1, double x2, double y2,
+                           double x3, double y3, double x4, double y4,
+                           double* ix, double* iy);
+
 /*************************************************
  * Use for TwoDim Grid Generation
 **************************************************/

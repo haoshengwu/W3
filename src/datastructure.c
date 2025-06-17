@@ -1,7 +1,7 @@
 #include "datastructure.h"
 #include <math.h>
 #include <stdio.h>
-#define EPSILON_DATASTR 1.0E-10
+#define EPS_DATASTR 1.0E-10
 
 //************** Double linked list related ******************//
 DLListNode* create_DLListNode(double r, double z)
@@ -122,8 +122,8 @@ void connect_DLList(DLListNode* head1,DLListNode** head2, int skip)
   DLListNode* cur = *head2;
   
   int delete_duplicate=0;
-  if(fabs(tail1->r-cur->r)<EPSILON_DATASTR&&
-      fabs(tail1->z-cur->z)<EPSILON_DATASTR)
+  if(fabs(tail1->r-cur->r)<EPS_DATASTR&&
+      fabs(tail1->z-cur->z)<EPS_DATASTR)
       {
         if(skip==1)
         {
@@ -151,7 +151,6 @@ void connect_DLList(DLListNode* head1,DLListNode** head2, int skip)
     *head2=NULL;
   }
 }
-
 
 
 // free a double linked list
@@ -196,37 +195,50 @@ void write_DLList(DLListNode* head, const char* filename)
     printf("write the values in %s\n", filename);
 }
 
-// Compute the cross product of two vectors
-static double cross(double x1, double y1, double x2, double y2) {
-  return x1 * y2 - x2 * y1;
+/* 2D cross product: (B - A) × (C - A) */
+static inline double cross(double ax, double ay, 
+                           double bx, double by,
+                           double cx, double cy) 
+{
+    return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
 }
 
-// Check if a value is within [0, 1] considering floating-point tolerance EPSILON
-static int inRange(double value) {
-    return value >= -EPSILON_DATASTR && value <= 1.0 + EPSILON_DATASTR;
+/* Check if (cx, cy) lies on segment (ax, ay)-(bx, by) */
+static inline int on_segment(double ax, double ay, 
+                             double bx, double by, 
+                             double cx, double cy) 
+{
+    return fmin(ax, bx) - EPS_DATASTR <= cx && cx <= fmax(ax, bx) + EPS_DATASTR &&
+           fmin(ay, by) - EPS_DATASTR <= cy && cy <= fmax(ay, by) + EPS_DATASTR;
 }
 
-// Returns 0 if the two segments (x1, y1)-(x2, y2) and (x3, y3)-(x4, y4) intersect
-// Returns 1 otherwise
-static int segments_intersect(double x1, double y1, double x2, double y2,
-                       double x3, double y3, double x4, double y4) {
-    double dx1 = x2 - x1, dy1 = y2 - y1; // Direction vector of the first segment
-    double dx2 = x4 - x3, dy2 = y4 - y3; // Direction vector of the second segment
-    double delta = cross(dx1, dy1, dx2, dy2); // Cross product to check for parallelism
-
-    if (fabs(delta) < EPSILON_DATASTR) return 1; // Segments are parallel or colinear
-
-    // Calculate the parameters of intersection point on both segments
-    double s = cross(x3 - x1, y3 - y1, dx2, dy2) / delta;
-    double t = cross(x3 - x1, y3 - y1, dx1, dy1) / delta;
-
-    // Check if the intersection point lies within both segments
-    if (inRange(s) && inRange(t)) 
+/* Return 0 if segments intersect (including endpoints), 1 if not */
+static int has_intersection_segment(double x1, double y1, double x2, double y2,
+                             double x3, double y3, double x4, double y4)
+{
+    // Step 1: Bounding box check
+    if (fmax(x1, x2) + EPS_DATASTR < fmin(x3, x4) ||
+        fmax(x3, x4) + EPS_DATASTR < fmin(x1, x2) ||
+        fmax(y1, y2) + EPS_DATASTR < fmin(y3, y4) ||
+        fmax(y3, y4) + EPS_DATASTR < fmin(y1, y2)) 
     {
-        return 0; // Segments intersect
-     }
-    // printf("WARNING: NO INTERSECTION FOUND.\n");
-    return 1; // Segments do not intersect
+        return 1;
+    }
+
+    // Step 2: Cross product signs
+    double d1 = cross(x3, y3, x4, y4, x1, y1);
+    double d2 = cross(x3, y3, x4, y4, x2, y2);
+    double d3 = cross(x1, y1, x2, y2, x3, y3);
+    double d4 = cross(x1, y1, x2, y2, x4, y4);
+
+    if ((d1 * d2 < 0) && (d3 * d4 < 0)) return 0;
+
+    if (fabs(d1) < EPS_DATASTR && on_segment(x3, y3, x4, y4, x1, y1)) return 0;
+    if (fabs(d2) < EPS_DATASTR && on_segment(x3, y3, x4, y4, x2, y2)) return 0;
+    if (fabs(d3) < EPS_DATASTR && on_segment(x1, y1, x2, y2, x3, y3)) return 0;
+    if (fabs(d4) < EPS_DATASTR && on_segment(x1, y1, x2, y2, x4, y4)) return 0;
+
+    return 1;
 }
 
 // 0 means have intersection, 1 means no.
@@ -236,7 +248,7 @@ int has_intersection_DLList(DLListNode* head1, DLListNode* head2)
     {
       for (DLListNode* b = head2; b && b->next; b = b->next)
          {
-            if (segments_intersect(
+            if (has_intersection_segment(
                     a->r, a->z, a->next->r, a->next->z,
                     b->r, b->z, b->next->r, b->next->z)==0) 
             {
@@ -253,29 +265,77 @@ int has_intersection_DLList(DLListNode* head1, DLListNode* head2)
 
 
 // Determine whether two line segments intersect and calculate the intersection point
-static int getIntersection(double x1, double y1, double x2, double y2,
-                    double x3, double y3, double x4, double y4,
-                    double *ix, double *iy) {
-    double dx1 = x2 - x1, dy1 = y2 - y1; // Direction vector of the first segment
-    double dx2 = x4 - x3, dy2 = y4 - y3; // Direction vector of the second segment
-    double delta = cross(dx1, dy1, dx2, dy2); // Cross product to check for parallelism
-
-    if (fabs(delta) < EPSILON_DATASTR) return 1; // Segments are parallel or colinear
-
-    // Calculate the parameters of intersection point on both segments
-    double s = cross(x3 - x1, y3 - y1, dx2, dy2) / delta;
-    double t = cross(x3 - x1, y3 - y1, dx1, dy1) / delta;
-
-    // Check if the intersection point lies within both segments
-    if (inRange(s) && inRange(t)) 
+static int get_intersection(double x1, double y1, double x2, double y2,
+                           double x3, double y3, double x4, double y4,
+                           double* intsect_x, double* intsect_y)
+{
+    // First check if they intersect
+    // Bounding box rejection
+    if (fmax(x1, x2) + EPS_DATASTR < fmin(x3, x4) ||
+        fmax(x3, x4) + EPS_DATASTR < fmin(x1, x2) ||
+        fmax(y1, y2) + EPS_DATASTR < fmin(y3, y4) ||
+        fmax(y3, y4) + EPS_DATASTR < fmin(y1, y2)) 
     {
-       *ix = x1 + s * dx1;
-       *iy = y1 + s * dy1;
-        return 0; // Segments intersect
-     }
-    // printf("WARNING: NO INTERSECTION FOUND.\n");
-    return 1; // Segments do not intersect
+        *intsect_x=NAN;
+        *intsect_y=NAN;
+        return 1;
+    }
+
+    // Cross products
+    double d1 = cross(x3, y3, x4, y4, x1, y1);
+    double d2 = cross(x3, y3, x4, y4, x2, y2);
+    double d3 = cross(x1, y1, x2, y2, x3, y3);
+    double d4 = cross(x1, y1, x2, y2, x4, y4);
+
+    // General case
+    if ((d1 * d2 < 0) && (d3 * d4 < 0)) {
+        // Use parametric intersection: compute t
+        double dx1 = x2 - x1;
+        double dy1 = y2 - y1;
+        double dx2 = x4 - x3;
+        double dy2 = y4 - y3;
+
+        double denom = dx1 * dy2 - dy1 * dx2;
+        if (fabs(denom) < EPS_DATASTR) 
+        {
+            *intsect_x=NAN;
+            *intsect_y=NAN;
+            return 1; // Parallel or degenerate
+        }
+        double t = ((x3 - x1) * dy2 - (y3 - y1) * dx2) / denom;
+
+        *intsect_x = x1 + t * dx1;
+        *intsect_y = y1 + t * dy1;
+        return 0;
+    }
+
+    // Special cases: endpoints overlap
+    if (fabs(d1) < EPS_DATASTR && fmin(x3,x4)-EPS_DATASTR <= x1 && x1 <= fmax(x3,x4)+EPS_DATASTR &&
+                                 fmin(y3,y4)-EPS_DATASTR <= y1 && y1 <= fmax(y3,y4)+EPS_DATASTR) 
+    {
+        *intsect_x = x1; *intsect_y = y1; return 0;
+    }
+    if (fabs(d2) < EPS_DATASTR && fmin(x3,x4)-EPS_DATASTR <= x2 && x2 <= fmax(x3,x4)+EPS_DATASTR &&
+                                 fmin(y3,y4)-EPS_DATASTR <= y2 && y2 <= fmax(y3,y4)+EPS_DATASTR) 
+    {
+        *intsect_x = x2; *intsect_y = y2; return 0;
+    }
+    if (fabs(d3) < EPS_DATASTR && fmin(x1,x2)-EPS_DATASTR <= x3 && x3 <= fmax(x1,x2)+EPS_DATASTR &&
+                                 fmin(y1,y2)-EPS_DATASTR <= y3 && y3 <= fmax(y1,y2)+EPS_DATASTR) 
+    {
+        *intsect_x = x3; *intsect_y = y3; return 0;
+    }
+    if (fabs(d4) < EPS_DATASTR && fmin(x1,x2)-EPS_DATASTR <= x4 && x4 <= fmax(x1,x2)+EPS_DATASTR &&
+                                 fmin(y1,y2)-EPS_DATASTR <= y4 && y4 <= fmax(y1,y2)+EPS_DATASTR) 
+    {
+        *intsect_x = x4; *intsect_y = y4; return 0;
+    }
+    return 1;
 }
+
+
+
+
 
 
 void insert_between(DLListNode* a, DLListNode* b, double r, double z) 
@@ -296,7 +356,7 @@ int insert_intersections_DLList(DLListNode* head1, DLListNode* head2, double* r_
     {
       for (DLListNode* b = head2; b && b->next; b = b->next) 
       {
-        if (getIntersection(
+        if (get_intersection(
                   a->r, a->z, a->next->r, a->next->z,
                   b->r, b->z, b->next->r, b->next->z,
                   r_ptr, z_ptr)==0) 
@@ -327,7 +387,7 @@ int cut_intersections_DLList(DLListNode* head, double r, double z) {
 
     // Step 1: Find the node with matching (r, z)
     while (current) {
-        if (fabs(current->r - r) < EPSILON_DATASTR && fabs(current->z - z) < EPSILON_DATASTR) {
+        if (fabs(current->r - r) < EPS_DATASTR && fabs(current->z - z) < EPS_DATASTR) {
             break;
         }
         current = current->next;
@@ -361,7 +421,7 @@ int split_intersections_DLList(DLListNode* head, double r, double z, DLListNode*
 {
     DLListNode* curr = head;
     while (curr) {
-        if (fabs(curr->r - r) < EPSILON_DATASTR && fabs(curr->z - z) < EPSILON_DATASTR) {
+        if (fabs(curr->r - r) < EPS_DATASTR && fabs(curr->z - z) < EPS_DATASTR) {
             DLListNode* cloned = create_DLListNode(r, z);
             if (!cloned) return 0;
 

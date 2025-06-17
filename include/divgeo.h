@@ -115,5 +115,4 @@ void update_GridZone_first_pol_points(GridZone* gridzone, DLListNode* head);
 void update_COREGridZone_end_curve(GridZone* gridzone);
 
 
-
 #endif

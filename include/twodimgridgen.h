@@ -14,23 +14,27 @@ typedef struct {
 } GridPoint;
 
 typedef struct {
-    int npol;  // Number of poloidal points (inner loop / fast index)
-    int nrad;  // Number of radial points (outer loop / slow index)
+    int npol;       // Logical number of poloidal points (columns)
+    int nrad;       // Logical number of radial points (rows)
+    int cap_npol;   // Allocated number of poloidal points (row stride)
+    int cap_nrad;   // Allocated number of radial points (column count)
+    int offset_rad; // Row offset from physical memory origin
+    int offset_pol; // Column offset from physical memory origin
 
     // Grid points stored in row-major order:
-    //   - radial index ir = 0 to nrad-1 (outer loop)
-    //   - poloidal index ip = 0 to npol-1 (inner loop)
-    // Access: points[ir * npol + ip]
+    //   - ir = 0 to nrad-1 maps to offset_rad + ir
+    //   - ip = 0 to npol-1 maps to offset_pol + ip
+    // Access: points[(offset_rad + ir) * cap_npol + (offset_pol + ip)]
     GridPoint* points;
 } TwoDimGrid;
 
-TwoDimGrid* create_2Dgrid(int npol, int nrad);
+TwoDimGrid* create_2Dgrid_default(int npol, int nrad);
 void free_2Dgrid(TwoDimGrid* grid);
 
-GridPoint get_point_2Dgrid(const TwoDimGrid* grid, int ip, int ir);
-double get_x_2Dgrid(const TwoDimGrid* grid, int ip, int ir);
-double get_y_2Dgrid(const TwoDimGrid* grid, int ip, int ir);
-void set_point_2Dgrid(TwoDimGrid* grid, int ip, int ir, double x, double y);
+GridPoint* get_point_2Dgrid(TwoDimGrid* g, int ir, int ip);
+double get_x_2Dgrid(const TwoDimGrid* g, int ir, int ip);
+double get_y_2Dgrid(const TwoDimGrid* g, int ir, int ip);
+void set_point_2Dgrid(TwoDimGrid* g, int ir, int ip, double x, double y);
 
 
 //use CARRE algorithm to generate grid points
