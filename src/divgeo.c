@@ -6,37 +6,15 @@
 
 #include "gridzone.h"
 #include "utils.h"
+#include "polsegm.h"
+
 #define MAX_ITER_DG 1000
 #define EPSILON_DG 5.0E-7
 
 #define TGUARD 0.2
 #define PASMIN 1.0E-3
 
-// DGClosedStruc* create_DGClosedStruc(int n_point)
-// {
-//   DGClosedStruc* struc=malloc(sizeof(DGClosedStruc));
-//   if(!struc)
-//   {
-//     fprintf(stderr, "Error: failed to allocate memory for DGClosedStruc\n");
-//     return NULL;
-//   }
-//   struc->n_point=n_point;
-//   struc->points=allocate_2d_array(n_point,2);
-//   if (!struc->points)
-//   {
-//     fprintf(stderr, "Error: failed to allocate memory for points in DGClosedStruc\n");
-//     free(struc);
-//     return NULL;
-//   }
-//   return struc;
-// }
 
-void free_DGClosedStruc(DGClosedStruc* struc)
-{
-  if (!struc) return;
-  free_2d_array(struc->points);
-  free(struc);
-}
 
 DGRadRegion* create_DGRadRegion(int n_level, const char* name)
 {
@@ -193,6 +171,7 @@ static DGRadRegion* read_region(FILE* fp, int n_level, const char* name)
     }
     return radregion;
 }
+
 static DGPolZone* read_zone(FILE* fp, int n_points, const char* name)
 {
     char line[256];
@@ -248,7 +227,6 @@ static OldCurve* read_curve(FILE* fp, int* n_curve_point)
     }
     return curve;
 }
-
 
 static double* read_doubles(FILE* fp, int n) {
     if (n <= 0) return NULL;
@@ -796,89 +774,98 @@ static double* recover_array_from_diff(const double* diff, int n, double first_v
     return arr;
 }
 
-static DLListNode* cal_pol_points(DLListNode* head,
-                                  const double*     pol_dis,
-                                  int               n)
+static void change_name(char **name, const char *str)
 {
-    if (!head || !pol_dis || n <= 0)
-    {
-      fprintf(stderr,"Empty input for cal_pol_points.\n");
-      exit(EXIT_FAILURE);
+    if (*name) {
+        free(*name);
+        *name = NULL;
     }
 
-    // 1. Compute total arc length of the original curve
-    double total_len = total_length_DLList(head);
-
-    DLListNode* new_head = NULL;
-    DLListNode* new_tail = NULL;
-
-    // 2. Interpolate points at each normalized distance
-    for (int k = 0; k < n; ++k) {
-        const double target_d = pol_dis[k] * total_len;
-
-        const DLListNode* seg = head;
-        double accum = 0.0;
-        DLListNode* new_node = NULL;
-
-        // Walk through the original curve to find the segment where target_d lies
-        while (seg && seg->next) {
-            double dx = seg->next->r - seg->r;
-            double dy = seg->next->z - seg->z;
-            double seg_len = sqrt(dx*dx + dy*dy);
-
-            // Check if target_d is within this segment, with floating point tolerance
-            if (accum - 1.0E-10 <= target_d && target_d <= accum + seg_len +  1.0E-10)
-            {
-                double remain = target_d - accum;
-                if (fabs(remain) <= 1.0E-10) {
-                    // Point lies at the start of the segment
-                    new_node = create_DLListNode(seg->r, seg->z);
-                } else if (fabs(remain - seg_len) <= 1.0E-10) {
-                    // Point lies at the end of the segment
-                    new_node = create_DLListNode(seg->next->r, seg->next->z);
-                } else {
-                    // Linear interpolation within the segment
-                    double ratio = remain / seg_len;
-                    double r_int = seg->r + ratio * dx;
-                    double z_int = seg->z + ratio * dy;
-                    new_node = create_DLListNode(r_int, z_int);
-                }
-                break;
-            }
-            accum += seg_len;
-            seg = seg->next;
-        }
-
-        // If no segment matched due to floating point rounding, use the last point as fallback
-        if (!new_node && seg) {
-            const DLListNode* tail = seg->next ? seg->next : seg;
-            new_node = create_DLListNode(tail->r, tail->z);
-        }
-
-        // Append the new node to the output linked list
-        if (!new_head) {
-            new_head = new_tail = new_node;
-        } else {
-            new_tail->next = new_node;
-            new_node->prev = new_tail;
-            new_tail = new_node;
-        }
+    *name = malloc(strlen(str) + 1);
+    if (*name != NULL) {
+        strcpy(*name, str);
+    } else {
+        fprintf(stderr, "Failed to allocate memory\n");
+        exit(EXIT_FAILURE);
     }
-    if(pol_dis[0]<1.0E-10)
-    {
-      new_head->r=head->r;
-      new_head->z=head->z;
-    }
-    if((pol_dis[n-1]-1.0)<1.0E-10)
-    {
-      DLListNode* tail = get_DLList_endnode(head);
-      new_tail->r=tail->r;
-      new_tail->z=tail->z;
-    }
-    return new_head;
 }
 
-void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradpsilines)
+//Not used yet
+// static DLListNode* cal_pol_points(DLListNode* head,
+//                                   const double*     pol_dis,
+//                                   int               n)
+// {
+//     if (!head || !pol_dis || n <= 0)
+//     {
+//       fprintf(stderr,"Empty input for cal_pol_points.\n");
+//       exit(EXIT_FAILURE);
+//     }
+//     // 1. Compute total arc length of the original curve
+//     double total_len = total_length_DLList(head);
+//    DLListNode* new_head = NULL;
+//     DLListNode* new_tail = NULL;
+//     // 2. Interpolate points at each normalized distance
+//     for (int k = 0; k < n; ++k) {
+//         const double target_d = pol_dis[k] * total_len;
+//         const DLListNode* seg = head;
+//         double accum = 0.0;
+//         DLListNode* new_node = NULL;
+//         // Walk through the original curve to find the segment where target_d lies
+//         while (seg && seg->next) {
+//             double dx = seg->next->r - seg->r;
+//             double dy = seg->next->z - seg->z;
+//             double seg_len = sqrt(dx*dx + dy*dy);
+//             // Check if target_d is within this segment, with floating point tolerance
+//             if (accum - 1.0E-10 <= target_d && target_d <= accum + seg_len +  1.0E-10)
+//             {
+//                 double remain = target_d - accum;
+//                 if (fabs(remain) <= 1.0E-10) {
+//                     // Point lies at the start of the segment
+//                     new_node = create_DLListNode(seg->r, seg->z);
+//                 } else if (fabs(remain - seg_len) <= 1.0E-10) {
+//                     // Point lies at the end of the segment
+//                     new_node = create_DLListNode(seg->next->r, seg->next->z);
+//                 } else {
+//                     // Linear interpolation within the segment
+//                     double ratio = remain / seg_len;
+//                     double r_int = seg->r + ratio * dx;
+//                     double z_int = seg->z + ratio * dy;
+//                     new_node = create_DLListNode(r_int, z_int);
+//                 }
+//                 break;
+//             }
+//             accum += seg_len;
+//             seg = seg->next;
+//         }
+//         // If no segment matched due to floating point rounding, use the last point as fallback
+//         if (!new_node && seg) {
+//             const DLListNode* tail = seg->next ? seg->next : seg;
+//             new_node = create_DLListNode(tail->r, tail->z);
+//         }
+//         // Append the new node to the output linked list
+//         if (!new_head) {
+//             new_head = new_tail = new_node;
+//         } else {
+//             new_tail->next = new_node;
+//             new_node->prev = new_tail;
+//             new_tail = new_node;
+//         }
+//     }
+//     if(pol_dis[0]<1.0E-10)
+//     {
+//       new_head->r=head->r;
+//       new_head->z=head->z;
+//     }
+//     if((pol_dis[n-1]-1.0)<1.0E-10)
+//     {
+//       DLListNode* tail = get_DLList_endnode(head);
+//       new_tail->r=tail->r;
+//       new_tail->z=tail->z;
+//     }
+//     return new_head;
+// }
+
+void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradpsilines)
 {
   
   printf("Begion to create inputfils from DivGeo trg file.\n");
@@ -896,15 +883,15 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   }
 
 /***********************************************
-*    STEP0 create GridZone
+*    STEP0 create GridZoneInfo
 ***********************************************/
-  GridZone* solgridzone=allocate_GridZone();
-  GridZone* pfrgridzone=allocate_GridZone();
-  GridZone* coregridzone=allocate_GridZone();
+  GridZoneInfo* solgzinfo=allocate_GridZoneInfo();
+  GridZoneInfo* pfrgzinfo=allocate_GridZoneInfo();
+  GridZoneInfo* coregzinfo=allocate_GridZoneInfo();
 
-  update_GridZone_from_dgtrg(solgridzone, trg, 0);
-  update_GridZone_from_dgtrg(pfrgridzone, trg, 1);
-  update_GridZone_from_dgtrg(coregridzone, trg, 2);
+  update_GridZoneInfo_from_dgtrg(solgzinfo, trg, 0);
+  update_GridZoneInfo_from_dgtrg(pfrgzinfo, trg, 1);
+  update_GridZoneInfo_from_dgtrg(coregzinfo, trg, 2);
 
 /***********************************************
 *    STEP1 create TargetDLListCurve
@@ -948,11 +935,11 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
 
 /****************************************************************************
 * Update ene curve for SOL and PFR
-* CORE GridZone will be updated later by the start points itself
+* CORE GridZoneInfo will be updated later by the start points itself
 ****************************************************************************/
 
-  update_GridZone_end_curve(solgridzone,outer_tgt_curve);
-  update_GridZone_end_curve(pfrgridzone,outer_tgt_curve);
+  update_GridZoneInfo_end_curve(solgzinfo,outer_tgt_curve);
+  update_GridZoneInfo_end_curve(pfrgzinfo,outer_tgt_curve);
 
   //cut the separatrix
   cut_intersections_DLList(sep->line_list[sep->index[1]],itsct_r_outer, itsct_z_outer);
@@ -1008,17 +995,17 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   cal_points_from_psi(trg->regions[0]->level, r_tmp, z_tmp, trg->regions[0]->n_level,
                       sol_tgt_curve->head, equ, cubicherm2d1f, 1,0);
   write_array2f(r_tmp,z_tmp,  trg->regions[0]->n_level, "SOL_start_point");
-  update_GridZone_start_points(solgridzone, r_tmp, z_tmp, solgridzone->nr);
-  write_array2f(solgridzone->start_point_R, solgridzone->start_point_Z, 
-                       solgridzone->nr,"SOLGR_RZ");
+  update_GridZoneInfo_start_points(solgzinfo, r_tmp, z_tmp, solgzinfo->nr);
+  write_array2f(solgzinfo->start_point_R, solgzinfo->start_point_Z, 
+                       solgzinfo->nr,"SOLGR_RZ");
 
 
   cal_points_from_psi(trg->regions[1]->level, r_tmp, z_tmp, trg->regions[1]->n_level,
                       inner_tgt_curve->head, equ, cubicherm2d1f, 1,0);
   write_array2f(r_tmp,z_tmp,  trg->regions[0]->n_level, "PFR_start_point");
-  update_GridZone_start_points(pfrgridzone, r_tmp, z_tmp, pfrgridzone->nr);
-  write_array2f(pfrgridzone->start_point_R, pfrgridzone->start_point_Z, 
-                       pfrgridzone->nr,"PFRGR_RZ");
+  update_GridZoneInfo_start_points(pfrgzinfo, r_tmp, z_tmp, pfrgzinfo->nr);
+  write_array2f(pfrgzinfo->start_point_R, pfrgzinfo->start_point_Z, 
+                       pfrgzinfo->nr,"PFRGR_RZ");
 
 
   r_tmp[0]=gradpsilines->line_list[0]->r;
@@ -1026,143 +1013,144 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
   cal_points_from_psi(trg->regions[2]->level, r_tmp, z_tmp, trg->regions[2]->n_level,
                       core_curve->head, equ, cubicherm2d1f, 1,0);
   write_array2f(r_tmp,z_tmp,  trg->regions[0]->n_level, "CORE_start_point");
-  update_GridZone_start_points(coregridzone, r_tmp, z_tmp, coregridzone->nr);
-  write_array2f(coregridzone->start_point_R, coregridzone->start_point_Z, 
-                       coregridzone->nr,"COREGR_RZ");
+  update_GridZoneInfo_start_points(coregzinfo, r_tmp, z_tmp, coregzinfo->nr);
+  write_array2f(coregzinfo->start_point_R, coregzinfo->start_point_Z, 
+                       coregzinfo->nr,"COREGR_RZ");
 
-  //Use start points to update coregridzone end curve;
-  update_COREGridZone_end_curve(coregridzone);
+  //Use start points to update coregzinfo end curve;
+  update_COREGridZoneInfo_end_curve(coregzinfo);
 
 /********************************************************************************
-*    STEP5 Calculate the first poloidal points and normalize poloidal distribution
+*  NO NEED anymore  
+*  STEP5 Calculate the first poloidal points and normalize poloidal distribution
 ********************************************************************************/
-//The main idea here is read the lines and then connect them. 
-//And also for the distribution. because in DG, the distribution given in separated line
+// //The main idea here is read the lines and then connect them. 
+// //And also for the distribution. because in DG, the distribution given in separated line
 
-  //1. FOR SOL radregion
-  //for DLList curve
-  DLListNode* SOL_bnd1=copy_DLList(sep->line_list[sep->index[0]]);
-  reverse_DLList(&SOL_bnd1);
-  // write_DLList(SOL_bnd1,"DEBUG_SOL_BND1");
-  //for distribution
-  int tmp_np1=trg->zones[0]->n_points;
-  double len_bnd1=total_length_DLList(SOL_bnd1);
-  double* dtbt_bnd1=compute_differences(trg->zones[0]->norm_dist, tmp_np1);
-  scale_array(dtbt_bnd1, tmp_np1-1, len_bnd1);
-  reverse_array(dtbt_bnd1, tmp_np1-1);
+//   //1. FOR SOL radregion
+//   //for DLList curve
+//   DLListNode* SOL_bnd1=copy_DLList(sep->line_list[sep->index[0]]);
+//   reverse_DLList(&SOL_bnd1);
+//   // write_DLList(SOL_bnd1,"DEBUG_SOL_BND1");
+//   //for distribution
+//   int tmp_np1=trg->zones[0]->n_points;
+//   double len_bnd1=total_length_DLList(SOL_bnd1);
+//   double* dtbt_bnd1=compute_differences(trg->zones[0]->norm_dist, tmp_np1);
+//   scale_array(dtbt_bnd1, tmp_np1-1, len_bnd1);
+//   reverse_array(dtbt_bnd1, tmp_np1-1);
 
-  //for poloidal points
-  DLListNode* SOL_pol_p1=cal_pol_points(sep->line_list[sep->index[0]],trg->zones[0]->norm_dist, tmp_np1);
-  reverse_DLList(&SOL_pol_p1);
-  // write_DLList(SOL_pol_p1,"DEBUG_SOL_pol_p1");
-
-
-
-  //BECAREFUL, the TWO LCFS are not the exactly the same
-  //please use the same one in the follow
-
-  //for DLList curve
-  int nLCFS=3; //here we use the 3(The FOUTH becasue start from 0)
-  DLListNode* SOL_bnd2=copy_DLList(sep->line_list[sep->index[nLCFS]]);
-  reverse_DLList(&SOL_bnd2);
-
-  //for distribution
-  int tmp_np2=trg->zones[2]->n_points;
-  double len_bnd2=total_length_DLList(SOL_bnd2);
-  double* dtbt_bnd2=compute_differences(trg->zones[2]->norm_dist, tmp_np2);
-  scale_array(dtbt_bnd2, tmp_np2-1, len_bnd2);
-  reverse_array(dtbt_bnd2, tmp_np2-1);
-
-  //for poloidal points
-  DLListNode* SOL_pol_p2=cal_pol_points(sep->line_list[sep->index[nLCFS]],trg->zones[2]->norm_dist, tmp_np2);
-  reverse_DLList(&SOL_pol_p2);
+//   //for poloidal points
+//   DLListNode* SOL_pol_p1=cal_pol_points(sep->line_list[sep->index[0]],trg->zones[0]->norm_dist, tmp_np1);
+//   reverse_DLList(&SOL_pol_p1);
+//   // write_DLList(SOL_pol_p1,"DEBUG_SOL_pol_p1");
 
 
-  //for DLList curve
-  DLListNode* SOL_bnd3=copy_DLList(sep->line_list[sep->index[1]]);
-  //for distribution
-  int tmp_np3=trg->zones[1]->n_points;
-  double* dtbt_bnd3=compute_differences(trg->zones[1]->norm_dist, tmp_np3);
-  double len_bnd3=total_length_DLList(SOL_bnd3);
-  scale_array(dtbt_bnd3, tmp_np3-1, len_bnd3);
-  //for poloidal points
-  DLListNode* SOL_pol_p3=cal_pol_points(sep->line_list[sep->index[1]],trg->zones[1]->norm_dist, tmp_np3);
+
+//   //BECAREFUL, the TWO LCFS are not the exactly the same
+//   //please use the same one in the follow
+
+//   //for DLList curve
+//   int nLCFS=3; //here we use the 3(The FOUTH becasue start from 0)
+//   DLListNode* SOL_bnd2=copy_DLList(sep->line_list[sep->index[nLCFS]]);
+//   reverse_DLList(&SOL_bnd2);
+
+//   //for distribution
+//   int tmp_np2=trg->zones[2]->n_points;
+//   double len_bnd2=total_length_DLList(SOL_bnd2);
+//   double* dtbt_bnd2=compute_differences(trg->zones[2]->norm_dist, tmp_np2);
+//   scale_array(dtbt_bnd2, tmp_np2-1, len_bnd2);
+//   reverse_array(dtbt_bnd2, tmp_np2-1);
+
+//   //for poloidal points
+//   DLListNode* SOL_pol_p2=cal_pol_points(sep->line_list[sep->index[nLCFS]],trg->zones[2]->norm_dist, tmp_np2);
+//   reverse_DLList(&SOL_pol_p2);
 
 
-  //Final DLList curve
-  connect_DLList(SOL_bnd1, &SOL_bnd2,1);
-  connect_DLList(SOL_bnd1, &SOL_bnd3,1);
-  write_DLList(SOL_bnd1,"SOL_bnd");
+//   //for DLList curve
+//   DLListNode* SOL_bnd3=copy_DLList(sep->line_list[sep->index[1]]);
+//   //for distribution
+//   int tmp_np3=trg->zones[1]->n_points;
+//   double* dtbt_bnd3=compute_differences(trg->zones[1]->norm_dist, tmp_np3);
+//   double len_bnd3=total_length_DLList(SOL_bnd3);
+//   scale_array(dtbt_bnd3, tmp_np3-1, len_bnd3);
+//   //for poloidal points
+//   DLListNode* SOL_pol_p3=cal_pol_points(sep->line_list[sep->index[1]],trg->zones[1]->norm_dist, tmp_np3);
 
-  //Final distribution
-  double* dtbt_SOL=connect_arrays(dtbt_bnd1,tmp_np1-1,dtbt_bnd2, tmp_np2-1,
-                                  dtbt_bnd3,tmp_np3-1, NULL, 0);
-  int npsol=tmp_np1-1+tmp_np2-1+tmp_np3-1;
-  scale_array(dtbt_SOL, npsol, 1/(len_bnd1+len_bnd2+len_bnd3));
-  double* dtbt_norm_SOL=recover_array_from_diff(dtbt_SOL, npsol, 0.0);
-  write_array(dtbt_norm_SOL, npsol+1, "SOL_norm_pol_dtbt");
 
-  //Final poloidal points
-  connect_DLList(SOL_pol_p1, &SOL_pol_p2,1);
-  connect_DLList(SOL_pol_p1, &SOL_pol_p3,1);
-  write_DLList(SOL_pol_p1,"SOL_pol_point");
+//   //Final DLList curve
+//   connect_DLList(SOL_bnd1, &SOL_bnd2,1);
+//   connect_DLList(SOL_bnd1, &SOL_bnd3,1);
+//   write_DLList(SOL_bnd1,"SOL_bnd");
 
-  //2. FOR PFR radregion
+//   //Final distribution
+//   double* dtbt_SOL=connect_arrays(dtbt_bnd1,tmp_np1-1,dtbt_bnd2, tmp_np2-1,
+//                                   dtbt_bnd3,tmp_np3-1, NULL, 0);
+//   int npsol=tmp_np1-1+tmp_np2-1+tmp_np3-1;
+//   scale_array(dtbt_SOL, npsol, 1/(len_bnd1+len_bnd2+len_bnd3));
+//   double* dtbt_norm_SOL=recover_array_from_diff(dtbt_SOL, npsol, 0.0);
+//   write_array(dtbt_norm_SOL, npsol+1, "SOL_norm_pol_dtbt");
 
-  DLListNode* PFR_bnd1=copy_DLList(sep->line_list[sep->index[0]]);
-  reverse_DLList(&PFR_bnd1);
-  DLListNode* PFR_bnd2=copy_DLList(sep->line_list[sep->index[1]]);
-  connect_DLList(PFR_bnd1, &PFR_bnd2,1);
-  write_DLList(PFR_bnd1,"PFR_bnd");
+//   //Final poloidal points
+//   connect_DLList(SOL_pol_p1, &SOL_pol_p2,1);
+//   connect_DLList(SOL_pol_p1, &SOL_pol_p3,1);
+//   write_DLList(SOL_pol_p1,"SOL_pol_point");
+
+//   //2. FOR PFR radregion
+
+//   DLListNode* PFR_bnd1=copy_DLList(sep->line_list[sep->index[0]]);
+//   reverse_DLList(&PFR_bnd1);
+//   DLListNode* PFR_bnd2=copy_DLList(sep->line_list[sep->index[1]]);
+//   connect_DLList(PFR_bnd1, &PFR_bnd2,1);
+//   write_DLList(PFR_bnd1,"PFR_bnd");
   
 
-  //Final distribution
-  double* dtbt_PFR=connect_arrays(dtbt_bnd1,tmp_np1-1,dtbt_bnd3,tmp_np3-1,NULL,0, NULL, 0);
-  int nppfr=tmp_np1-1+tmp_np3-1;
-  scale_array(dtbt_PFR, nppfr, 1/(len_bnd1+len_bnd3));
-  double* dtbt_norm_PFR=recover_array_from_diff(dtbt_PFR, nppfr, 0.0);
-  write_array(dtbt_norm_PFR, nppfr+1, "PFR_norm_pol_dtbt");
+//   //Final distribution
+//   double* dtbt_PFR=connect_arrays(dtbt_bnd1,tmp_np1-1,dtbt_bnd3,tmp_np3-1,NULL,0, NULL, 0);
+//   int nppfr=tmp_np1-1+tmp_np3-1;
+//   scale_array(dtbt_PFR, nppfr, 1/(len_bnd1+len_bnd3));
+//   double* dtbt_norm_PFR=recover_array_from_diff(dtbt_PFR, nppfr, 0.0);
+//   write_array(dtbt_norm_PFR, nppfr+1, "PFR_norm_pol_dtbt");
 
-  //poloidal points
-  DLListNode* PFR_pol_p1=cal_pol_points(sep->line_list[sep->index[0]],trg->zones[0]->norm_dist, tmp_np1);
-  reverse_DLList(&PFR_pol_p1);
-  DLListNode* PFR_pol_p2=cal_pol_points(sep->line_list[sep->index[1]],trg->zones[1]->norm_dist, tmp_np1);
-  connect_DLList(PFR_pol_p1, &PFR_pol_p2,1);
-  write_DLList(PFR_pol_p1,"PFR_pol_point");
-
-
-
-  //3. FOR COREE radregion
-  DLListNode* CORE_bnd1=copy_DLList(sep->line_list[sep->index[nLCFS]]);
-  write_DLList(CORE_bnd1,"CORE_bnd");
-
-  //Final distribution
-  int npcore=tmp_np2-1;
-  double* dtbt_CORE=connect_arrays(dtbt_bnd2,tmp_np2-1,NULL,0,NULL,0, NULL, 0);
-  scale_array(dtbt_CORE, npcore, 1/(len_bnd2));
-  double* dtbt_norm_CORE=recover_array_from_diff(dtbt_CORE, npcore, 0.0);
-  write_array(dtbt_norm_CORE, npcore+1, "CORE_norm_pol_dtbt");
-
-  //Poloidal points
-  DLListNode* CORE_pol_p1=cal_pol_points(sep->line_list[sep->index[nLCFS]],trg->zones[2]->norm_dist, tmp_np2);
-  write_DLList(CORE_pol_p1,"CORE_pol_point");
+//   //poloidal points
+//   DLListNode* PFR_pol_p1=cal_pol_points(sep->line_list[sep->index[0]],trg->zones[0]->norm_dist, tmp_np1);
+//   reverse_DLList(&PFR_pol_p1);
+//   DLListNode* PFR_pol_p2=cal_pol_points(sep->line_list[sep->index[1]],trg->zones[1]->norm_dist, tmp_np1);
+//   connect_DLList(PFR_pol_p1, &PFR_pol_p2,1);
+//   write_DLList(PFR_pol_p1,"PFR_pol_point");
 
 
 
-  update_GridZone_pol_norm_distrb(solgridzone, dtbt_norm_SOL, npsol+1);
-  update_GridZone_pol_norm_distrb(pfrgridzone, dtbt_norm_PFR, nppfr+1);
-  update_GridZone_pol_norm_distrb(coregridzone, dtbt_norm_CORE, npcore+1);
+//   //3. FOR COREE radregion
+//   DLListNode* CORE_bnd1=copy_DLList(sep->line_list[sep->index[nLCFS]]);
+//   write_DLList(CORE_bnd1,"CORE_bnd");
 
-  update_GridZone_first_pol_points(solgridzone, SOL_pol_p1);
-  update_GridZone_first_pol_points(pfrgridzone, PFR_pol_p1);
-  update_GridZone_first_pol_points(coregridzone, CORE_pol_p1);
+//   //Final distribution
+//   int npcore=tmp_np2-1;
+//   double* dtbt_CORE=connect_arrays(dtbt_bnd2,tmp_np2-1,NULL,0,NULL,0, NULL, 0);
+//   scale_array(dtbt_CORE, npcore, 1/(len_bnd2));
+//   double* dtbt_norm_CORE=recover_array_from_diff(dtbt_CORE, npcore, 0.0);
+//   write_array(dtbt_norm_CORE, npcore+1, "CORE_norm_pol_dtbt");
+
+//   //Poloidal points
+//   DLListNode* CORE_pol_p1=cal_pol_points(sep->line_list[sep->index[nLCFS]],trg->zones[2]->norm_dist, tmp_np2);
+//   write_DLList(CORE_pol_p1,"CORE_pol_point");
+
+
+
+//   update_GridZone_pol_norm_distrb(solgzinfo, dtbt_norm_SOL, npsol+1);
+//   update_GridZone_pol_norm_distrb(pfrgzinfo, dtbt_norm_PFR, nppfr+1);
+//   update_GridZone_pol_norm_distrb(coregzinfo, dtbt_norm_CORE, npcore+1);
+
+//   update_GridZone_first_pol_points(solgzinfo, SOL_pol_p1);
+//   update_GridZone_first_pol_points(pfrgzinfo, PFR_pol_p1);
+//   update_GridZone_first_pol_points(coregzinfo, CORE_pol_p1);
 
 /********************************************************************************
-*    STEP6 Write the input based on GridZone
+*    STEP6 Write the input based on GridZoneInfo
 ********************************************************************************/
-  write_input_from_GridZone(solgridzone,"input_SOL");
-  write_input_from_GridZone(pfrgridzone,"input_PFR");
-  write_input_from_GridZone(coregridzone,"input_CORE");
+  write_GridZoneInfo(solgzinfo,"gridzoneinfo_SOL");
+  write_GridZoneInfo(pfrgzinfo,"gridzoneinfo_SOL");
+  write_GridZoneInfo(coregzinfo,"gridzoneinfo_CORE");
 
 /*************************************************
 *    Free Memory 
@@ -1174,118 +1162,168 @@ void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* se
 
   free_target_curve(sol_tgt_curve);
   free_target_curve(core_curve);
-  free_GridZone(&solgridzone);
-  free_GridZone(&pfrgridzone);
-  free_GridZone(&coregridzone);
+  free_GridZoneInfo(&solgzinfo);
+  free_GridZoneInfo(&pfrgzinfo);
+  free_GridZoneInfo(&coregzinfo);
 
-  free_DLList(SOL_bnd1);
-  free_DLList(CORE_bnd1);
-  free_DLList(PFR_bnd1);
+  // free_DLList(SOL_bnd1);
+  // free_DLList(CORE_bnd1);
+  // free_DLList(PFR_bnd1);
 
-  free_DLList(SOL_pol_p1);
-  free_DLList(PFR_pol_p1);
-  free_DLList(CORE_pol_p1);
+  // free_DLList(SOL_pol_p1);
+  // free_DLList(PFR_pol_p1);
+  // free_DLList(CORE_pol_p1);
 
 
-  free(dtbt_bnd1);
-  free(dtbt_bnd2);
-  free(dtbt_bnd3);
-  free(dtbt_SOL);
-  free(dtbt_norm_SOL);
-  free(dtbt_PFR);
-  free(dtbt_norm_PFR);
-  free(dtbt_CORE);
-  free(dtbt_norm_CORE);
+  // free(dtbt_bnd1);
+  // free(dtbt_bnd2);
+  // free(dtbt_bnd3);
+  // free(dtbt_SOL);
+  // free(dtbt_norm_SOL);
+  // free(dtbt_PFR);
+  // free(dtbt_norm_PFR);
+  // free(dtbt_CORE);
+  // free(dtbt_norm_CORE);
 }
 
-static void change_name(char **name, const char *str)
-{
-    if (*name) {
-        free(*name);
-        *name = NULL;
-    }
 
-    *name = malloc(strlen(str) + 1);
-    if (*name != NULL) {
-        strcpy(*name, str);
-    } else {
-        fprintf(stderr, "Failed to allocate memory\n");
-        exit(EXIT_FAILURE);
-    }
-}
-
-void update_GridZone_from_dgtrg(GridZone* gridzone, DivGeoTrg* trg, int index)
+void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, int index)
 {
-  if(!gridzone||!trg)
+  if (!gridzoneinfo || !trg) 
   {
-    fprintf(stderr,"Empty input for update_GridZone_from_dgtrg.\n");
+    fprintf(stderr, "Empty input for update_GridZoneInfo_from_dgtrg.\n");
     exit(EXIT_FAILURE);
   }
-  if(strcmp(trg->topo,"SNL")==0)
+
+  change_name(&(gridzoneinfo->topo), trg->topo);
+
+  if (strcmp(trg->topo, "SNL") == 0) 
   {
-    printf("Update Gridzone in SNL topo.\n");
-    if(index==0)
+    printf("Update GridZoneInfo in SNL topo.\n");
+
+    if (index == 0) 
     {
-      change_name(&(gridzone->name),"SOLGRIDZONE");
-    }
-    else if(index==1)
+      change_name(&(gridzoneinfo->name), "SOLGRIDZONEINFO");
+    } 
+    else if (index == 1) 
     {
-      change_name(&(gridzone->name),"PFRGRIDZONE");
-    }
-    else if(index==2)
+      change_name(&(gridzoneinfo->name), "PFRGRIDZONEINFO");
+    } 
+    else if (index == 2) 
     {
-      change_name(&(gridzone->name),"COREGRIDZONE");
-    }
-    else
+      change_name(&(gridzoneinfo->name), "COREGRIDZONEINFO");
+    } 
+    else 
     {
-      fprintf(stderr,"WORNG index in update_GridZone_from_dgtrg.");
+      fprintf(stderr, "WRONG index in update_GridZoneInfo_from_dgtrg.\n");
       exit(EXIT_FAILURE);
     }
   }
 
   int nr = trg->npr[index];
-  gridzone->nr=nr;
-  gridzone->guard_start=malloc(nr*sizeof(double));
-  gridzone->guard_end=malloc(nr*sizeof(double));
-  gridzone->pasmin=malloc(nr*sizeof(double));
-  if(!gridzone->guard_start||!gridzone->guard_end
-      ||!gridzone->pasmin)
+  gridzoneinfo->nr = nr;
+
+  gridzoneinfo->guard_start = malloc(nr * sizeof(double));
+  gridzoneinfo->guard_end = malloc(nr * sizeof(double));
+  gridzoneinfo->pasmin = malloc(nr * sizeof(double));
+
+  if (!gridzoneinfo->guard_start || !gridzoneinfo->guard_end || !gridzoneinfo->pasmin) 
   {
-    fprintf(stderr,"Faill to alloc memmory in update_GridZone_from_dgtrg.\n");
+    fprintf(stderr, "Failed to allocate memory for guard/pasmin.\n");
     exit(EXIT_FAILURE);
   }
-  for(int i=0;i<nr;i++)
+
+  for (int i = 0; i < nr; i++) 
   {
-    gridzone->guard_start[i]=TGUARD;
-    gridzone->guard_end[i]=TGUARD;
-    gridzone->pasmin[i]=PASMIN;
+    gridzoneinfo->guard_start[i] = TGUARD;
+    gridzoneinfo->guard_end[i] = TGUARD;
+    gridzoneinfo->pasmin[i] = PASMIN;
+  }
+
+  // === Setup poloidal segments ===
+  if (strcmp(trg->topo, "SNL") == 0) 
+  {
+    if (index == 0) 
+    {  // SOL
+      gridzoneinfo->n_polsegm1 = 3;
+      gridzoneinfo->xptidx1 = malloc(3 * sizeof(int));
+      gridzoneinfo->seplineidx1 = malloc(3 * sizeof(int));
+      gridzoneinfo->segmidx1 = malloc(3 * sizeof(double*));
+      gridzoneinfo->reverse_segm1 = malloc(3 * sizeof(int));
+      gridzoneinfo->xptidx1[0]=0;
+      gridzoneinfo->xptidx1[1]=0;
+      gridzoneinfo->xptidx1[2]=0;
+      gridzoneinfo->seplineidx1[0]=0; 
+      gridzoneinfo->seplineidx1[1]=2;
+      gridzoneinfo->seplineidx1[2]=1;
+      gridzoneinfo->segmidx1[0]=0;
+      gridzoneinfo->segmidx1[1]=0;
+      gridzoneinfo->segmidx1[2]=0;
+      gridzoneinfo->reverse_segm1[0]=1;
+      gridzoneinfo->reverse_segm1[1]=1;
+      gridzoneinfo->reverse_segm1[2]=0;
+
+    }
+    else if (index == 1) 
+    {  // PFR
+      gridzoneinfo->n_polsegm1 = 2;
+      gridzoneinfo->xptidx1 = malloc(2 * sizeof(int));
+      gridzoneinfo->seplineidx1 = malloc(2 * sizeof(int));
+      gridzoneinfo->segmidx1 = malloc(2 * sizeof(double*));
+      gridzoneinfo->reverse_segm1 = malloc(2 * sizeof(int));
+      gridzoneinfo->xptidx1[0]=0;
+      gridzoneinfo->xptidx1[1]=0;
+      gridzoneinfo->seplineidx1[0]=0; 
+      gridzoneinfo->seplineidx1[1]=0;
+      gridzoneinfo->segmidx1[0]=0;
+      gridzoneinfo->segmidx1[1]=0;
+      gridzoneinfo->reverse_segm1[0]=1;
+      gridzoneinfo->reverse_segm1[1]=0;
+
+    }
+    else if (index == 2) 
+    {  // CORE
+      gridzoneinfo->n_polsegm1 = 1;
+      gridzoneinfo->xptidx1 = malloc( sizeof(int));
+      gridzoneinfo->seplineidx1 = malloc(sizeof(int));
+      gridzoneinfo->segmidx1 = malloc(sizeof(double*));
+      gridzoneinfo->reverse_segm1 = malloc(sizeof(int));
+      gridzoneinfo->xptidx1[0]=0;
+      gridzoneinfo->seplineidx1[0]=2; 
+      gridzoneinfo->segmidx1[0]=0;
+      gridzoneinfo->reverse_segm1[0]=1;
+    }
+    else {
+      fprintf(stderr, "WRONG index in update_GridZoneInfo_from_dgtrg.\n");
+      exit(EXIT_FAILURE);
+    }
   }
 }
 
-void update_GridZone_start_points(GridZone* gridzone, double* r, double* z, int n_point)
+void update_GridZoneInfo_start_points(GridZoneInfo* gridzoneinfo, double* r, double* z, int n_point)
 {
-  if(!gridzone||!r||!z)
+  if(!gridzoneinfo||!r||!z)
   {
     fprintf(stderr,"Empty input for update_GridZone_start_points.\n");
     exit(EXIT_FAILURE);
   }
-  if(gridzone->nr!=n_point)
+  if(gridzoneinfo->nr!=n_point)
   {
-    fprintf(stderr,"The points number is not consistent with GridZone\n");
+    fprintf(stderr,"The points number is not consistent with GridZoneInfo\n");
     exit(EXIT_FAILURE);
   }
   //Check is there is already existing values
-  if(gridzone->start_point_R || gridzone->start_point_Z)
+  if(gridzoneinfo->start_point_R || gridzoneinfo->start_point_Z)
   {
     fprintf(stderr,"There are existing values of R and Z.\n");
     exit(EXIT_FAILURE);
   }
   
   printf("DEBUGE n_point: %d\n", n_point);
-  gridzone->start_point_R = malloc(n_point*sizeof(double));
-  gridzone->start_point_Z = malloc(n_point*sizeof(double));
+  gridzoneinfo->start_point_R = malloc(n_point*sizeof(double));
+  gridzoneinfo->start_point_Z = malloc(n_point*sizeof(double));
 
-  if(!gridzone->start_point_R || !gridzone->start_point_Z)
+  if(!gridzoneinfo->start_point_R || !gridzoneinfo->start_point_Z)
   {
     fprintf(stderr,"Failed to alloc memmory for R and Z.\n");
     exit(EXIT_FAILURE);
@@ -1293,58 +1331,29 @@ void update_GridZone_start_points(GridZone* gridzone, double* r, double* z, int 
 
   for(int i=0; i<n_point; i++)
   {
-    gridzone->start_point_R[i]=r[i];
-    gridzone->start_point_Z[i]=z[i];
+    gridzoneinfo->start_point_R[i]=r[i];
+    gridzoneinfo->start_point_Z[i]=z[i];
   }
 }
 
-void update_GridZone_pol_norm_distrb(GridZone* gridzone, const double* norm_distb, int n_point)
+void update_GridZoneInfo_end_curve(GridZoneInfo* gridzoneinfo, const TargetDLListCurve* tgt_cur)
 {
-  if (!gridzone || !norm_distb || n_point < 1)
-  {
-    fprintf(stderr, "Invalid input to update_GridZone_pol_norm_distrb.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  if (gridzone->npoint != -1 || gridzone->norm_pol_dist)
-  {
-    fprintf(stderr, "GridZone already contains norm_pol_dist data.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  gridzone->norm_pol_dist = malloc(n_point * sizeof(double));
-  if (!gridzone->norm_pol_dist)
-  {
-    fprintf(stderr, "Memory allocation failed for norm_pol_dist.\n");
-    exit(EXIT_FAILURE);
-  }
-
-  for (int i = 0; i < n_point; ++i)
-  {
-    gridzone->norm_pol_dist[i] = norm_distb[i];
-  }
-
-  gridzone->npoint = n_point;
-}
-
-void update_GridZone_end_curve(GridZone* gridzone, const TargetDLListCurve* tgt_cur)
-{
-    if (!gridzone || !tgt_cur || !tgt_cur->head || tgt_cur->n < 2)
+    if (!gridzoneinfo || !tgt_cur || !tgt_cur->head || tgt_cur->n < 2)
     {
         fprintf(stderr, "Invalid input to update_GridZone_end_curve.\n");
         exit(EXIT_FAILURE);
     }
 
-    if (gridzone->end_curve)
+    if (gridzoneinfo->end_curve)
     {
         fprintf(stderr, "WARNING: There is alread an end_cure.\n");
         exit(EXIT_FAILURE);
     }
 
     int n = tgt_cur->n;
-    //gridzone->end_curve = create_oldcurve(n);
-    gridzone->end_curve = create_curve(n);
-    if (!gridzone->end_curve)
+    //gridzoneinfo->end_curve = create_oldcurve(n);
+    gridzoneinfo->end_curve = create_curve(n);
+    if (!gridzoneinfo->end_curve)
     {
         fprintf(stderr, "Memory allocation failed for end_curve.\n");
         exit(EXIT_FAILURE);
@@ -1358,7 +1367,7 @@ void update_GridZone_end_curve(GridZone* gridzone, const TargetDLListCurve* tgt_
             fprintf(stderr, "tgt_cur->n is larger than actual linked list length.\n");
             exit(EXIT_FAILURE);
         }
-        add_last_point_curve(gridzone->end_curve, node->r,node->z);
+        add_last_point_curve(gridzoneinfo->end_curve, node->r,node->z);
         node = node->next;
     }
 
@@ -1369,64 +1378,123 @@ void update_GridZone_end_curve(GridZone* gridzone, const TargetDLListCurve* tgt_
     }
 }
 
-void update_GridZone_first_pol_points(GridZone* gridzone, DLListNode* head)
+void update_COREGridZoneInfo_end_curve(GridZoneInfo* gridzoneinfo)
 {
-  if (!gridzone || !head)
-  {
-    fprintf(stderr, "Invalid input to update_GridZone_end_curve.\n");
-    exit(EXIT_FAILURE);
-  }
-  DLListNode* node = head;
-
-  int n = 0;
-  while(node)
-  {
-    n++;
-    node=node->next;
-  }
-  gridzone->first_pol_points = create_curve(n);
-  if (!gridzone->first_pol_points) 
-  {
-    fprintf(stderr, "Memory allocation failed for first_pol_points.\n");
-    exit(EXIT_FAILURE);
-  }
-  node=head;
-  for(int i=0;i<n;i++)
-  {
-    add_last_point_curve(gridzone->first_pol_points,node->r,node->z);
-    node=node->next;
-  }
-}
-
-void update_COREGridZone_end_curve(GridZone* gridzone)
-{
-    if (!gridzone || !gridzone->start_point_R 
-        ||!gridzone->start_point_Z || gridzone->nr < 2) 
+    if (!gridzoneinfo || !gridzoneinfo->start_point_R 
+        ||!gridzoneinfo->start_point_Z || gridzoneinfo->nr < 2) 
     {
         fprintf(stderr, "Empty or invalid input to update_COREGridZone_end_curve.\n");
         exit(EXIT_FAILURE);
     }
-  if(gridzone->end_curve)
+  if(gridzoneinfo->end_curve)
   {
     fprintf(stderr,"There is already end curve for COREgridzone\n");
   }
   
-  int n = gridzone->nr;
-  //gridzone->end_curve = create_oldcurve(n);  // Create first, then assign points
-  gridzone->end_curve = create_curve(n);  // Create first, then assign points
+  int n = gridzoneinfo->nr;
+  //gridzoneinfo->end_curve = create_oldcurve(n);  // Create first, then assign points
+  gridzoneinfo->end_curve = create_curve(n);  // Create first, then assign points
 
 
-  if (!gridzone->end_curve)
+  if (!gridzoneinfo->end_curve)
   {
     fprintf(stderr, "Memory allocation failed for end_curve.\n");
     exit(EXIT_FAILURE);
   }
   for(int i=0; i<n; i++)
   {
-    add_last_point_curve(gridzone->end_curve, 
-                         gridzone->start_point_R[i], 
-                         gridzone->start_point_Z[i]);
-//    gridzone->end_curve->points[i][0]=gridzone->start_point_R[i];
-//    gridzone->end_curve->points[i][1]=gridzone->start_point_Z[i];
+    add_last_point_curve(gridzoneinfo->end_curve, 
+                         gridzoneinfo->start_point_R[i], 
+                         gridzoneinfo->start_point_Z[i]);
+//    gridzoneinfo->end_curve->points[i][0]=gridzoneinfo->start_point_R[i];
+//    gridzoneinfo->end_curve->points[i][1]=gridzoneinfo->start_point_Z[i];
   }
+}
+
+// void update_GridZone_pol_norm_distrb(GridZoneInfo* gridzoneinfo, const double* norm_distb, int n_point)
+// {
+//   if (!gridzoneinfo || !norm_distb || n_point < 1)
+//   {
+//     fprintf(stderr, "Invalid input to update_GridZone_pol_norm_distrb.\n");
+//     exit(EXIT_FAILURE);
+//   }
+//   if (gridzoneinfo->npoint != -1 || gridzoneinfo->norm_pol_dist)
+//   {
+//     fprintf(stderr, "GridZoneInfo already contains norm_pol_dist data.\n");
+//     exit(EXIT_FAILURE);
+//   }
+//   gridzoneinfo->norm_pol_dist = malloc(n_point * sizeof(double));
+//   if (!gridzoneinfo->norm_pol_dist)
+//   {
+//     fprintf(stderr, "Memory allocation failed for norm_pol_dist.\n");
+//     exit(EXIT_FAILURE);
+//   }
+//   for (int i = 0; i < n_point; ++i)
+//   {
+//     gridzoneinfo->norm_pol_dist[i] = norm_distb[i];
+//   }
+//   gridzoneinfo->npoint = n_point;
+// }
+// void update_GridZone_first_pol_points(GridZoneInfo* gridzoneinfo, DLListNode* head)
+// {
+//   if (!gridzoneinfo || !head)
+//   {
+//     fprintf(stderr, "Invalid input to update_GridZone_end_curve.\n");
+//     exit(EXIT_FAILURE);
+//   }
+//   DLListNode* node = head;
+//   int n = 0;
+//   while(node)
+//   {
+//     n++;
+//     node=node->next;
+//   }
+//   gridzoneinfo->first_pol_points = create_curve(n);
+//   if (!gridzoneinfo->first_pol_points) 
+//   {
+//     fprintf(stderr, "Memory allocation failed for first_pol_points.\n");
+//     exit(EXIT_FAILURE);
+//   }
+//   node=head;
+//   for(int i=0;i<n;i++)
+//   {
+//     add_last_point_curve(gridzoneinfo->first_pol_points,node->r,node->z);
+//     node=node->next;
+//   }
+// }
+
+void write_polsegms_from_dgtrg(DivGeoTrg* trg, const char* filename)
+{
+  if (!trg || !filename) {
+    fprintf(stderr, "Invalid input to write_PolSegmsInfo.\n");
+    return;
+  }
+  int n_region = trg->n_region;
+  PolSegmsInfo* polseginfo = create_PolSegmsInfo(n_region);
+  size_t len = strlen(trg->topo);
+  polseginfo->topo=(char*)malloc(len + 1);
+  if (!polseginfo->topo) 
+  {
+    fprintf(stderr, "Failed to allocate memory for topo.\n");
+    exit(EXIT_FAILURE);
+  }
+  strcpy(polseginfo->topo, trg->topo);
+
+  for(int i=0;i<n_region;i++)
+  {
+    if (!trg->zones[i] || !trg->zones[i]->norm_dist || !trg->zones[i]->name) 
+    {
+      fprintf(stderr, "Invalid region at index %d\n", i);
+      exit(EXIT_FAILURE);
+    }
+    int n_points = trg->zones[i]->n_points;
+    polseginfo->polsegments[i]=create_PolSegStr(n_points, 
+                                                trg->zones[i]->name);
+    for(int j=0; j<n_points; j++)
+    {
+      polseginfo->polsegments[i]->norm_dist[j]= trg->zones[i]->norm_dist[j];
+    }
+  }
+  write_PolSegmsInfo(polseginfo,filename);
+  free_PolSegmsInfo(polseginfo);
 }

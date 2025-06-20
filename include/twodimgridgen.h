@@ -39,12 +39,12 @@ void set_point_2Dgrid(TwoDimGrid* g, int ir, int ip, double x, double y);
 
 //use CARRE algorithm to generate grid points
 void generate_CARRE_2Dgrid(TwoDimGrid* grid,
-                           GridZone* gridzone,
+                           GridZoneInfo* gridzoneinfo,
                            ode_function* func,
                            ode_solver* solver);
 
 void generate_EMC3_2Dgrid(TwoDimGrid* grid,
-                          GridZone* gridzone,
+                          GridZoneInfo* gridzoneinfo,
                           ode_function* func,
                           ode_solver* solver);
 

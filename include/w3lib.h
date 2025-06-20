@@ -28,6 +28,6 @@
 #include "divgeo.h"
 #include "target.h"
 #include "gradpsi.h"
-
+#include "polsegm.h"
 
 #endif

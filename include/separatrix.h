@@ -1,5 +1,5 @@
-#ifndef SPARATRIX_H
-#define SPARATRIX_H
+#ifndef SEPARATRIX_H
+#define SEPARATRIX_H
 
 #include "datastructure.h"
 #include "xpoint.h"

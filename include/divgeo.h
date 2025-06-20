@@ -10,16 +10,6 @@
 
 typedef struct 
 {
-  int n_point;
-  double** points;
-
-} DGClosedStruc;
-
-DGClosedStruc* create_DGClosedStruc();
-void free_DGClosedStruc(DGClosedStruc* struc);
-
-typedef struct 
-{
   char* name;
   int n_level;
   double* level;
@@ -46,12 +36,13 @@ typedef struct
   double** opt;
 } DivGeoDgo;
 
-//*.str file created by DivGeo
-typedef struct
-{
-  int n_str;
-  DGClosedStruc** structures;
-} DivGeoStr;
+//*.str file created by DivGeo\
+//NOT USED YET
+// typedef struct
+// {
+//   int n_str;
+//   DGClosedStruc** structures;
+// } DivGeoStr;
 
 //*.trg file created by DivGeo
 //all necessary data for CARRE mesh generation
@@ -91,28 +82,32 @@ TargetDLListCurve* create_target_curve_from_dgtrg(DivGeoTrg* trg, int n);
 
 //From here it is already related with topology
 //TOPOLOGY NEED TO BE CONSIDERED
-void write_dgtrg_to_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep);
-void write_dgtrg_to_sn_input(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradspsilines);
+void write_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep);
+void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradspsilines);
 
 void free_dgtrg(DivGeoTrg* trg);
 
+//update an exist GridZoneInfo by DivGeoTrg, index means the regions/zons in DivGeoTrg
+void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, int index);
 
+//update the start points in an exist GridZoneInfo by DivGeoTrg with r and z
+void update_GridZoneInfo_start_points(GridZoneInfo* gridzoneinfo, double* r, double* z, int n_point);
 
-//update an exist GridZone by DivGeoTrg, index means the regions/zons in DivGeoTrg
-void update_GridZone_from_dgtrg(GridZone* gridzone, DivGeoTrg* trg, int index);
-
-//update the start points in an exist GridZone by DivGeoTrg with r and z
-void update_GridZone_start_points(GridZone* gridzone, double* r, double* z, int n_point);
-
-//update the poloidal normolized points distribution, also the number of point npoint.
-void update_GridZone_pol_norm_distrb(GridZone* gridzone, const double* norm_distb, int n_point);
-
-void update_GridZone_end_curve(GridZone* gridzone, const TargetDLListCurve* tgt_cur);
-
-void update_GridZone_first_pol_points(GridZone* gridzone, DLListNode* head);
+void update_GridZoneInfo_end_curve(GridZoneInfo* gridzoneinfo, const TargetDLListCurve* tgt_cur);
 
 //For CORE the start points is also the end point becase of closed surface.
-void update_COREGridZone_end_curve(GridZone* gridzone);
+void update_COREGridZoneInfo_end_curve(GridZoneInfo* gridzoneinfo);
+
+
+void write_polsegms_from_dgtrg(DivGeoTrg* trg, const char* filename);
+
+
+//update the poloidal normolized points distribution, also the number of point npoint.
+// void update_GridZone_pol_norm_distrb(GridZoneInfo* gridzoneinfo, const double* norm_distb, int n_point);
+
+// void update_GridZone_first_pol_points(GridZoneInfo* gridzoneinfo, DLListNode* head);
+
+
 
 
 #endif

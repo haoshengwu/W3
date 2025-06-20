@@ -2,46 +2,91 @@
 #define GRIDZONE_H
 #include "curve.h"
 
+
+//Information of GridZone, which is mainly from DivGeo *.trg fiel.
 typedef struct {
     // --- 1. Basic information ---
+    char* topo;
     char* name;
-    int nr; //magnetic line number in radial direction, elements number is nr-1;
     // --- 2. Start & end tracing info ---
+    int nr; //magnetic line number in radial direction, elements number is nr-1;
     double* start_point_R;  // [nr]starting point R coordinate for tracing magnetic line
     double* start_point_Z;  // [nr]starting point R coordinate for tracing magnetic line
     double* guard_start;    // [nr]
     double* guard_end;      // [nr]
     double* pasmin;         // [nr]
 
-    // --- 3. norm_pol_dist ---
-    int npoint; //points in the poloidal magnetic line, elements number is np-1;
-    double* norm_pol_dist;  // [np]distribution of points in the poloidal direction， from 0.0 to 1.0
-
-    // --- 4. first_pol_points ---
-    //OldCurve* first_pol_points;
-    Curve* first_pol_points;
-    //TODO
-    //OldCurve* second_boundary;
-
-    // --- 5. End curve ---
+    // --- 3. End curve ---
     Curve* end_curve;
 
-} GridZone;
+    // --- 4. first poloidal boundary info
+    int n_polsegm1;
+    int* xptidx1; //indicate index of 
+    int* seplineidx1;
+    int* segmidx1;
+    int* reverse_segm1; //indicate whether segments need to be reserve or not when create the start curve
 
-// Create a new GridZone
-GridZone* allocate_GridZone();
+    // --- 5. second poloidal boundary info
+    int n_polsegm2;
+    int* xptidx2; //indicate index of 
+    int* seplineidx2;
+    int* segmidx2;
+    int* reverse_segm2;
+} GridZoneInfo;
 
+// Create a new GridZoneInfo
+GridZoneInfo* allocate_GridZoneInfo();
 
-//free the GridZone
-void free_GridZone(GridZone** z);
+//free the GridZoneInfo
+void free_GridZoneInfo(GridZoneInfo** z);
 
-//Write the GridZone to input file for mesh generation;
-void write_input_from_GridZone(GridZone* gridzone, const char* filename);
+//Write the GridZoneInfo to input file for mesh generation;
+void write_GridZoneInfo(GridZoneInfo* gridzoneinfo, const char* filename);
 
-//create the GridZone from a input file for mesh generation;
-GridZone* load_GridZone_from_input(const char* filename);
+//create the GridZoneInfo from a input file for mesh generation;
+GridZoneInfo* load_GridZoneInfo_from_input(const char* filename);
 
 //print GirdZone info for test. first_pol_points and curveset do not print;
-void print_GridZone(GridZone* gridzone);
+void print_GridZoneInfo(GridZoneInfo* gridzoneinfo);
 
+typedef struct {
+    // --- 1. Basic information ---
+    char* topo;
+    char* name;
+    // --- 2. Start & end tracing info ---
+    int nr; //magnetic line number in radial direction, elements number is nr-1;
+    double* start_point_R;  // [nr]starting point R coordinate for tracing magnetic line
+    double* start_point_Z;  // [nr]starting point R coordinate for tracing magnetic line
+    double* guard_start;    // [nr]
+    double* guard_end;      // [nr]
+    double* pasmin;         // [nr]
+
+    // --- 3. End curve ---
+    Curve* end_curve;
+
+    // --- 4. Poloidal segments normal distritbuion
+    // Coresponding to zones in trg also Coresponding to dltp1 and dltpn in DivGeo
+    // it can be treated as the first boundary of gridzone
+    int n_polsegm1;
+    int* idx_polsegm; //indicate number for nptseg
+    int* reverse_segm1; //indicate whether segments need to be reserve or not when create the start curve
+    int* nsize_segms;
+    double** norm_dist_polsegms;
+
+    // --- 5. OTHER information
+    DLListNode** pol_DLLcurves; //the DLList lines ofr poloidal segments.
+    Curve* pol_start_point;
+
+    // it can be treated as the second boundary of gridzone
+    int n_secpolsegm;
+    DLListNode** secpol_DLLcurves; //Used for 
+
+    DLListNode* gradpsiline; //gradpsi line in the first boundary
+    DLListNode* secgradpsiline;  //gradpsi line in the second boundary
+
+    //Only used for connected double.
+    DLListNode* gradpsiline2; //the 2nd gradpsi line in the first boundary
+    DLListNode* secgradpsiline2;  //the 2nd gradpsi line in the second boundary
+
+} GridZone;
 #endif

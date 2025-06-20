@@ -558,26 +558,31 @@ void divgeo_test()
     trg->regions[i]->level[0]=xpt_array[1].level;
   }
 
-  write_dgtrg_to_sn_input(trg, &dtt_example, sep, gradpsilines);
+  write_sn_gridzoneinfo_from_dgtrg(trg, &dtt_example, sep, gradpsilines);
   
 
 
 /***********************************************
-*   Read input of GridZone
+*   Read input of GridZoneInfo
 ***********************************************/
-  GridZone* solgridzone=load_GridZone_from_input("input_SOL");
-  GridZone* pfrgridzone=load_GridZone_from_input("input_PFR");
-  GridZone* coregridzone=load_GridZone_from_input("input_CORE");
+  GridZoneInfo* solgridzone=load_GridZoneInfo_from_input("input_SOL");
+  GridZoneInfo* pfrgridzone=load_GridZoneInfo_from_input("input_PFR");
+  GridZoneInfo* coregridzone=load_GridZoneInfo_from_input("input_CORE");
 
-  print_GridZone(solgridzone);
-  print_GridZone(pfrgridzone);
-  print_GridZone(coregridzone);
+  print_GridZoneInfo(solgridzone);
+  print_GridZoneInfo(pfrgridzone);
+  print_GridZoneInfo(coregridzone);
 
 
+  write_polsegms_from_dgtrg(trg,"polseginfo1");
+  PolSegmsInfo* polseginfo=read_PolSegmsInfo_from_file("polseginfo1");
+  write_PolSegmsInfo(polseginfo,"polseginfo2");
+
+  free_PolSegmsInfo(polseginfo);
   
-  free_GridZone(&solgridzone);
-  free_GridZone(&pfrgridzone);
-  free_GridZone(&coregridzone);
+  free_GridZoneInfo(&solgridzone);
+  free_GridZoneInfo(&pfrgridzone);
+  free_GridZoneInfo(&coregridzone);
 
   free_dgtrg(trg);
   free_gradpsiline_default(gradpsilines);

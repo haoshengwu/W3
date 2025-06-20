@@ -43,12 +43,12 @@ typedef struct
     double **point_coord;
 } CarreMeshTube;
 
-void initial_CarreMeshTube(CarreMeshTube *tube, 
-                           const size_t n_prev_curve, double **prev_curve, 
-                           const size_t n_curve, double **curve, 
-                           const size_t n_coordinate, double *distrib_prev_point, double **prev_point_coord,
-                           const double guard_top, const double guard_end,const double pasmin, 
-                           double *distrib_points, double **point_coordinate);
+// void initial_CarreMeshTube(CarreMeshTube *tube, 
+//                            const size_t n_prev_curve, double **prev_curve, 
+//                            const size_t n_curve, double **curve, 
+//                            const size_t n_coordinate, double *distrib_prev_point, double **prev_point_coord,
+//                            const double guard_top, const double guard_end,const double pasmin, 
+//                            double *distrib_points, double **point_coordinate);
 
 
 //CarreOrthoValue is used to store the intermediate values to evaluate the orthogonal property.
