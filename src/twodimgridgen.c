@@ -346,6 +346,7 @@ static GirdTubeStr* allocate_GridTube(size_t n, double guard_top, double guard_e
   gridtube->curr_gridcurve=create_curve(n);
   gridtube->len_prev_gridcurve= calloc(n, sizeof(double));
   gridtube->len_curr_gridcurve= calloc(n, sizeof(double));
+  return gridtube;
 }
 
 void free_GridTube(GirdTubeStr* gridtube)

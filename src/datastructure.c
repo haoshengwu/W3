@@ -1,6 +1,7 @@
 #include "datastructure.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdbool.h>
 #define EPS_DATASTR 1.0E-10
 
 //************** Double linked list related ******************//
@@ -21,7 +22,7 @@ DLListNode* create_DLListNode(double r, double z)
 };
 
 // head is the head of the double linked list
-void insert_DLList_at_head(DLListNode** head_ref, double r, double z)
+void add_DLListnode_at_head(DLListNode** head_ref, double r, double z)
 {
   DLListNode* new_node = create_DLListNode(r, z);
   if (new_node == NULL)
@@ -42,11 +43,11 @@ void insert_DLList_at_head(DLListNode** head_ref, double r, double z)
 }
 
 // get the end node of a double linked list, becareful to use, because the DLL will updated!!!
-DLListNode* get_DLList_endnode(DLListNode* head)
+DLListNode* get_DLList_tailnode(DLListNode* head)
 {
   if (head == NULL)
   {
-    fprintf(stderr, "Empty input for get_DLList_endnode.\n");
+    fprintf(stderr, "Empty input for get_DLList_tailnode.\n");
     exit(EXIT_FAILURE);
   }
 
@@ -58,7 +59,7 @@ DLListNode* get_DLList_endnode(DLListNode* head)
 }
 
 // insert a point r,z to the end of double linked list and return new end node
-void insert_DLList_at_end(DLListNode** end_ref, double r, double z)
+void add_DLListnode_at_tail(DLListNode** end_ref, double r, double z)
 {
   if (end_ref == NULL || *end_ref == NULL) 
   {
@@ -118,7 +119,7 @@ void connect_DLList(DLListNode* head1,DLListNode** head2, int skip)
     fprintf(stderr,"Empty input for connect_DLList.\n");
     exit(EXIT_FAILURE);
   }
-  DLListNode* tail1=get_DLList_endnode(head1);
+  DLListNode* tail1=get_DLList_tailnode(head1);
   DLListNode* cur = *head2;
   
   int delete_duplicate=0;
@@ -340,12 +341,25 @@ static int get_intersection(double x1, double y1, double x2, double y2,
 
 void insert_between(DLListNode* a, DLListNode* b, double r, double z) 
 {
+    if (!a || !b) 
+    {
+        fprintf(stderr, "Empty input for insert_between.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (a->next != b || b->prev != a)
+    {
+        fprintf(stderr, "Non-contiguous nodes in insert_between.\n");
+        exit(EXIT_FAILURE);
+    }
+
     DLListNode* new_node = create_DLListNode(r, z);
     if (!new_node) return;
+
     new_node->prev = a;
     new_node->next = b;
-    if (a) a->next = new_node;
-    if (b) b->prev = new_node;
+    a->next = new_node;
+    b->prev = new_node;
 }
 
 // Returns 0 if an intersection is found and inserted, 1 otherwise
@@ -361,18 +375,34 @@ int insert_intersections_DLList(DLListNode* head1, DLListNode* head2, double* r_
                   b->r, b->z, b->next->r, b->next->z,
                   r_ptr, z_ptr)==0) 
         {
-              // Insert the intersection point into both DLLists
-              // Use two separate nodes to avoid sharing the same memory
-              insert_between(a, a->next, *r_ptr, *z_ptr);  // insert into list 1
-              insert_between(b, b->next, *r_ptr, *z_ptr);  // insert into list 2
-              found=0;
-              break; // prevent multiple insertions on the same segment
+          // Insert the intersection point into both DLLists
+          // Use two separate nodes to avoid sharing the same memory
+          if( (fabs(a->r-*r_ptr)<EPS_DATASTR && fabs(a->z-*z_ptr)<EPS_DATASTR)||
+              (fabs(a->next->r-*r_ptr)<EPS_DATASTR && fabs(a->next->z-*z_ptr)<EPS_DATASTR))
+          {
+            printf("DEBUG: %.12f %.12f already in the DLList1, not need to insert\n",*r_ptr, *z_ptr);
+          }
+          else
+          {
+            insert_between(a, a->next, *r_ptr, *z_ptr);  // insert into list 1
+          }
+          if( (fabs(b->r-*r_ptr)<EPS_DATASTR && fabs(b->z-*z_ptr)<EPS_DATASTR)||
+              (fabs(b->next->r-*r_ptr)<EPS_DATASTR && fabs(b->next->z-*z_ptr)<EPS_DATASTR))
+          {
+            printf("DEBUG: %.12f %.12f already in the DLList2, not need to insert\n",*r_ptr, *z_ptr);
+          }
+          else
+          {
+            insert_between(b, b->next, *r_ptr, *z_ptr);  // insert into list 2
+          }
+          found=0;
+          break; // prevent multiple insertions on the same segment
         }
       }
       if(found==0) 
       {
-        printf("DEBUG intersection point: %lf %lf\n", *r_ptr, *z_ptr);
-        break;
+        printf("DEBUG intersection point: %.12f %.12f\n", *r_ptr, *z_ptr);
+        break; // Break outer loop after successful insertion
       }
     }
     if(found)
@@ -382,19 +412,21 @@ int insert_intersections_DLList(DLListNode* head1, DLListNode* head2, double* r_
     return found;
 }
 
-int cut_intersections_DLList(DLListNode* head, double r, double z) {
+int cut_DLList_from_intersections(DLListNode* head, double r, double z) {
     DLListNode* current = head;
-
+    bool found = false;
     // Step 1: Find the node with matching (r, z)
     while (current) {
-        if (fabs(current->r - r) < EPS_DATASTR && fabs(current->z - z) < EPS_DATASTR) {
-            break;
+    if (fabs(current->r - r) < EPS_DATASTR && fabs(current->z - z) < EPS_DATASTR) 
+        {
+          break;
         }
+        found = true;
         current = current->next;
     }
 
-    if (!current) {
-        printf("The point (%.10f, %.10f) is not in the DLList.\n", r, z);
+    if (!found) {
+        printf("The point (%.12f, %.12f) is not in the DLList.\n", r, z);
         return 0;
     }
 
@@ -410,7 +442,7 @@ int cut_intersections_DLList(DLListNode* head, double r, double z) {
         node = next;
         count++;
     }
-
+    printf("Cut %d points in the DLList.\n", count);
     return count; // Number of nodes deleted
 }
 

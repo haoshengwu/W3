@@ -14,8 +14,6 @@ typedef struct
 
 TargetDLListCurve* create_target_curve();
 
-
-
 int add_point_target_curve(TargetDLListCurve* tgt_cur, double r, double z);
 
 int change_name_target_curve(TargetDLListCurve* tgt_cur, const char* name);

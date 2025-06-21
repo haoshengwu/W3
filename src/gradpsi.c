@@ -281,8 +281,8 @@ void generate_gradpsiline_bytracing(
     }
 
     gradpsi_lines->line_list[i]=create_DLListNode(xpt_r, xpt_z);
-    DLListNode* endnode=get_DLList_endnode(gradpsi_lines->line_list[i]);
-    insert_DLList_at_end(&endnode, start_p[0], start_p[1]);
+    DLListNode* endnode=get_DLList_tailnode(gradpsi_lines->line_list[i]);
+    add_DLListnode_at_tail(&endnode, start_p[0], start_p[1]);
 
     t=t+step_size;
     int boundary=10; //psi range for stopping tracing.
@@ -319,7 +319,7 @@ void generate_gradpsiline_bytracing(
         break;
       }
 
-      insert_DLList_at_end(&endnode, next_p[0], next_p[1]);
+      add_DLListnode_at_tail(&endnode, next_p[0], next_p[1]);
       fprintf(fp, "%.15f %.15f\n", next_p[0], next_p[1]);
     }
     printf("Finish tracing of gradpsi line %d \n", i);

@@ -343,7 +343,7 @@ void target_curve_test()
     }
   }
   int n_cut;
-  n_cut = cut_intersections_DLList(sep->line_list[num_itrsct], itrsct_r,itrsct_z);
+  n_cut = cut_DLList_from_intersections(sep->line_list[num_itrsct], itrsct_r,itrsct_z);
   printf("Deleted points: %d\n", n_cut);
   char* cut_sep="sep_cut_baseline";
   write_DLList(sep->line_list[num_itrsct], cut_sep);
@@ -565,9 +565,9 @@ void divgeo_test()
 /***********************************************
 *   Read input of GridZoneInfo
 ***********************************************/
-  GridZoneInfo* solgridzone=load_GridZoneInfo_from_input("input_SOL");
-  GridZoneInfo* pfrgridzone=load_GridZoneInfo_from_input("input_PFR");
-  GridZoneInfo* coregridzone=load_GridZoneInfo_from_input("input_CORE");
+  GridZoneInfo* solgridzone=load_GridZoneInfo_from_input("gridzoneinfo_SOL");
+  GridZoneInfo* pfrgridzone=load_GridZoneInfo_from_input("gridzoneinfo_PFR");
+  GridZoneInfo* coregridzone=load_GridZoneInfo_from_input("gridzoneinfo_CORE");
 
   print_GridZoneInfo(solgridzone);
   print_GridZoneInfo(pfrgridzone);
@@ -578,6 +578,8 @@ void divgeo_test()
   PolSegmsInfo* polseginfo=read_PolSegmsInfo_from_file("polseginfo1");
   write_PolSegmsInfo(polseginfo,"polseginfo2");
 
+  print_PolSegmsInfo(polseginfo);
+
   free_PolSegmsInfo(polseginfo);
   
   free_GridZoneInfo(&solgridzone);
@@ -585,6 +587,135 @@ void divgeo_test()
   free_GridZoneInfo(&coregridzone);
 
   free_dgtrg(trg);
+  free_gradpsiline_default(gradpsilines);
+  free_grad_psi(gradpsi);
+  free_separatrix_default(sep);
+
+  free_opoint(opoint);
+  brk5_finalize(&brk45_data);
+  free_interp1d_function(interp);
+  free_2d_array(est_xpt);
+  free_mag_field_torsys(&test_magfield);
+  free_equilibrium(&dtt_example);
+}
+
+
+void meshgeneration_test()
+{
+
+  InputPara w3_input;
+  init_inputpara(&w3_input);
+  print_inputpara(&w3_input);
+  Equilibrium dtt_example;
+  init_equilibrium(&dtt_example);
+  read_equilib_geqdsk(&dtt_example,w3_input.equilibrium_file);
+  print_equilibrium(&dtt_example);
+
+
+  int xpt_n = 2;
+  double **est_xpt = allocate_2d_array(xpt_n,2);
+  est_xpt[0][0] = 1.85;
+  est_xpt[0][1] = -1.16;
+
+  est_xpt[1][0] = 1.58;
+  est_xpt[1][1] = 1.61;
+
+  interpl_2D_1f interpl_2D_1f = cubicherm2d1f;
+  interpl_2D_2f interpl_2D_2f = cubicherm2d2f;
+
+  _XPointInfo xpt_array[2];
+
+  find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_2D_1f, interpl_2D_2f, xpt_array);
+
+  MagFieldTorSys test_magfield;
+  init_mag_field_torsys(&test_magfield);
+  char* method = "central_4th";
+  calc_mag_field_torsys(&dtt_example, &test_magfield, method);
+
+
+//build the interpolator; x_tmp,fx_tmp, dfdx_tmp are nothing realted to x or y. 
+
+  Interp1DFunction* interp=create_cubicherm1D_interp(NULL, NULL, NULL, 2);
+
+/************************************************
+*  Build the tracer for generation separatrix   *
+************************************************/ 
+  double direction[3]={1.0,1.0,1.0};
+  RKSolverData brk45_data;
+
+  double stepsize = 0.1;
+
+  ode_function ode_func = {
+    .ndim = 2,
+    .data = &test_magfield,
+    .rescale = direction,
+    .compute_f = ode_f_brz_torsys_cubicherm,
+  };
+  ode_solver brk45_solver =
+  {
+    .step_size = stepsize,
+    .solver_data = &brk45_data,
+    .next_step = brk5_next_step,
+    .initialize = brk5_initialize,
+    .finalize = brk5_finalize
+  };
+  brk45_solver.initialize(&brk45_data);
+
+  SeparatrixStr* sep=init_separatrix_default();
+  generate_separatrix_bytracing(sep, &xpt_array[1], &dtt_example,&test_magfield, interp,&ode_func, &brk45_solver);
+  
+  GradPsiStr *gradpsi=init_grad_psi();
+  calc_grad_psi(&dtt_example, gradpsi, central_diff_2nd_2d);
+  char name[32]="gradpsi";
+  write_grad_psi(gradpsi, name);
+
+// change the odf function for gradpsi line tracing
+  ode_func.compute_f=ode_f_gradpsi_cubicherm;
+  ode_func.data=gradpsi;
+
+  GradPsiLineStr* gradpsilines=init_gradpsiline_default();
+  
+  //Create a opoint structure
+  OPointStr* opoint = create_opoint();
+  opoint->centerX=2.27;
+  opoint->centerY=0.187;
+  
+  generate_gradpsiline_bytracing(gradpsilines, gradpsi, opoint, sep, NULL, &ode_func, &brk45_solver);
+
+/***********************************************
+*   Read input of GridZoneInfo
+***********************************************/
+  GridZoneInfo* solgridzone=load_GridZoneInfo_from_input("gridzoneinfo_SOL");
+  GridZoneInfo* pfrgridzone=load_GridZoneInfo_from_input("gridzoneinfo_PFR");
+  GridZoneInfo* coregridzone=load_GridZoneInfo_from_input("gridzoneinfo_CORE");
+
+/***********************************************
+*   Read input of polsegminfo
+***********************************************/
+  PolSegmsInfo* polseginfo=read_PolSegmsInfo_from_file("polseginfo2");
+
+  
+/***********************************************
+*   Create separatrix distribution
+***********************************************/
+  SepDistStr* sepdist=create_SepDistStr_from_sep(sep);
+  update_sn_SepDistStr_from_GridZoneInfo(sepdist,solgridzone);
+  update_sn_SepDistStr_from_PolSegmsInfo(sepdist,polseginfo);
+  
+  write_DLList(sepdist->edges[sepdist->index[0]]->head,"sepdist_line0");
+  write_DLList(sepdist->edges[sepdist->index[1]]->head,"sepdist_line1");
+  write_DLList(sepdist->edges[sepdist->index[2]]->head,"sepdist_line2");
+  write_DLList(sepdist->edges[sepdist->index[3]]->head,"sepdist_line3");
+
+  
+  free_GridZoneInfo(&solgridzone);
+  free_GridZoneInfo(&pfrgridzone);
+  free_GridZoneInfo(&coregridzone);
+
+  free_PolSegmsInfo(polseginfo);
+
+  free_SepDistStr(sepdist);
+  
   free_gradpsiline_default(gradpsilines);
   free_grad_psi(gradpsi);
   free_separatrix_default(sep);

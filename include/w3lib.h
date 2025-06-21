@@ -29,5 +29,6 @@
 #include "target.h"
 #include "gradpsi.h"
 #include "polsegm.h"
+#include "sepdistribution.h"
 
 #endif

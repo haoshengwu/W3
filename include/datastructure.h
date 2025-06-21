@@ -20,13 +20,13 @@ DLListNode;
 DLListNode* create_DLListNode(double r, double z);
 
 // head is the head node of the double linked list
-void insert_DLList_at_head(DLListNode** head_ref, double r, double z);
+void add_DLListnode_at_head(DLListNode** head_ref, double r, double z);
 
 // get the end node of a double linked list, becareful to use, because the DLL will updated!!!
-DLListNode* get_DLList_endnode(DLListNode* head);
+DLListNode* get_DLList_tailnode(DLListNode* head);
 
 // insert a point at the end of a double linked list
-void insert_DLList_at_end(DLListNode** prt_end, double r, double z);
+void add_DLListnode_at_tail(DLListNode** prt_end, double r, double z);
 
 DLListNode* copy_DLList(DLListNode* head);
 
@@ -55,7 +55,7 @@ int insert_intersections_DLList(DLListNode* head1, DLListNode* head2, double* r,
 
 // return how many node are delete, cut the NEXT point of (r,z), NOT (r,z) itself
 // -1 means not in the line, 0 means r z is the last
-int cut_intersections_DLList(DLListNode* head, double r, double z);
+int cut_DLList_from_intersections(DLListNode* head, double r, double z);
 
 // split the DLList from point r,z and create a new node with rz and bound to new_head;
 int split_intersections_DLList(DLListNode* head, double r, double z, DLListNode** new_head);

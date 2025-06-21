@@ -199,5 +199,10 @@ test magnetic field line calculation
 ******************************************************/
   divgeo_test();
 
+/*****************************************************
+*  Verify 2D carre grid generation 
+******************************************************/
+  meshgeneration_test();
+
   return 0;
 }

@@ -49,44 +49,44 @@ GridZoneInfo* load_GridZoneInfo_from_input(const char* filename);
 //print GirdZone info for test. first_pol_points and curveset do not print;
 void print_GridZoneInfo(GridZoneInfo* gridzoneinfo);
 
-typedef struct {
-    // --- 1. Basic information ---
-    char* topo;
-    char* name;
-    // --- 2. Start & end tracing info ---
-    int nr; //magnetic line number in radial direction, elements number is nr-1;
-    double* start_point_R;  // [nr]starting point R coordinate for tracing magnetic line
-    double* start_point_Z;  // [nr]starting point R coordinate for tracing magnetic line
-    double* guard_start;    // [nr]
-    double* guard_end;      // [nr]
-    double* pasmin;         // [nr]
+// typedef struct {
+//     // --- 1. Basic information ---
+//     char* topo;
+//     char* name;
+//     // --- 2. Start & end tracing info ---
+//     int nr; //magnetic line number in radial direction, elements number is nr-1;
+//     double* start_point_R;  // [nr]starting point R coordinate for tracing magnetic line
+//     double* start_point_Z;  // [nr]starting point R coordinate for tracing magnetic line
+//     double* guard_start;    // [nr]
+//     double* guard_end;      // [nr]
+//     double* pasmin;         // [nr]
 
-    // --- 3. End curve ---
-    Curve* end_curve;
+//     // --- 3. End curve ---
+//     Curve* end_curve;
 
-    // --- 4. Poloidal segments normal distritbuion
-    // Coresponding to zones in trg also Coresponding to dltp1 and dltpn in DivGeo
-    // it can be treated as the first boundary of gridzone
-    int n_polsegm1;
-    int* idx_polsegm; //indicate number for nptseg
-    int* reverse_segm1; //indicate whether segments need to be reserve or not when create the start curve
-    int* nsize_segms;
-    double** norm_dist_polsegms;
+//     // --- 4. Poloidal segments normal distritbuion
+//     // Coresponding to zones in trg also Coresponding to dltp1 and dltpn in DivGeo
+//     // it can be treated as the first boundary of gridzone
+//     int n_polsegm1;
+//     int* idx_polsegm; //indicate number for nptseg
+//     int* reverse_segm1; //indicate whether segments need to be reserve or not when create the start curve
+//     int* nsize_segms;
+//     double** norm_dist_polsegms;
 
-    // --- 5. OTHER information
-    DLListNode** pol_DLLcurves; //the DLList lines ofr poloidal segments.
-    Curve* pol_start_point;
+//     // --- 5. OTHER information
+//     DLListNode** pol_DLLcurves; //the DLList lines ofr poloidal segments.
+//     Curve* pol_start_point;
 
-    // it can be treated as the second boundary of gridzone
-    int n_secpolsegm;
-    DLListNode** secpol_DLLcurves; //Used for 
+//     // it can be treated as the second boundary of gridzone
+//     int n_secpolsegm;
+//     DLListNode** secpol_DLLcurves; //Used for 
 
-    DLListNode* gradpsiline; //gradpsi line in the first boundary
-    DLListNode* secgradpsiline;  //gradpsi line in the second boundary
+//     DLListNode* gradpsiline; //gradpsi line in the first boundary
+//     DLListNode* secgradpsiline;  //gradpsi line in the second boundary
 
-    //Only used for connected double.
-    DLListNode* gradpsiline2; //the 2nd gradpsi line in the first boundary
-    DLListNode* secgradpsiline2;  //the 2nd gradpsi line in the second boundary
+//     //Only used for connected double.
+//     DLListNode* gradpsiline2; //the 2nd gradpsi line in the first boundary
+//     DLListNode* secgradpsiline2;  //the 2nd gradpsi line in the second boundary
 
-} GridZone;
+// } GridZone;
 #endif

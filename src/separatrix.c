@@ -235,8 +235,8 @@ void generate_separatrix_bytracing(
     //Add X-point to separatix line
     sep->line_list[i]=create_DLListNode(xpt->centerX,xpt->centerY);
     //Add 2nd point to separatix line
-    DLListNode* endnode=get_DLList_endnode(sep->line_list[i]);
-    insert_DLList_at_end(&endnode, start_p[0], start_p[1]);
+    DLListNode* endnode=get_DLList_tailnode(sep->line_list[i]);
+    add_DLListnode_at_tail(&endnode, start_p[0], start_p[1]);
 
     t=t+step_size;
     int boundary=10; //not reach the real boundary but [10:nx-10][10:ny-10]
@@ -259,11 +259,11 @@ void generate_separatrix_bytracing(
       {
         printf("Back to X-Point Rectangular!\n");
         //insert Xpoint to the sep lines which are the LCFS.
-        insert_DLList_at_end(&endnode, xpt->centerX, xpt->centerY);
+        add_DLListnode_at_tail(&endnode, xpt->centerX, xpt->centerY);
         fprintf(fp, "%.15f %.15f\n", xpt->centerX, xpt->centerY);
         break;
       }
-      insert_DLList_at_end(&endnode, next_p[0], next_p[1]);
+      add_DLListnode_at_tail(&endnode, next_p[0], next_p[1]);
       fprintf(fp, "%.15f %.15f\n", next_p[0], next_p[1]);
     }
     

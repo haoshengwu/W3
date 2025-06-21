@@ -17,4 +17,6 @@ void grad_psi_test();
 
 void divgeo_test();
 
+void meshgeneration_test();
+
 #endif

@@ -25,8 +25,8 @@ int add_point_target_curve(TargetDLListCurve* tgt_cur, double r, double z)
   }
   else
   {
-    DLListNode* tail = get_DLList_endnode(tgt_cur->head);
-    insert_DLList_at_end(&tail, r, z);
+    DLListNode* tail = get_DLList_tailnode(tgt_cur->head);
+    add_DLListnode_at_tail(&tail, r, z);
     tgt_cur->n++;
     return 0;
   }
@@ -91,7 +91,7 @@ void cut_target_curve(TargetDLListCurve* tgt_cur, double r, double z)
   }
   
   int status;
-  status = cut_intersections_DLList(tgt_cur->head, r ,z);
+  status = cut_DLList_from_intersections(tgt_cur->head, r ,z);
   
   if(status==0)
   {

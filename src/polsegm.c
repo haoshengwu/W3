@@ -134,6 +134,41 @@ void write_PolSegmsInfo(PolSegmsInfo* polseginfo, const char* filename)
   printf("Finished writing PolSegmsInfo to file %s\n", filename);
 }
 
+void print_PolSegStr(PolSegStr* polseg)
+{
+  if (!polseg) {
+    printf("  [Segment] (null)\n");
+    return;
+  }
+
+  printf("  Segment: %s\n", polseg->name ? polseg->name : "(Unnamed)");
+  printf("    Number of points: %d\n", polseg->n_points);
+  printf("    Normalized distribution:\n");
+
+  for (int i = 0; i < polseg->n_points; ++i) {
+    printf("      [%3d] %.10f\n", i, polseg->norm_dist[i]);
+  }
+}
+
+void print_PolSegmsInfo(PolSegmsInfo* polseginfo)
+{
+  if (!polseginfo) {
+    printf("[PolSegmsInfo] (null)\n");
+    return;
+  }
+
+  printf("=== Poloidal Segment Info ===\n");
+  printf("Topo: %s\n", polseginfo->topo ? polseginfo->topo : "NaN");
+  printf("Number of segments: %d\n", polseginfo->n_polsegms);
+
+  for (int i = 0; i < polseginfo->n_polsegms; ++i) {
+    printf("  [Segment %d]\n", i);
+    print_PolSegStr(polseginfo->polsegments[i]);
+  }
+
+  printf("=== End of Segment Info ===\n");
+}
+
 PolSegmsInfo* read_PolSegmsInfo_from_file(const char* filename)
 {
   FILE* fp = fopen(filename, "r");
@@ -178,7 +213,7 @@ PolSegmsInfo* read_PolSegmsInfo_from_file(const char* filename)
 
       info = create_PolSegmsInfo(nsegments);
 
-      // 拷贝 topo 到 info->topo
+      // copy topo to info->topo
       if (topo_tmp) {
         size_t topo_len = strlen(topo_tmp);
         info->topo = (char*)malloc(topo_len + 1);
@@ -195,7 +230,7 @@ PolSegmsInfo* read_PolSegmsInfo_from_file(const char* filename)
     } else if (strncmp(line, "#segment", 8) == 0) {
       if (!info) goto error;
 
-      // 读取 segment 名称
+      // read segment name
       if (!fgets(line, sizeof(line), fp)) goto error;
       len = strcspn(line, "\r\n");
       line[len] = '\0';
@@ -203,20 +238,20 @@ PolSegmsInfo* read_PolSegmsInfo_from_file(const char* filename)
       strncpy(segname, line, sizeof(segname) - 1);
       segname[sizeof(segname) - 1] = '\0';
 
-      // 读取 #size
+      // read #size
       if (!fgets(line, sizeof(line), fp)) goto error;
       len = strcspn(line, "\r\n");
       line[len] = '\0';
       if (strncmp(line, "#size", 5) != 0) goto error;
 
-      // 读取点数
+      // read points
       if (!fgets(line, sizeof(line), fp)) goto error;
       len = strcspn(line, "\r\n");
       line[len] = '\0';
       int npts = 0;
       if (sscanf(line, "%d", &npts) != 1 || npts <= 0) goto error;
 
-      // 读取 #normal distribution
+      // read #normal distribution
       if (!fgets(line, sizeof(line), fp)) goto error;
       len = strcspn(line, "\r\n");
       line[len] = '\0';
@@ -230,7 +265,7 @@ PolSegmsInfo* read_PolSegmsInfo_from_file(const char* filename)
 
       info->polsegments[current] = seg;
 
-      // 读取分布数据
+      // read distribution
       for (int i = 0; i < npts; ++i) {
         if (!fgets(line, sizeof(line), fp)) goto error;
         len = strcspn(line, "\r\n");

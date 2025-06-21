@@ -29,5 +29,8 @@ void free_PolSegmsInfo(PolSegmsInfo* polseginfo);
 void write_PolSegStr(PolSegStr* polseg, FILE* fp);
 void write_PolSegmsInfo(PolSegmsInfo* polseginfo, const char* filename);
 
+void print_PolSegStr(PolSegStr* polseg);
+void print_PolSegmsInfo(PolSegmsInfo* polseginfo);
+
 PolSegmsInfo* read_PolSegmsInfo_from_file(const char* filename);
 #endif

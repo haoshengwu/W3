@@ -545,7 +545,7 @@ static void cal_points_from_psi(double *psi,double *r, double *z, int n,
 {
 
   double psi_head, psi_tail;
-  DLListNode* end = get_DLList_endnode(head);
+  DLListNode* end = get_DLList_tailnode(head);
   interp2d1f(head->r,head->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_head, NULL, NULL, NULL);
   interp2d1f(end->r,end->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_tail, NULL, NULL, NULL);
   printf("DEBUG psi_head %.15f psi_tail %.15f\n", psi_head, psi_tail);
@@ -858,7 +858,7 @@ static void change_name(char **name, const char *str)
 //     }
 //     if((pol_dis[n-1]-1.0)<1.0E-10)
 //     {
-//       DLListNode* tail = get_DLList_endnode(head);
+//       DLListNode* tail = get_DLList_tailnode(head);
 //       new_tail->r=tail->r;
 //       new_tail->z=tail->z;
 //     }
@@ -923,7 +923,7 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
   write_DLList(inner_tgt_curve->head,"inner_targetcurve");
 
   //cut the separatrix which intersect with inner target
-  cut_intersections_DLList(sep->line_list[sep->index[0]],itsct_r_inner, itsct_z_inner);
+  cut_DLList_from_intersections(sep->line_list[sep->index[0]],itsct_r_inner, itsct_z_inner);
 
   double itsct_r_outer, itsct_z_outer;
   //calcute the intersection point between sep and the outer target
@@ -942,7 +942,7 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
   update_GridZoneInfo_end_curve(pfrgzinfo,outer_tgt_curve);
 
   //cut the separatrix
-  cut_intersections_DLList(sep->line_list[sep->index[1]],itsct_r_outer, itsct_z_outer);
+  cut_DLList_from_intersections(sep->line_list[sep->index[1]],itsct_r_outer, itsct_z_outer);
   
   //create the curve which will used to store the SOL radregion
   TargetDLListCurve* sol_tgt_curve=create_target_curve();
@@ -1149,7 +1149,7 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
 *    STEP6 Write the input based on GridZoneInfo
 ********************************************************************************/
   write_GridZoneInfo(solgzinfo,"gridzoneinfo_SOL");
-  write_GridZoneInfo(pfrgzinfo,"gridzoneinfo_SOL");
+  write_GridZoneInfo(pfrgzinfo,"gridzoneinfo_PFR");
   write_GridZoneInfo(coregzinfo,"gridzoneinfo_CORE");
 
 /*************************************************
