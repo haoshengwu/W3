@@ -30,5 +30,6 @@
 #include "gradpsi.h"
 #include "polsegm.h"
 #include "sepdistribution.h"
+#include "twodimgridgen.h"
 
 #endif

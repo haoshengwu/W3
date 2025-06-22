@@ -1,8 +1,233 @@
 #include "twodimgridgen.h"
 #include "carrefunction.h"
+#include "curve.h"
 #include <math.h>
 #define DEFAULT_MARGIN 20
 #define MAX_NUM_TRACING 40000
+
+
+/*
+ * Merge an array of doubly-linked lists into a single Curve.
+ * ──────────────────────────────────────────────────────────
+ * Input
+ *   list : array of DLListWithOptions, each containing a head node
+ *          and a reverse flag that indicates traversal direction.
+ *   n    : number of list segments in the array
+ *
+ * Rules
+ *   1.  The first segment is copied in full.
+ *   2.  For every subsequent segment, if its first node duplicates
+ *       the last point that was added to the result, that first node
+ *       is skipped.
+ *   3.  The original linked lists are NOT modified.
+ */
+Curve* connect_DLList_for_curve(DLListWithOptions* list, int n)
+{
+  if (!list || n <= 0) {
+    fprintf(stderr, "Error: invalid input to connect_DLList_for_curve.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  /* Allocate the result curve with an initial capacity. */
+  Curve* result = create_curve(256);
+  if (!result) {
+    fprintf(stderr, "Error: failed to allocate result curve.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int seg = 0; seg < n; ++seg) {
+
+    /* Validate current segment head */
+    DLListNode* head = list[seg].head;
+    if (!head) {
+      fprintf(stderr, "Error: DLList segment %d is NULL.\n", seg);
+      exit(EXIT_FAILURE);
+    }
+
+    /* Choose traversal start node based on the reverse flag */
+    DLListNode* node = list[seg].reverse
+                       ? get_DLList_tailnode(head)   /* start from tail */
+                       : head;                       /* start from head */
+
+    /* Flag to indicate the very first node of this segment */
+    int is_first_point = 1;
+
+    /* Traverse the current linked list */
+    while (node) {
+      /* For segments after the first, skip the first node if it
+         duplicates the last point already in the curve.          */
+      if (seg > 0 && is_first_point && result->n_point > 0) {
+        double last_x = result->points[result->n_point - 1].x;
+        double last_y = result->points[result->n_point - 1].y;
+        if (fabs(last_x - node->r) < 1e-10 &&
+            fabs(last_y - node->z) < 1e-10) {
+          /* Duplicate found -- do not add this point */
+          node = list[seg].reverse ? node->prev : node->next;
+          is_first_point = 0;
+          continue;
+        }
+      }
+
+      /* Add current node’s coordinates to the curve */
+      add_last_point_curve(result, node->r, node->z);
+
+      /* Advance */
+      node = list[seg].reverse ? node->prev : node->next;
+      is_first_point = 0;     /* We are past the first point now   */
+    }
+  }
+
+  return result;
+}
+
+
+GridZone* create_sn_GridZone(GridZoneInfo* gzinfo, SepDistStr* sepdist)
+{
+  // Allocate and copy name/topo
+  GridZone* gz = malloc(sizeof(GridZone));
+  if (!gz) 
+  {
+    fprintf(stderr, "Failed to allocate GridZone.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  int len = strlen(gzinfo->topo) + 1;
+  gz->topo = malloc(len);
+  strcpy(gz->topo, gzinfo->topo);
+
+  len = strlen(gzinfo->name) + 1;
+  gz->name = malloc(len);
+  strcpy(gz->name, gzinfo->name);
+
+  // Copy numerical arrays
+  int nr = gzinfo->nr;
+  gz->nr = nr;
+
+  gz->start_point_R = malloc(nr * sizeof(double));
+  gz->start_point_Z = malloc(nr * sizeof(double));
+  gz->guard_start   = malloc(nr * sizeof(double));
+  gz->guard_end     = malloc(nr * sizeof(double));
+  gz->pasmin        = malloc(nr * sizeof(double));
+
+  memcpy(gz->start_point_R, gzinfo->start_point_R, nr * sizeof(double));
+  memcpy(gz->start_point_Z, gzinfo->start_point_Z, nr * sizeof(double));
+  memcpy(gz->guard_start,   gzinfo->guard_start,   nr * sizeof(double));
+  memcpy(gz->guard_end,     gzinfo->guard_end,     nr * sizeof(double));
+  memcpy(gz->pasmin,        gzinfo->pasmin,        nr * sizeof(double));
+
+  gz->end_curve=copy_curve(gzinfo->end_curve);
+
+
+  // create the first boundary curve and grid point curve
+  int n_segm1=gzinfo->n_polsegm1;
+  CurveWithOptions*  option_gp_c= malloc(n_segm1*sizeof(CurveWithOptions));
+  DLListWithOptions* option_c = malloc(n_segm1*sizeof(DLListWithOptions));
+  for(int i=0; i<n_segm1; i++)
+  {
+    printf("DEBUG n_segm1 %d\n",n_segm1);
+    int idx=sepdist->index[gzinfo->seplineidx1[i]];
+    printf("DEBUG gzinfo->seplineidx1 %d\n",gzinfo->seplineidx1[i]);
+    printf("DEBUG idx %d\n", idx);
+    option_gp_c[i].curve=sepdist->edges[idx]->gridpoint_curve;
+    option_gp_c[i].reverse=gzinfo->reverse_segm1[i];
+
+    option_c[i].head=sepdist->edges[idx]->head;
+    option_c[i].reverse=gzinfo->reverse_segm1[i];
+   }
+  gz->first_bnd=true;
+  gz->first_gridpoint_curve=connect_curves_for_curve(option_gp_c,n_segm1);
+  gz->first_bnd_curve=connect_DLList_for_curve(option_c, n_segm1);
+
+  gz->sec_bnd=false;
+  gz->sec_gridpoint_curve=NULL;
+  gz->sec_bnd_curve=NULL;
+  free(option_c);
+  free(option_gp_c);
+  return gz;
+}
+
+
+void free_GridZone(GridZone* gz)
+{
+  if (!gz) return;
+
+  // Free strings
+  if (gz->topo) {
+    free(gz->topo);
+    gz->topo = NULL;
+  }
+
+  if (gz->name) {
+    free(gz->name);
+    gz->name = NULL;
+  }
+
+  // Free double arrays
+  if (gz->start_point_R) {
+    free(gz->start_point_R);
+    gz->start_point_R = NULL;
+  }
+
+  if (gz->start_point_Z) {
+    free(gz->start_point_Z);
+    gz->start_point_Z = NULL;
+  }
+
+  if (gz->guard_start) {
+    free(gz->guard_start);
+    gz->guard_start = NULL;
+  }
+
+  if (gz->guard_end) {
+    free(gz->guard_end);
+    gz->guard_end = NULL;
+  }
+
+  if (gz->pasmin) {
+    free(gz->pasmin);
+    gz->pasmin = NULL;
+  }
+
+  // Free curves if allocated
+  if (gz->end_curve) {
+    free_curve(gz->end_curve);
+    gz->end_curve = NULL;
+  }
+
+  if (gz->first_bnd_curve) {
+    free_curve(gz->first_bnd_curve);
+    gz->first_bnd_curve = NULL;
+  }
+
+  if (gz->first_gridpoint_curve) {
+    free_curve(gz->first_gridpoint_curve);
+    gz->first_gridpoint_curve = NULL;
+  }
+
+  if (gz->sec_bnd_curve) {
+    free_curve(gz->sec_bnd_curve);
+    gz->sec_bnd_curve = NULL;
+  }
+
+  if (gz->sec_gridpoint_curve) {
+    free_curve(gz->sec_gridpoint_curve);
+    gz->sec_gridpoint_curve = NULL;
+  }
+  // Free the GridZone structure itself
+  free(gz);
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 typedef struct
 {
@@ -374,3 +599,5 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
   
   return;
 }
+
+

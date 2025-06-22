@@ -3,7 +3,7 @@
 
 #include<stdlib.h>
 #include<datastructure.h>
-
+#include<stdbool.h>
 // Represents a single 2D curve with n_point points
 typedef struct {
     size_t n_point;         // Number of (x, y) points in the curve
@@ -53,6 +53,7 @@ void write_curve(const char *filename, const Curve *c);
 
 void print_curve(const Curve *c);
 
+Curve* copy_curve(Curve* c);
 
 //Deterime whether there is a intersection betwee segement1 (x1,y1----x2,y2) segement2 (x3,y3-----x4,y4)
 //Return 0 means has intersection, othwise 1.
@@ -83,10 +84,18 @@ int indcrb_curve(const Curve* curve, const CurvePoint* point, double d);
 //Coresponding to 'ruban_CARRE'
 double ruban_curve(const Curve* curve, const CurvePoint* point, double d);
 
-
-
 //calcaute the coordinates along the curve with the distance d;
 void coordnates_in_curve(const Curve* curve, double d, CurvePoint* point);
+
+
+
+typedef struct {
+  Curve* curve;
+  bool reverse;
+} CurveWithOptions;
+
+//create a new curve which is connect n_curve curves.
+Curve* connect_curves_for_curve(CurveWithOptions* list, int n_curve);
 
 
 

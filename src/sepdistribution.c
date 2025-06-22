@@ -32,6 +32,7 @@ SepDistStr* create_SepDistStr_from_sep(SeparatrixStr* sep)
     sepdist->edges[i]=create_EdgeSegment();
     sepdist->edges[i]->head = copy_DLList(sep->line_list[i]);
   }
+  sepdist->order=sep->order;
   return sepdist;
 }
 
@@ -178,6 +179,66 @@ void update_sn_SepDistStr_from_PolSegmsInfo(SepDistStr* sepdist, PolSegmsInfo* p
 
     for (int j = 0; j < n_size; ++j) {
       sepdist->edges[idx]->norm_dist[j] = polseginfo->polsegments[i]->norm_dist[j];
+    }
+  }
+}
+
+void update_SepDistStr_gridpoint_curve(SepDistStr* sepdist)
+{
+  if (!sepdist) {
+    fprintf(stderr, "Empty input for update_SepDistStr_gridpoint_curve.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for (int i = 0; i < 4; i++) {
+    EdgeSegment* edge = sepdist->edges[i];
+
+    if (!edge) {
+      fprintf(stderr, "Unexpected error: Empty edge for update_SepDistStr_gridpoint_curve.\n");
+      exit(EXIT_FAILURE);
+    }
+
+    if (edge->n_size == -1 && !edge->norm_dist) {
+      printf("Empty edge %d, skipped.\n", i);
+      continue;
+    }
+
+    if (edge->head && edge->n_size > 2 && edge->norm_dist) {
+      const int SIZE = 20000;
+
+      // Step 1: convert DLList to temporary Curve
+      Curve* tmp_c = create_curve(SIZE);
+      DLListNode* node = edge->head;
+      while (node) 
+      {
+        add_last_point_curve(tmp_c, node->r, node->z);
+        node = node->next;
+      }
+
+      // Step 2: generate gridpoint_curve
+      double tot_len = total_length_curve(tmp_c);
+      edge->gridpoint_curve = create_curve(edge->n_size);
+
+      for (int j = 0; j < edge->n_size; j++) 
+      {
+        double len = tot_len * edge->norm_dist[j];
+        CurvePoint* curve_p=malloc(sizeof(CurvePoint));
+        coordnates_in_curve(tmp_c, len, curve_p);
+        add_last_point_curve(edge->gridpoint_curve,curve_p->x,curve_p->y);
+        free(curve_p);
+      }
+      if(edge->gridpoint_curve->n_point!=edge->n_size)
+      {
+        fprintf(stderr, "Unexpected erro.\n");
+        fprintf(stderr, "[edge->gridpoint_curve->n_point] is not consistent with [dge->n_size].\n");
+        exit(EXIT_FAILURE);
+      }
+      // !!! DO NOTE FORGET FREE tmp_c
+      free_curve(tmp_c);
+    }
+    else {
+      fprintf(stderr, "Unexpected edge data at index %d. Please check.\n", i);
+      exit(EXIT_FAILURE);
     }
   }
 }

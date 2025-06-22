@@ -159,7 +159,7 @@ void write_curve(const char *filename, const Curve *c)
             exit(EXIT_FAILURE);
         }
     }
-
+    printf("Finish writing curev to %s file.\n",filename);
     fclose(fp);
 }
 
@@ -178,6 +178,41 @@ void print_curve(const Curve *c)
     }
 }
 
+Curve* copy_curve(Curve* c)
+{
+  // Check for null input
+  if (!c) {
+    fprintf(stderr, "Error: NULL input to copy_curve.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Defensive check: ensure number of points does not exceed capacity
+  if (c->n_point > c->capacity) {
+    fprintf(stderr, "Error: Curve n_point (%zu) exceeds capacity (%zu). Possible memory corruption.\n",
+            c->n_point, c->capacity);
+    exit(EXIT_FAILURE);
+  }
+
+  // If the curve has points, its points array must not be NULL
+  if (c->n_point > 0 && !c->points) {
+    fprintf(stderr, "Error: Curve has n_point > 0 but points array is NULL.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Allocate a new curve with the same capacity
+  Curve* new_c = create_curve(c->capacity);
+  if (!new_c) {
+    fprintf(stderr, "Error: Failed to allocate new Curve in copy_curve.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // Copy used points only (not the entire capacity)
+  if (c->n_point > 0) {
+    memcpy(new_c->points, c->points, c->n_point * sizeof(CurvePoint));
+    new_c->n_point = c->n_point;
+  }
+  return new_c;
+}
 
 /* 2D cross product: (B - A) × (C - A) */
 static inline double cross(double ax, double ay, 
@@ -430,11 +465,13 @@ void coordnates_in_curve(const Curve *curve, double d, CurvePoint *point) {
 
     // Step 2: handle endpoints with TOL_CURVEerance
     if (d <= TOL_CURVE) {
-        *point = curve->points[0];
+        point->x = curve->points[0].x;
+        point->y = curve->points[0].y;
         return;
     }
     if (fabs(d - total_len) <= TOL_CURVE) {
-        *point = curve->points[curve->n_point - 1];
+        point->x = curve->points[curve->n_point - 1].x;
+        point->y = curve->points[curve->n_point - 1].y;
         return;
     }
 
@@ -460,11 +497,12 @@ void coordnates_in_curve(const Curve *curve, double d, CurvePoint *point) {
         // Floating-point safe inclusion test
         if (d >= accum - TOL_CURVE && d <= next_accum + TOL_CURVE) {
             double remain = d - accum;
-
             if (remain <= TOL_CURVE) {
-                *point = curve->points[i];  // Near segment start
+                point->x = curve->points[i].x;  // Near segment start
+                point->y = curve->points[i].y;
             } else if (fabs(remain - seg_len) <= TOL_CURVE) {
-                *point = curve->points[i + 1];  // Near segment end
+                point->x = curve->points[i + 1].x;  // Near segment end
+                point->x = curve->points[i + 1].y;  // Near segment end
             } else {
                 double ratio = remain / seg_len;
                 point->x = x0 + ratio * dx;
@@ -478,4 +516,58 @@ void coordnates_in_curve(const Curve *curve, double d, CurvePoint *point) {
     // Should never reach here
     fprintf(stderr, "coord_in_curve: interpolation failure at d = %.15g\n", d);
     exit(EXIT_FAILURE);
+}
+
+//create a new curve which is due the connection of max to five curve
+//REVERSE FIRST, THEN SKIP
+Curve* connect_curves_for_curve(CurveWithOptions* list, int n_curve)
+{
+  if (!list || n_curve <= 0) return NULL;
+
+  Curve* result = create_curve(256);
+  if (!result) return NULL;
+
+  for (int i = 0; i < n_curve; i++) {
+    Curve* c = list[i].curve;
+    if (!c || c->n_point == 0) {
+      fprintf(stderr, "Error: segment %d is empty or null.\n", i);
+      exit(EXIT_FAILURE);
+    }
+
+    // Determine iteration direction and index range
+    int step  = list[i].reverse ? -1 : 1;
+    int first = list[i].reverse ? c->n_point - 1 : 0;
+    int last  = list[i].reverse ? 0 : c->n_point - 1;
+
+    // Validate index range
+    if ((step == 1 && first > last) ||
+        (step == -1 && first < last)) {
+      fprintf(stderr, "Error: segment %d has invalid index range after reverse.\n", i);
+      exit(EXIT_FAILURE);
+    }
+
+    // Automatically skip first point if it overlaps with previous segment's last point
+    int adjusted_first = first;
+    if (result->n_point > 0) {
+      CurvePoint* prev = &result->points[result->n_point - 1];
+      CurvePoint* curr_first = &c->points[first];
+      if (fabs(prev->x - curr_first->x) < 1e-10 &&
+          fabs(prev->y - curr_first->y) < 1e-10) {
+        adjusted_first += step;
+      }
+    }
+
+    // After skipping overlap, check if segment is empty
+    if ((step == 1 && adjusted_first > last) ||
+        (step == -1 && adjusted_first < last)) {
+      fprintf(stderr, "Error: segment %d has no valid points after automatic overlap skip.\n", i);
+      exit(EXIT_FAILURE);
+    }
+
+    // Append valid points to the result curve
+    for (int idx = adjusted_first; idx != last + step; idx += step) {
+      add_last_point_curve(result, c->points[idx].x, c->points[idx].y);
+    }
+  }
+  return result;
 }

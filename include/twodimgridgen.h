@@ -4,15 +4,61 @@
 #include "gridzone.h"
 #include "ode.h"
 #include "equilibrium.h"
+#include "sepdistribution.h"
+#include "datastructure.h"
 
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+
+typedef struct {
+  DLListNode* head;
+  bool reverse;
+} DLListWithOptions;
+
+Curve* connect_DLList_for_curve(DLListWithOptions* list, int n); 
+
+
+//GridZone is used to create the grid of TwoDimGrid!
+typedef struct 
+{
+    // --- 1. Basic information ---
+    char* topo;
+    char* name;
+    // --- 2. Start & end tracing info ---
+    int nr; //magnetic line number in radial direction, elements number is nr-1;
+    double* start_point_R;  // [nr]starting point R coordinate for tracing magnetic line
+    double* start_point_Z;  // [nr]starting point R coordinate for tracing magnetic line
+    double* guard_start;    // [nr]
+    double* guard_end;      // [nr]
+    double* pasmin;         // [nr]
+    // --- 3. End curve ---
+    Curve* end_curve;
+
+    // --- 4. first boundary ---
+    bool first_bnd;
+    Curve* first_bnd_curve;
+    Curve* first_gridpoint_curve;
+
+    // --- 5. Second boundary ---
+    // used for multiple X-points situations. e.g. snowflakes
+    bool sec_bnd;
+    Curve* sec_bnd_curve;
+    Curve* sec_gridpoint_curve;
+} GridZone;
+
+
+GridZone* create_sn_GridZone(GridZoneInfo* gridzoneinfo, SepDistStr* sepdist);
+
+void free_GridZone(GridZone* gridzone);
 
 typedef struct {
     double x, y;  // Physical coordinates of a Grid point
 } GridPoint;
 
+
+//TwoDimGrid is written in one dimention to have fast access 
 typedef struct {
     int npol;       // Logical number of poloidal points (columns)
     int nrad;       // Logical number of radial points (rows)

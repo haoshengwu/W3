@@ -1274,7 +1274,7 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
       gridzoneinfo->xptidx1[0]=0;
       gridzoneinfo->xptidx1[1]=0;
       gridzoneinfo->seplineidx1[0]=0; 
-      gridzoneinfo->seplineidx1[1]=0;
+      gridzoneinfo->seplineidx1[1]=1;
       gridzoneinfo->segmidx1[0]=0;
       gridzoneinfo->segmidx1[1]=0;
       gridzoneinfo->reverse_segm1[0]=1;

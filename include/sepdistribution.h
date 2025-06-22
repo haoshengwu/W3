@@ -23,6 +23,7 @@ typedef struct {
   // 0 means which has interseciton with inner target.
   int index[4];
   EdgeSegment* edges[4]; 
+  int order; //coresponding to order in sep. indicates the Xth of xpt
 } SepDistStr;
 
 EdgeSegment* create_EdgeSegment();
@@ -30,7 +31,15 @@ SepDistStr* create_SepDistStr_from_sep(SeparatrixStr* sep);
 void free_EdgeSegment(EdgeSegment* seg);
 void free_SepDistStr(SepDistStr* sepdist);
 
+//using solgirdinfo to update sn sepdist
 void update_sn_SepDistStr_from_GridZoneInfo(SepDistStr* sepdist, GridZoneInfo* gzinfo);
+
+//using solgirdinfo to update sn sepdist
 void update_sn_SepDistStr_from_PolSegmsInfo(SepDistStr* sepdist, PolSegmsInfo* polseginfo);
+
+// calcualte the gridpoint_curve for the SepDistStr itself
+void update_SepDistStr_gridpoint_curve(SepDistStr* sepdist);
+
+
 
 #endif

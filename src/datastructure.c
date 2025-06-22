@@ -193,7 +193,7 @@ void write_DLList(DLListNode* head, const char* filename)
     }
 
     fclose(file);
-    printf("write the values in %s\n", filename);
+    printf("write the DLList to %s file.\n", filename);
 }
 
 /* 2D cross product: (B - A) × (C - A) */

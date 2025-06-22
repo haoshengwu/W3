@@ -565,13 +565,13 @@ void divgeo_test()
 /***********************************************
 *   Read input of GridZoneInfo
 ***********************************************/
-  GridZoneInfo* solgridzone=load_GridZoneInfo_from_input("gridzoneinfo_SOL");
-  GridZoneInfo* pfrgridzone=load_GridZoneInfo_from_input("gridzoneinfo_PFR");
-  GridZoneInfo* coregridzone=load_GridZoneInfo_from_input("gridzoneinfo_CORE");
+  GridZoneInfo* solgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_SOL");
+  GridZoneInfo* pfrgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_PFR");
+  GridZoneInfo* coregzinfo=load_GridZoneInfo_from_input("gridzoneinfo_CORE");
 
-  print_GridZoneInfo(solgridzone);
-  print_GridZoneInfo(pfrgridzone);
-  print_GridZoneInfo(coregridzone);
+  print_GridZoneInfo(solgzinfo);
+  print_GridZoneInfo(pfrgzinfo);
+  print_GridZoneInfo(coregzinfo);
 
 
   write_polsegms_from_dgtrg(trg,"polseginfo1");
@@ -582,9 +582,9 @@ void divgeo_test()
 
   free_PolSegmsInfo(polseginfo);
   
-  free_GridZoneInfo(&solgridzone);
-  free_GridZoneInfo(&pfrgridzone);
-  free_GridZoneInfo(&coregridzone);
+  free_GridZoneInfo(&solgzinfo);
+  free_GridZoneInfo(&pfrgzinfo);
+  free_GridZoneInfo(&coregzinfo);
 
   free_dgtrg(trg);
   free_gradpsiline_default(gradpsilines);
@@ -685,9 +685,9 @@ void meshgeneration_test()
 /***********************************************
 *   Read input of GridZoneInfo
 ***********************************************/
-  GridZoneInfo* solgridzone=load_GridZoneInfo_from_input("gridzoneinfo_SOL");
-  GridZoneInfo* pfrgridzone=load_GridZoneInfo_from_input("gridzoneinfo_PFR");
-  GridZoneInfo* coregridzone=load_GridZoneInfo_from_input("gridzoneinfo_CORE");
+  GridZoneInfo* solgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_SOL");
+  GridZoneInfo* pfrgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_PFR");
+  GridZoneInfo* coregzinfo=load_GridZoneInfo_from_input("gridzoneinfo_CORE");
 
 /***********************************************
 *   Read input of polsegminfo
@@ -699,23 +699,46 @@ void meshgeneration_test()
 *   Create separatrix distribution
 ***********************************************/
   SepDistStr* sepdist=create_SepDistStr_from_sep(sep);
-  update_sn_SepDistStr_from_GridZoneInfo(sepdist,solgridzone);
+  update_sn_SepDistStr_from_GridZoneInfo(sepdist,solgzinfo);
   update_sn_SepDistStr_from_PolSegmsInfo(sepdist,polseginfo);
-  
-  write_DLList(sepdist->edges[sepdist->index[0]]->head,"sepdist_line0");
-  write_DLList(sepdist->edges[sepdist->index[1]]->head,"sepdist_line1");
-  write_DLList(sepdist->edges[sepdist->index[2]]->head,"sepdist_line2");
-  write_DLList(sepdist->edges[sepdist->index[3]]->head,"sepdist_line3");
+  update_SepDistStr_gridpoint_curve(sepdist);
+  // int idx=sepdist->index[0];
+  // write_curve("gridpoint_curve0", sepdist->edges[idx]->gridpoint_curve);
+  // idx=sepdist->index[1];
+  // write_curve("gridpoint_curve1", sepdist->edges[idx]->gridpoint_curve);
+  // idx=sepdist->index[2];
+  // write_curve("gridpoint_curve2", sepdist->edges[idx]->gridpoint_curve);
+
+  // write_DLList(sepdist->edges[sepdist->index[0]]->head,"sepdist_line0");
+  // write_DLList(sepdist->edges[sepdist->index[1]]->head,"sepdist_line1");
+  // write_DLList(sepdist->edges[sepdist->index[2]]->head,"sepdist_line2");
+  // write_DLList(sepdist->edges[sepdist->index[3]]->head,"sepdist_line3");
+
+
+  GridZone* solgz=create_sn_GridZone(solgzinfo, sepdist);
+  GridZone* pfrgz=create_sn_GridZone(pfrgzinfo, sepdist);
+  GridZone* coregz=create_sn_GridZone(coregzinfo, sepdist);
+
+  write_curve("sol_gz_c",solgz->first_bnd_curve);
+  write_curve("sol_gz_gpc",solgz->first_gridpoint_curve);
+  write_curve("pfr_gz_c",pfrgz->first_bnd_curve);
+  write_curve("pfr_gz_gpc",pfrgz->first_gridpoint_curve);
+  write_curve("core_gz_c",coregz->first_bnd_curve);
+  write_curve("core_gz_gpc",coregz->first_gridpoint_curve);
 
   
-  free_GridZoneInfo(&solgridzone);
-  free_GridZoneInfo(&pfrgridzone);
-  free_GridZoneInfo(&coregridzone);
+  free_GridZone(solgz);
+  free_GridZone(pfrgz);
+  free_GridZone(coregz);
+
+
+  free_GridZoneInfo(&solgzinfo);
+  free_GridZoneInfo(&pfrgzinfo);
+  free_GridZoneInfo(&coregzinfo);
 
   free_PolSegmsInfo(polseginfo);
 
   free_SepDistStr(sepdist);
-  
   free_gradpsiline_default(gradpsilines);
   free_grad_psi(gradpsi);
   free_separatrix_default(sep);
