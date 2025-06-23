@@ -715,9 +715,9 @@ void meshgeneration_test()
   // write_DLList(sepdist->edges[sepdist->index[3]]->head,"sepdist_line3");
 
 
-  GridZone* solgz=create_sn_GridZone(solgzinfo, sepdist);
-  GridZone* pfrgz=create_sn_GridZone(pfrgzinfo, sepdist);
-  GridZone* coregz=create_sn_GridZone(coregzinfo, sepdist);
+  GridZone* solgz=create_sn_CARRE2D_GridZone(solgzinfo, sepdist);
+  GridZone* pfrgz=create_sn_CARRE2D_GridZone(pfrgzinfo, sepdist);
+  GridZone* coregz=create_sn_CARRE2D_GridZone(coregzinfo, sepdist);
 
   write_curve("sol_gz_c",solgz->first_bnd_curve);
   write_curve("sol_gz_gpc",solgz->first_gridpoint_curve);
@@ -726,6 +726,16 @@ void meshgeneration_test()
   write_curve("core_gz_c",coregz->first_bnd_curve);
   write_curve("core_gz_gpc",coregz->first_gridpoint_curve);
 
+  // change the odf function for gradpsi line tracing
+  ode_func.compute_f=ode_f_brz_torsys_cubicherm;
+  ode_func.data=&test_magfield;
+
+  TwoDimGrid* sol2dgrid=create_2Dgrid_default(solgz->first_gridpoint_curve->n_point, solgz->nr);
+  generate_CARRE_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver);
+  
+  
+  
+  free_2Dgrid(sol2dgrid);
   
   free_GridZone(solgz);
   free_GridZone(pfrgz);

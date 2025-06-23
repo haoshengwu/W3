@@ -76,16 +76,16 @@ double total_length_curve(const Curve *c);
 
 //calcule the length until the nth points of a curve.
 //Coresponding to 'long_CARRE'
-double length_curve(const Curve *c, size_t n);
+double length_curve(Curve *c, size_t n);
 
 //Coresponding to 'indcrb_CARRE'
-int indcrb_curve(const Curve* curve, const CurvePoint* point, double d);
+int indcrb_curve(Curve* curve, CurvePoint* point, double d);
 
 //Coresponding to 'ruban_CARRE'
-double ruban_curve(const Curve* curve, const CurvePoint* point, double d);
+double ruban_curve(Curve* curve, CurvePoint* point, double d);
 
 //calcaute the coordinates along the curve with the distance d;
-void coordnates_in_curve(const Curve* curve, double d, CurvePoint* point);
+void coordnates_in_curve(Curve* curve, double d, CurvePoint* point);
 
 
 

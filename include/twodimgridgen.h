@@ -49,7 +49,7 @@ typedef struct
 } GridZone;
 
 
-GridZone* create_sn_GridZone(GridZoneInfo* gridzoneinfo, SepDistStr* sepdist);
+GridZone* create_sn_CARRE2D_GridZone(GridZoneInfo* gridzoneinfo, SepDistStr* sepdist);
 
 void free_GridZone(GridZone* gridzone);
 
@@ -83,11 +83,14 @@ double get_y_2Dgrid(const TwoDimGrid* g, int ir, int ip);
 void set_point_2Dgrid(TwoDimGrid* g, int ir, int ip, double x, double y);
 
 
-//use CARRE algorithm to generate grid points
-void generate_CARRE_2Dgrid(TwoDimGrid* grid,
-                           GridZoneInfo* gridzoneinfo,
-                           ode_function* func,
-                           ode_solver* solver);
+//use CARRE algorithm to generate grid points for on zone
+// TwoDimGrid* grid is the grid
+// GridZone* grizone store the necessary data for grid generation
+// ode_function* func and ode_solver* solver are used for line tracing
+void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
+                                   GridZone* grizone,
+                                   ode_function* func,
+                                   ode_solver* solver);
 
 void generate_EMC3_2Dgrid(TwoDimGrid* grid,
                           GridZoneInfo* gridzoneinfo,

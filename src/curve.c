@@ -109,7 +109,6 @@ int add_last_point_curve(Curve* c, double x, double y)
     return 0;
 }
 
-
 int set_point_curve(Curve* c, size_t i, double x, double y) 
 {
     if (!c || i >= c->n_point) 
@@ -345,7 +344,7 @@ double total_length_curve(const Curve *c)
     return length;
 }
 
-double length_curve(const Curve *curve, size_t n)
+double length_curve(Curve *curve, size_t n)
 {
     if (!curve) {
         fprintf(stderr, "Error: NULL input to length_curve.\n");
@@ -368,7 +367,7 @@ double length_curve(const Curve *curve, size_t n)
     return length;
 }
 
-int indcrb_curve(const Curve* curve, const CurvePoint* point, double d)
+int indcrb_curve(Curve* curve, CurvePoint* point, double d)
 {
     if (!curve || !point || curve->n_point < 2) {
         fprintf(stderr, "Error: invalid input to indcrb_CARRE.\n");
@@ -425,7 +424,7 @@ int indcrb_curve(const Curve* curve, const CurvePoint* point, double d)
     return indcrb;
 }
 
-double ruban_curve(const Curve* curve, const CurvePoint* point, double d)
+double ruban_curve(Curve* curve, CurvePoint* point, double d)
 {
     if (!curve || !point || curve->n_point < 2) {
         fprintf(stderr, "Invalid input to ruban_CARRE_Curve.\n");
@@ -444,12 +443,12 @@ double ruban_curve(const Curve* curve, const CurvePoint* point, double d)
 
     dx = point->x - curve->points[ind].x;
     dy = point->y - curve->points[ind].y;
-    ruban += hypot(dx, dy);
+    ruban = dist + hypot(dx, dy);
 
     return ruban;
 }
 
-void coordnates_in_curve(const Curve *curve, double d, CurvePoint *point) {
+void coordnates_in_curve(Curve *curve, double d, CurvePoint *point) {
     if (!curve || curve->n_point < 2 || !point) {
         fprintf(stderr, "Error: invalid input to coord_in_curve.\n");
         exit(EXIT_FAILURE);
