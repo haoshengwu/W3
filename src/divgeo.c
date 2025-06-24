@@ -11,7 +11,8 @@
 #define MAX_ITER_DG 1000
 #define EPSILON_DG 5.0E-7
 
-#define TGUARD 0.2
+#define TGUARD1 0.1
+#define TGUARD2 0.1
 #define PASMIN 1.0E-3
 
 
@@ -1197,6 +1198,9 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
 
   change_name(&(gridzoneinfo->topo), trg->topo);
 
+  double guard_top;
+  double guard_end;
+ 
   if (strcmp(trg->topo, "SNL") == 0) 
   {
     printf("Update GridZoneInfo in SNL topo.\n");
@@ -1204,14 +1208,20 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
     if (index == 0) 
     {
       change_name(&(gridzoneinfo->name), "SOLGRIDZONEINFO");
+      guard_top=TGUARD1;
+      guard_end=TGUARD2;
     } 
     else if (index == 1) 
     {
       change_name(&(gridzoneinfo->name), "PFRGRIDZONEINFO");
+      guard_top=TGUARD1;
+      guard_end=TGUARD2;
     } 
     else if (index == 2) 
     {
       change_name(&(gridzoneinfo->name), "COREGRIDZONEINFO");
+      guard_top=0.0;
+      guard_end=0.0;
     } 
     else 
     {
@@ -1235,8 +1245,8 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
 
   for (int i = 0; i < nr; i++) 
   {
-    gridzoneinfo->guard_start[i] = TGUARD;
-    gridzoneinfo->guard_end[i] = TGUARD;
+    gridzoneinfo->guard_start[i] = guard_top;
+    gridzoneinfo->guard_end[i] = guard_end;
     gridzoneinfo->pasmin[i] = PASMIN;
   }
 
@@ -1480,6 +1490,25 @@ void write_polsegms_from_dgtrg(DivGeoTrg* trg, const char* filename)
   }
   strcpy(polseginfo->topo, trg->topo);
 
+  //According to topology, determine the fowlloing
+  if(strncmp(polseginfo->topo,"SNL",3)==0&&n_region==3)
+  {
+    for(int i=0; i< n_region; ++i)
+    {
+      polseginfo->xptidx[i]=0; //first X-point
+      polseginfo->segmidx[i]=0; //only one segment of sep lines for SN.
+      polseginfo->reverse_segm[i]=0; //Not reverse.
+    }
+    polseginfo->seplineidx[0]=1;
+    polseginfo->seplineidx[1]=0;
+    polseginfo->seplineidx[2]=2;
+  }
+  else
+  {
+    //todo for other configurations
+    fprintf(stderr, "Currently only support SNL.\n");
+    exit(EXIT_FAILURE);
+  }
   for(int i=0;i<n_region;i++)
   {
     if (!trg->zones[i] || !trg->zones[i]->norm_dist || !trg->zones[i]->name) 

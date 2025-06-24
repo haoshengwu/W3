@@ -27,6 +27,7 @@ typedef struct
     char* topo;
     char* name;
     // --- 2. Start & end tracing info ---
+    
     int nr; //magnetic line number in radial direction, elements number is nr-1;
     double* start_point_R;  // [nr]starting point R coordinate for tracing magnetic line
     double* start_point_Z;  // [nr]starting point R coordinate for tracing magnetic line

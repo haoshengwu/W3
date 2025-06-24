@@ -155,9 +155,10 @@ void update_sn_SepDistStr_from_PolSegmsInfo(SepDistStr* sepdist, PolSegmsInfo* p
       exit(EXIT_FAILURE);
     }
   }
-
-  for (int i = 0; i < 3; ++i) {
-    int idx = sepdist->index[i];
+  for(int i=0; i<3; i++)
+  {
+    int idx_polseg=polseginfo->seplineidx[i];
+    int idx = sepdist->index[idx_polseg];
 
     if (!sepdist->edges[idx]) {
       fprintf(stderr, "Empty EdgeSegment[%d] for update_sn_SepDistStr_from_PolSegmsInfo.\n", idx);
@@ -172,11 +173,11 @@ void update_sn_SepDistStr_from_PolSegmsInfo(SepDistStr* sepdist, PolSegmsInfo* p
     int n_size = polseginfo->polsegments[i]->n_points;
     sepdist->edges[idx]->n_size = n_size;
     sepdist->edges[idx]->norm_dist = malloc(n_size * sizeof(double));
+
     if (!sepdist->edges[idx]->norm_dist) {
       fprintf(stderr, "Memory allocation failed for norm_dist of edge[%d].\n", idx);
       exit(EXIT_FAILURE);
     }
-
     for (int j = 0; j < n_size; ++j) {
       sepdist->edges[idx]->norm_dist[j] = polseginfo->polsegments[i]->norm_dist[j];
     }

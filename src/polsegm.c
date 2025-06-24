@@ -27,6 +27,17 @@ PolSegmsInfo* create_PolSegmsInfo(int n_polsegms)
   for (int i = 0; i < n_polsegms; ++i)
     info->polsegments[i] = NULL;
 
+  info->xptidx=malloc(n_polsegms*sizeof(int));
+  info->seplineidx=malloc(n_polsegms*sizeof(int));
+  info->segmidx=malloc(n_polsegms*sizeof(int));
+  info->reverse_segm=malloc(n_polsegms*sizeof(int));
+
+  if(!info->xptidx||!info->seplineidx
+    ||!info->segmidx||!info->reverse_segm)
+  {
+    fprintf(stderr, "Failed to allocate Entries of PolSegmsInfo.\n");
+    exit(EXIT_FAILURE);
+  }
   return info;
 }
 
@@ -79,9 +90,12 @@ void free_PolSegmsInfo(PolSegmsInfo* polseginfo)
 
   free(polseginfo->topo);
 
-  if (polseginfo->polsegments) {
-    for (int i = 0; i < polseginfo->n_polsegms; ++i) {
-      if (polseginfo->polsegments[i]) {
+  if (polseginfo->polsegments) 
+  {
+    for (int i = 0; i < polseginfo->n_polsegms; ++i) 
+    {
+      if (polseginfo->polsegments[i]) 
+      {
         free_PolSegStr(polseginfo->polsegments[i]);
         polseginfo->polsegments[i] = NULL;
       }
@@ -90,6 +104,14 @@ void free_PolSegmsInfo(PolSegmsInfo* polseginfo)
     polseginfo->polsegments = NULL;
   }
 
+  free(polseginfo->xptidx);
+  polseginfo->xptidx=NULL;
+  free(polseginfo->seplineidx);
+  polseginfo->seplineidx=NULL;
+  free(polseginfo->segmidx);
+  polseginfo->segmidx=NULL;
+  free(polseginfo->reverse_segm);
+  polseginfo->reverse_segm=NULL;
   free(polseginfo);
 }
 
@@ -124,10 +146,20 @@ void write_PolSegmsInfo(PolSegmsInfo* polseginfo, const char* filename)
   fprintf(fp, "#topo\n%s\n", polseginfo->topo ? polseginfo->topo : "NaN");
   fprintf(fp, "#nsegments\n%d\n", polseginfo->n_polsegms);
 
-  for (int i = 0; i < polseginfo->n_polsegms; ++i) {
+  for (int i = 0; i < polseginfo->n_polsegms; ++i) 
+  {
     if (polseginfo->polsegments[i]) {
       write_PolSegStr(polseginfo->polsegments[i], fp);
     }
+  }
+
+  fprintf(fp, "#xptidx seplineidx segmidx reverse\n");
+  for (int i = 0; i < polseginfo->n_polsegms; ++i) 
+  {
+    fprintf(fp, "%d %d %d %d\n", polseginfo->xptidx[i],
+                                 polseginfo->seplineidx[i],
+                                 polseginfo->segmidx[i], 
+                                 polseginfo->reverse_segm[i]);
   }
 
   fclose(fp);
@@ -164,6 +196,16 @@ void print_PolSegmsInfo(PolSegmsInfo* polseginfo)
   for (int i = 0; i < polseginfo->n_polsegms; ++i) {
     printf("  [Segment %d]\n", i);
     print_PolSegStr(polseginfo->polsegments[i]);
+  }
+  
+  printf("=== xptidx seplineidx segmidx reverse ===\n");
+  for (int i = 0; i < polseginfo->n_polsegms; ++i) 
+  {
+    printf("  [Segment %d]  ", i);
+    printf("%d %d %d %d\n", polseginfo->xptidx[i],
+                                 polseginfo->seplineidx[i],
+                                 polseginfo->segmidx[i], 
+                                 polseginfo->reverse_segm[i]);
   }
 
   printf("=== End of Segment Info ===\n");
@@ -274,7 +316,25 @@ PolSegmsInfo* read_PolSegmsInfo_from_file(const char* filename)
         if (sscanf(line, "%lf", &val) != 1) goto error;
         seg->norm_dist[i] = val;
       }
+    } 
+    else if (strncmp(line, "#xptidx seplineidx segmidx reverse", 34) == 0)
+    {
+      for (int i = 0; i < info->n_polsegms; ++i) {
+          if (!fgets(line, sizeof(line), fp)) goto error;
+          if (sscanf(line, "%d %d %d %d", 
+                     &info->xptidx[i], &info->seplineidx[i], 
+                     &info->segmidx[i], &info->reverse_segm[i]) != 4) 
+            {
+              goto error;
+            }
+      }
     }
+  }
+  if (current + 1 != info->n_polsegms)
+  {
+    fprintf(stderr, "Warning: number of segments read (%d) does not match expected (%d).\n",
+            current + 1, info->n_polsegms);
+    goto error;
   }
 
   fclose(fp);

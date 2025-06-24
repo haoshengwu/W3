@@ -26,7 +26,9 @@ typedef struct {
     int* segmidx1;
     //indicate whether segments need to be reserve or not when create the start curve
     // 1 means reverse, 0 means not;
-    int* reverse_segm1; 
+    int* reverse_segm1;
+
+    
     // --- 5. second poloidal boundary info
     int n_polsegm2;
     int* xptidx2; //indicate index of 

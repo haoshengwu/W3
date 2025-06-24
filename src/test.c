@@ -574,12 +574,9 @@ void divgeo_test()
   print_GridZoneInfo(coregzinfo);
 
 
-  write_polsegms_from_dgtrg(trg,"polseginfo1");
-  PolSegmsInfo* polseginfo=read_PolSegmsInfo_from_file("polseginfo1");
-  write_PolSegmsInfo(polseginfo,"polseginfo2");
-
+  write_polsegms_from_dgtrg(trg,"polseginfo");
+  PolSegmsInfo* polseginfo=read_PolSegmsInfo_from_file("polseginfo");
   print_PolSegmsInfo(polseginfo);
-
   free_PolSegmsInfo(polseginfo);
   
   free_GridZoneInfo(&solgzinfo);
@@ -692,7 +689,7 @@ void meshgeneration_test()
 /***********************************************
 *   Read input of polsegminfo
 ***********************************************/
-  PolSegmsInfo* polseginfo=read_PolSegmsInfo_from_file("polseginfo2");
+  PolSegmsInfo* polseginfo=read_PolSegmsInfo_from_file("polseginfo");
 
   
 /***********************************************
@@ -732,7 +729,9 @@ void meshgeneration_test()
 
   TwoDimGrid* sol2dgrid=create_2Dgrid_default(solgz->first_gridpoint_curve->n_point, solgz->nr);
   generate_CARRE_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver);
-  
+  generate_CARRE_2Dgrid_default(sol2dgrid, pfrgz, &ode_func, &brk45_solver);
+  generate_CARRE_2Dgrid_default(sol2dgrid, coregz, &ode_func, &brk45_solver);
+
   
   
   free_2Dgrid(sol2dgrid);

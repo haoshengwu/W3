@@ -8,11 +8,11 @@
 #define MAX_NUM_TRACING 40000
 
 #ifndef EPS_TDGG
-#define EPS_TDGG 1.0E-6
+#define EPS_TDGG 1.0E-10
 #endif
 
 #ifndef NRELAX
-#define NRELAX 5000
+#define NRELAX 1000
 #endif
 
 #ifndef RLCEPT
@@ -20,7 +20,7 @@
 #endif
 
 #ifndef RELAX
-#define RELAX 0.1
+#define RELAX 0.2
 #endif
 
 
@@ -433,6 +433,7 @@ static void free_CarreOrthoProp(CarreOrthoStr *orthogonal)
   free(orthogonal->propo); orthogonal->propo=NULL;
   free(orthogonal->varr); orthogonal->varr=NULL;
   free(orthogonal->tot); orthogonal->tot=NULL;
+  free(orthogonal);
 }
 
 /*******************************************************************************
@@ -495,7 +496,7 @@ static void calc_ortho_from_CARRE(int n_point,
   for (int i = 1; i < n_point - 1; i++) 
   {
     double l12;
-    if (g1 > 0.0 && g2 > 0.0) 
+    if (g1 > EPS_TDGG && g2 > EPS_TDGG) 
     {
       double fac1 = pow(g1 / (g1 + len_prev_gpt_c[i]), 2.0);
       double fac2 = pow(g2 / (g2 + len_prev_gpt_c[n_point - 1] -
@@ -504,7 +505,23 @@ static void calc_ortho_from_CARRE(int n_point,
       l12 = fac * len_prev_gpt_c[n_point - 1] +
             (1.0 - fac) * l12t;
     } 
-    else 
+    // Modified for different situations.
+    else if (g1 > EPS_TDGG && g2 < EPS_TDGG)
+    {
+      double fac1 =  pow(g1 / (g1 + len_prev_gpt_c[i]), 2.0);
+      double fac = fac1;
+      l12 = fac * len_prev_gpt_c[n_point - 1] +
+            (1.0 - fac) * l12t;
+    }
+    else if (g1 < EPS_TDGG && g2 > EPS_TDGG)
+    {
+      double fac2 = pow(g2 / (g2 + len_prev_gpt_c[n_point - 1] -
+                  len_prev_gpt_c[i]), 2.0);
+      double fac = fac2;
+      l12 = fac * len_prev_gpt_c[n_point - 1] +
+            (1.0 - fac) * l12t;
+    }
+    else
     {
       l12 = l12t;
     }
@@ -565,8 +582,6 @@ static void calc_ortho_from_CARRE(int n_point,
   }
 }
 
-
-
 /*******************************************************************************
 * This function calculate the mesh points in the curve which have a good orthogonalirty
 * using a secant method according to R. Marchand Computer Physics Communications, 1996, 96.2-3: 232-246.
@@ -574,12 +589,11 @@ static void calc_ortho_from_CARRE(int n_point,
 * Then the guard length are vertorized(different curves have different value). 
 ********************************************************************************/
 
-
 void calc_points_from_CARRE(GirdTubeStr *tube)
 {
   size_t n_point = tube->np;
-  CarreOrthoStr* tmp_ortho_value= allocate_CarreOrthoProp(n_point);
-  CarreOrthoStr* ortho_value= allocate_CarreOrthoProp(n_point);
+  CarreOrthoStr* tmp_ortho= allocate_CarreOrthoProp(n_point);
+  CarreOrthoStr* ortho= allocate_CarreOrthoProp(n_point);
   
   if(NRELAX >= 0)
   {
@@ -636,8 +650,8 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
     // write_array(tube->len_prev_gpt_c, n_point, "DEBUG_len_prev_gpt_c");
     // write_array(tmp_length_points, n_point, "DEBUG_tmp_length_points");
 
-    write_curve("DEBUG_tube_curr_c",tube->curr_c);
-    write_curve("DEBUG_tmp_gpt_c", tmp_gpt_c);
+    // write_curve("DEBUG_tube_curr_c",tube->curr_c);
+    // write_curve("DEBUG_tmp_gpt_c", tmp_gpt_c);
     //***********************************************************************
 
  //   printf("debug in calc_points_CARRE line 159\n");
@@ -649,8 +663,8 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
                             tube->len_prev_gpt_c, tube->prev_gpt_c,
                             tmp_length_points, tmp_gpt_c,
                             tube->guard_top, tube->guard_end, tube->pasmin,
-                            tmp_ortho_value);
-      write_array(tmp_ortho_value->ort,n_point, "DEBUG_tmp_ort");
+                            tmp_ortho);
+      // write_array(tmp_ortho->ort,n_point, "DEBUG_tmp_ort");
 
 //3. we proceed to a first displacement of the nodes
       tube->len_curr_gpt_c[0] = 0;
@@ -658,7 +672,7 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
   
       for(int ipol = 1; ipol<ipoln; ipol++)
       {
-        if(tmp_ortho_value->ort[ipol] > 0.0)
+        if(tmp_ortho->ort[ipol] > 0.0)
         {
           tube->len_curr_gpt_c[ipol] = 0.9*tmp_length_points[ipol] + 0.1*tmp_length_points[ipol+1];
         }
@@ -672,7 +686,7 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
       }
 
     //debug******************************************
-    write_curve("first_replace", tube->curr_gpt_c);
+    // write_curve("first_replace", tube->curr_gpt_c);
     //************************************************************
     //todo: store the ortho value for the whole radregion
     // somort(ir)= somort(ir)+ (ort1(ipol)/nppol)
@@ -690,14 +704,13 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
                             tube->len_prev_gpt_c, tube->prev_gpt_c,
                             tube->len_curr_gpt_c, tube->curr_gpt_c,
                             tube->guard_top, tube->guard_end, tube->pasmin,
-                            ortho_value);
+                            ortho);
         ortmax = 0.0;
 
         for (int ipol=ipol1; ipol<ipoln; ipol++)
         {
-          double ortho_current = ortho_value->ort[ipol];
-          double ortho_diff = ortho_current - tmp_ortho_value->ort[ipol];
-          // double length_diff = tube->length_points[ipol] - tmp_length_points[ipol];
+          double ortho_current = ortho->ort[ipol];
+          double ortho_diff = ortho_current - tmp_ortho->ort[ipol];
           double length_diff = tube->len_curr_gpt_c[ipol] - tmp_length_points[ipol];
           double del = 0.0;
           double ortho_diff_abs = fabs(ortho_diff);
@@ -728,7 +741,7 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
           if(fabs(del) > RLCEPT*RLCEPT)
           {
             tmp_length_points[ipol] = tube->len_curr_gpt_c[ipol];
-            tmp_ortho_value->ort[ipol] = ortho_value->ort[ipol];
+            tmp_ortho->ort[ipol] = ortho->ort[ipol];
             tube->len_curr_gpt_c[ipol] = tmp_length_points[ipol]+del;
           }
           // printf("debug in calc_points_CARRE line 241\n"); 
@@ -738,11 +751,11 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
 
           ortmax=max(ortmax,fabs(ortho_current));
         }
-        printf("debug: ortmax %.10f\n",ortmax);
-        printf("i: %d\n",i);
+        // printf("debug: ortmax %.10f\n",ortmax);
+        // printf("i: %d\n",i);
         if ((ortmax < RLCEPT))
         {
-          printf("Finish optimized\n");
+          printf("Finish optimized after %d iterations.\n",i);
           break;
         }
       }
@@ -751,6 +764,7 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
         printf("WARING: After optimization, the orthognoality is not good\n");
         printf("please adjust the parameters\n");
       }
+      printf("debug: after optimaztion ortmax %.10f\n",ortmax);
       //TODO write the orthognonal values
       //   do ipol=ipol1,ipoln
       //   somortp(ir)= somortp(ir)+ (ort2(ipol)/nppol)
@@ -767,11 +781,11 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
       //ToDo: need to do similar things as CARRE.
       printf("not support NRELAX=0\n");
     }
-    write_curve("DEBUG_curr_gpt_c", tube->curr_gpt_c);
+    // write_curve("DEBUG_curr_gpt_c", tube->curr_gpt_c);
 
   }
-  free_CarreOrthoProp(tmp_ortho_value);
-  free_CarreOrthoProp(ortho_value);
+  free_CarreOrthoProp(tmp_ortho);
+  free_CarreOrthoProp(ortho);
 }
 
 
@@ -920,23 +934,35 @@ static Curve* create_GridTubeCurve_by_tracing(double start_R, double start_Z, Cu
   {
     solver->next_step(step_size, &t, curr_p, next_p, solver->solver_data, func);
     bool intersection=false;
-    for(int i=1; i<end_curve->n_point; i++)
+    bool isclosed=false;
+    for(int i=1; i<end_curve->n_point;i++)
     {
+      // return 0 means found intersection
+      // new_c->n_point>2 otherwise for the core region the frist element of curve is always
+      // has intersection with end curve.
       if(has_intersection(curr_p[0],curr_p[1],next_p[0],next_p[1],
                           end_curve->points[i-1].x, end_curve->points[i-1].y,
-                          end_curve->points[i].x, end_curve->points[i].y)==0) // return 0 means found intersection
+                          end_curve->points[i].x, end_curve->points[i].y)==0
+                          && new_c->n_point>2) 
       {
         double intsect_x, intsect_y;
         get_intersection_point(curr_p[0],curr_p[1],next_p[0],next_p[1],
                                end_curve->points[i-1].x, end_curve->points[i-1].y,
                                end_curve->points[i].x, end_curve->points[i].y,
                                &intsect_x, &intsect_y);
-        add_last_point_curve(new_c, intsect_x, intsect_y);
+        if(fabs(intsect_x-start_R)<1.0E-8&&fabs(intsect_y-start_Z)<1.0E-8)
+        {
+          add_last_point_curve(new_c,start_R, start_Z);
+        }
+        else
+        {
+          add_last_point_curve(new_c, intsect_x, intsect_y);
+        }
         intersection=true;
         break;
       }
     }
-    if(intersection)
+    if(intersection||isclosed)
     {
       break;
     }
@@ -953,7 +979,7 @@ static Curve* create_GridTubeCurve_by_tracing(double start_R, double start_Z, Cu
       exit(EXIT_FAILURE);
     }
   }
-  write_curve("DEBUG_tracing_c", new_c);
+  // write_curve("DEBUG_tracing_c", new_c);
   return new_c;
 }
 
@@ -966,6 +992,7 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
                                    ode_solver* solver)
 {
   int np=gridzone->first_gridpoint_curve->n_point; //poloidal number along a magnetic field line.
+
   Curve* prev_c=gridzone->first_bnd_curve;
   Curve* prev_gpt_c=gridzone->first_gridpoint_curve;
 
@@ -981,10 +1008,9 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
     len_prev_gpt_c[i]=d1;
   }
 
-  //  write_array(len_prev_gpt_c, np, "DEBUG_len_prev_gpt_c");
+  // write_array(len_prev_gpt_c, np, "DEBUG_len_prev_gpt_c");
   // write_curve("DEBUG_prev_gpt_c",prev_gpt_c);
   // write_curve("DEBUG_prev_c",prev_c);
-
   // ==== DO NOT FORGET CHECK and CORRECT the poloidal tracing direction
   check_poloidal_direction(gridzone, func, solver);
 
@@ -992,28 +1018,72 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
                                                 gridzone->start_point_Z[1],
                                                 gridzone->end_curve,
                                                 func, solver);
-
-                                                
   Curve* curr_gpt_c=create_curve(np);
+
   for(int i=0;i<np;i++)
   {
     add_last_point_curve(curr_gpt_c, 0.0, 0.0);
   }
   double* len_curr_gpt_c=malloc(np*sizeof(double));
-
   GirdTubeStr* gridtube=create_GridTube(prev_c, prev_gpt_c, len_prev_gpt_c, 
                                         curr_c, curr_gpt_c, len_curr_gpt_c,
                                         gridzone->guard_start[0],
                                         gridzone->guard_end[0],
                                         gridzone->pasmin[0]);
-  printf("%s %s %s\n","guard_start", "guard_end","pasmin");
-  printf("%lf %lf %lf\n", gridzone->guard_start[0], gridzone->guard_end[0],gridzone->pasmin[0]);
-  calc_points_from_CARRE(gridtube);
 
+  // printf("%s %s %s\n","guard_start", "guard_end","pasmin");
+  // printf("%lf %lf %lf\n", gridzone->guard_start[0], gridzone->guard_end[0],gridzone->pasmin[0]);
+
+  calc_points_from_CARRE(gridtube);
+  char name[32];
+  sprintf(name,"%s1",gridzone->name);
+  write_curve(name,curr_gpt_c);
+
+  for(int i=2;i<gridzone->nr; i++)
+  {
+  //Becareful!!!, Just change the adress and not copy the content.
+    prev_c=curr_c;
+    prev_gpt_c = curr_gpt_c;
+
+    memcpy(len_prev_gpt_c,len_curr_gpt_c,np*sizeof(double));
+
+    curr_c=create_GridTubeCurve_by_tracing(gridzone->start_point_R[i],
+                                                  gridzone->start_point_Z[i],
+                                                  gridzone->end_curve,
+                                                  func, solver);
+    curr_gpt_c=create_curve(np);
+    for(int j=0;j<np;j++)
+    {
+      add_last_point_curve(curr_gpt_c, 0.0, 0.0);
+    }
+
+    gridtube->prev_c=prev_c;
+    gridtube->prev_gpt_c=prev_gpt_c;
+    gridtube->len_prev_gpt_c=len_prev_gpt_c;
+    gridtube->curr_c=curr_c;
+    gridtube->curr_gpt_c=curr_gpt_c;
+    gridtube->len_curr_gpt_c=len_curr_gpt_c;
+    gridtube->guard_top=gridzone->guard_start[i];
+    gridtube->guard_end=gridzone->guard_end[i];
+    gridtube->pasmin = gridzone->pasmin[i];
+
+    calc_points_from_CARRE(gridtube);
   
-  
-  free(curr_c);
-  free(curr_gpt_c);
+    sprintf(name,"%s%d",gridzone->name, i);
+    write_curve(name,curr_gpt_c);
+    
+    free_curve(prev_c);
+    free_curve(prev_gpt_c);
+    if(i==gridzone->nr-1&&gridzone->sec_bnd)
+    {
+      //TODO specific operation for multiple X-points situations.
+    }
+  }
+
+  //NOT FREE the entries in gridtube, but the gridtube space itself!
+  free(gridtube);
+  free_curve(curr_c);
+  free_curve(curr_gpt_c);
   free(len_prev_gpt_c);
   free(len_curr_gpt_c);
   return;
