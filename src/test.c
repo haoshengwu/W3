@@ -680,20 +680,20 @@ void meshgeneration_test()
   generate_gradpsiline_bytracing(gradpsilines, gradpsi, opoint, sep, NULL, &ode_func, &brk45_solver);
 
 /***********************************************
-*   Read input of GridZoneInfo
+*   1. Read input of GridZoneInfo
 ***********************************************/
   GridZoneInfo* solgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_SOL");
   GridZoneInfo* pfrgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_PFR");
   GridZoneInfo* coregzinfo=load_GridZoneInfo_from_input("gridzoneinfo_CORE");
 
 /***********************************************
-*   Read input of polsegminfo
+*   2. Read input of polsegminfo
 ***********************************************/
   PolSegmsInfo* polseginfo=read_PolSegmsInfo_from_file("polseginfo");
 
   
 /***********************************************
-*   Create separatrix distribution
+*   3. Create separatrix distribution
 ***********************************************/
   SepDistStr* sepdist=create_SepDistStr_from_sep(sep);
   update_sn_SepDistStr_from_GridZoneInfo(sepdist,solgzinfo);
@@ -711,7 +711,9 @@ void meshgeneration_test()
   // write_DLList(sepdist->edges[sepdist->index[2]]->head,"sepdist_line2");
   // write_DLList(sepdist->edges[sepdist->index[3]]->head,"sepdist_line3");
 
-
+/***********************************************
+*   4. Create gridzone
+***********************************************/
   GridZone* solgz=create_sn_CARRE2D_GridZone(solgzinfo, sepdist);
   GridZone* pfrgz=create_sn_CARRE2D_GridZone(pfrgzinfo, sepdist);
   GridZone* coregz=create_sn_CARRE2D_GridZone(coregzinfo, sepdist);
@@ -723,23 +725,34 @@ void meshgeneration_test()
   write_curve("core_gz_c",coregz->first_bnd_curve);
   write_curve("core_gz_gpc",coregz->first_gridpoint_curve);
 
+  
+  
+/***********************************************
+*   5. Generater grid for each gridzone
+***********************************************/
+  
   // change the odf function for gradpsi line tracing
   ode_func.compute_f=ode_f_brz_torsys_cubicherm;
   ode_func.data=&test_magfield;
 
+  
   TwoDimGrid* sol2dgrid=create_2Dgrid_default(solgz->first_gridpoint_curve->n_point, solgz->nr);
   generate_CARRE_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver);
   generate_CARRE_2Dgrid_default(sol2dgrid, pfrgz, &ode_func, &brk45_solver);
   generate_CARRE_2Dgrid_default(sol2dgrid, coregz, &ode_func, &brk45_solver);
 
   
-  
+
+
+/***********************************************
+*   6. Free space
+***********************************************/
+
   free_2Dgrid(sol2dgrid);
   
   free_GridZone(solgz);
   free_GridZone(pfrgz);
   free_GridZone(coregz);
-
 
   free_GridZoneInfo(&solgzinfo);
   free_GridZoneInfo(&pfrgzinfo);

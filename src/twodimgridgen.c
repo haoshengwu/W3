@@ -164,7 +164,6 @@ GridZone* create_sn_CARRE2D_GridZone(GridZoneInfo* gzinfo, SepDistStr* sepdist)
   return gz;
 }
 
-
 void free_GridZone(GridZone* gz)
 {
   if (!gz) return;
@@ -235,8 +234,6 @@ void free_GridZone(GridZone* gz)
   free(gz);
 }
 
-
-
 typedef struct
 {
 /*********************************
@@ -270,6 +267,54 @@ typedef struct
     Curve *curr_gpt_c;
 
 } GirdTubeStr;
+
+//Only gether the entries together, not create new one!!! and NO FREE function.
+static GirdTubeStr* create_GridTube(Curve *prev_c,
+                                    Curve *prev_gpt_c,
+                                    double *len_prev_gpt_c, 
+                                    Curve *curr_c, 
+                                    Curve *curr_gpt_c, //output
+                                    double *len_curr_gpt_c,//output
+                                    double guard_top, 
+                                    double guard_end, 
+                                    double pasmin
+                                    )
+{
+  if(guard_end<0.0||guard_end<0.0)
+  {
+    printf("WARNING: Guard length is less than ZERO!\n");
+    printf("WARNING: Guard length is set to 0.0!\n");
+    guard_end=0.0;
+    guard_top=0.0;
+  }
+  if(!prev_c||!prev_gpt_c||!len_prev_gpt_c||!curr_c||!curr_gpt_c||!len_curr_gpt_c)
+  {
+    fprintf(stderr,"Empty input for create_GridTube.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(prev_gpt_c->n_point!=curr_gpt_c->n_point)
+  {
+    fprintf(stderr,"The size of prev_gpt_c is not consistent with curr_gpt_c.\n");
+    exit(EXIT_FAILURE);
+  }
+  GirdTubeStr* gridtube = malloc(sizeof(GirdTubeStr));
+  if(!gridtube)
+  {
+    fprintf(stderr,"Failed to allocate gridtube.\n");
+    exit(EXIT_FAILURE);
+  }
+  gridtube->np=prev_gpt_c->n_point;
+  gridtube->pasmin=pasmin;
+  gridtube->guard_top=guard_top;
+  gridtube->guard_end=guard_end;
+  gridtube->prev_c=prev_c;
+  gridtube->curr_c=curr_c;
+  gridtube->prev_gpt_c=prev_gpt_c;
+  gridtube->curr_gpt_c=curr_gpt_c;
+  gridtube->len_prev_gpt_c= len_prev_gpt_c;
+  gridtube->len_curr_gpt_c= len_curr_gpt_c;
+  return gridtube;
+}
 
 TwoDimGrid* create_2Dgrid_default(int npol, int nrad)
 {
@@ -789,64 +834,6 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-//Only gether the entries together, not create new one!!! and NO FREE function.
-static GirdTubeStr* create_GridTube(Curve *prev_c,
-                                    Curve *prev_gpt_c,
-                                    double *len_prev_gpt_c, 
-                                    Curve *curr_c, 
-                                    Curve *curr_gpt_c, //output
-                                    double *len_curr_gpt_c,//output
-                                    double guard_top, 
-                                    double guard_end, 
-                                    double pasmin
-                                    )
-{
-  if(guard_end<0.0||guard_end<0.0)
-  {
-    printf("WARNING: Guard length is less than ZERO!\n");
-    printf("WARNING: Guard length is set to 0.0!\n");
-    guard_end=0.0;
-    guard_top=0.0;
-  }
-  if(!prev_c||!prev_gpt_c||!len_prev_gpt_c||!curr_c||!curr_gpt_c||!len_curr_gpt_c)
-  {
-    fprintf(stderr,"Empty input for create_GridTube.\n");
-    exit(EXIT_FAILURE);
-  }
-  if(prev_gpt_c->n_point!=curr_gpt_c->n_point)
-  {
-    fprintf(stderr,"The size of prev_gpt_c is not consistent with curr_gpt_c.\n");
-    exit(EXIT_FAILURE);
-  }
-  GirdTubeStr* gridtube = malloc(sizeof(GirdTubeStr));
-  if(!gridtube)
-  {
-    fprintf(stderr,"Failed to allocate gridtube.\n");
-    exit(EXIT_FAILURE);
-  }
-  gridtube->np=prev_gpt_c->n_point;
-  gridtube->pasmin=pasmin;
-  gridtube->guard_top=guard_top;
-  gridtube->guard_end=guard_end;
-  gridtube->prev_c=prev_c;
-  gridtube->curr_c=curr_c;
-  gridtube->prev_gpt_c=prev_gpt_c;
-  gridtube->curr_gpt_c=curr_gpt_c;
-  gridtube->len_prev_gpt_c= len_prev_gpt_c;
-  gridtube->len_curr_gpt_c= len_curr_gpt_c;
-  return gridtube;
-}
-
 // Used to determind the tracing direction. Because the magnetic field line may not consistent with our assumed diretion.
 //Compare the initial direction of the magnetic field line with the direction of the poloidal boundary curve 
 //using a dot product, and then determine whether they align with the expected direction specified for SOL, PFR, or CORE.
@@ -865,17 +852,17 @@ static void check_poloidal_direction(GridZone* gridzone, ode_function* func, ode
   }
   double dir;
   int start;
-  if(strstr(gridzone->name,"SOL")) 
+  if(strncmp(gridzone->name,"SOL",3)==0) 
   {
     dir=1.0;
     start=0;
   }
-  else if (strstr(gridzone->name,"PFR"))
+  else if (strncmp(gridzone->name,"PFR",3)==0)
   {
     dir=-1.0;
     start=0;
   }
-  else if (strstr(gridzone->name,"CORE"))
+  else if (strncmp(gridzone->name,"CORE",4)==0)
   {
     dir=-1.0;
     start=1;
@@ -1048,9 +1035,9 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
     memcpy(len_prev_gpt_c,len_curr_gpt_c,np*sizeof(double));
 
     curr_c=create_GridTubeCurve_by_tracing(gridzone->start_point_R[i],
-                                                  gridzone->start_point_Z[i],
-                                                  gridzone->end_curve,
-                                                  func, solver);
+                                           gridzone->start_point_Z[i],
+                                           gridzone->end_curve,
+                                           func, solver);
     curr_gpt_c=create_curve(np);
     for(int j=0;j<np;j++)
     {
