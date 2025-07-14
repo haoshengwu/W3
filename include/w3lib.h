@@ -28,7 +28,7 @@
 #include "divgeo.h"
 #include "target.h"
 #include "gradpsi.h"
-#include "polsegm.h"
+#include "polsegminfo.h"
 #include "sepdistribution.h"
 #include "twodimgridgen.h"
 

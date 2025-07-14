@@ -1,7 +1,7 @@
 #ifndef TWODIMGRIDdGEN_H
 #define TWODIMGIRDGEN_H
 
-#include "gridzone.h"
+#include "gridzoneinfo.h"
 #include "ode.h"
 #include "equilibrium.h"
 #include "sepdistribution.h"

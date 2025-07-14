@@ -4,8 +4,8 @@
 #include "datastructure.h"
 #include "curve.h"
 #include "separatrix.h"
-#include "gridzone.h"
-#include "polsegm.h"
+#include "gridzoneinfo.h"
+#include "polsegminfo.h"
 
 typedef struct EdgeSegment {
   DLListNode* tail;

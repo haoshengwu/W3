@@ -1,4 +1,4 @@
-#include "gridzone.h"
+#include "gridzoneinfo.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h> 
@@ -21,7 +21,8 @@ GridZoneInfo* allocate_GridZoneInfo()
   z->guard_start=NULL;
   z->guard_end=NULL;
   z->pasmin = NULL;
-
+  
+  z->start_curve=NULL;
   z->end_curve=NULL;
 
   z->n_polsegm1=-1;
@@ -67,6 +68,9 @@ void free_GridZoneInfo(GridZoneInfo** z)
 
   free((*z)->pasmin);
   (*z)->pasmin=NULL;
+
+  free_curve((*z)->start_curve);
+  (*z)->start_curve=NULL;
 
   free_curve((*z)->end_curve);
   (*z)->end_curve=NULL;
@@ -120,6 +124,16 @@ void write_GridZoneInfo(GridZoneInfo* z, const char* filename)
     fprintf(fp, "%.10f %.10f %.10f %.10f %.10f\n",
             z->start_point_R[i], z->start_point_Z[i],
             z->guard_start[i], z->guard_end[i], z->pasmin[i]);
+  }
+
+  fprintf(fp, "#start_curve\n");
+  if (z->start_curve && z->start_curve->points) {
+    fprintf(fp, "%zu\n", z->start_curve->n_point);
+    for (size_t i = 0; i < z->start_curve->n_point; ++i) {
+      fprintf(fp, "%.10f %.10f\n", z->start_curve->points[i].x, z->start_curve->points[i].y);
+    }
+  } else {
+    fprintf(fp, "0\n# No start_curve defined.\n");
   }
 
   fprintf(fp, "#end_curve\n");
@@ -191,6 +205,19 @@ GridZoneInfo* load_GridZoneInfo_from_input(const char* filename)
         sscanf(line, "%lf %lf %lf %lf %lf",
                &z->start_point_R[i], &z->start_point_Z[i],
                &z->guard_start[i], &z->guard_end[i], &z->pasmin[i]);
+      }
+      } else if (strncmp(line, "#start_curve", 12) == 0) {
+      fgets(line, sizeof(line), fp);
+      size_t n;
+      sscanf(line, "%zu", &n);
+      if (n > 0) {
+        z->start_curve = create_curve(n);
+        for (size_t i = 0; i < n; ++i) {
+          fgets(line, sizeof(line), fp);
+          double x, y;
+          sscanf(line, "%lf %lf", &x, &y);
+          add_last_point_curve(z->start_curve, x, y);
+        }
       }
     } else if (strncmp(line, "#end_curve", 10) == 0) {
       fgets(line, sizeof(line), fp);
@@ -265,6 +292,18 @@ void print_GridZoneInfo(GridZoneInfo* gridzoneinfo)
            gridzoneinfo->guard_start[i],
            gridzoneinfo->guard_end[i],
            gridzoneinfo->pasmin[i]);
+  }
+
+  if (gridzoneinfo->start_curve && gridzoneinfo->start_curve->points) {
+    printf("\n== Start Curve (%zu points) ==\n", gridzoneinfo->start_curve->n_point);
+    for (size_t i = 0; i < gridzoneinfo->start_curve->n_point; ++i) {
+      printf("[%zu] R=%.10f  Z=%.10f\n",
+             i,
+             gridzoneinfo->start_curve->points[i].x,
+             gridzoneinfo->start_curve->points[i].y);
+    }
+  } else {
+    printf("\n== Start Curve: NULL ==\n");
   }
 
   if (gridzoneinfo->end_curve && gridzoneinfo->end_curve->points) {

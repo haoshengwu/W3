@@ -1,7 +1,7 @@
 #ifndef DIVGEO_H
 #define DIVGEO_H
 
-#include "gridzone.h"
+#include "gridzoneinfo.h"
 #include "separatrix.h"
 #include "equilibrium.h"
 #include "gradpsi.h"
@@ -93,14 +93,14 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
 //update the start points in an exist GridZoneInfo by DivGeoTrg with r and z
 void update_GridZoneInfo_start_points(GridZoneInfo* gridzoneinfo, double* r, double* z, int n_point);
 
+void update_GridZoneInfo_start_curve(GridZoneInfo* gridzoneinfo, const TargetDLListCurve* tgt_cur);
 void update_GridZoneInfo_end_curve(GridZoneInfo* gridzoneinfo, const TargetDLListCurve* tgt_cur);
 
 //For CORE the start points is also the end point becase of closed surface.
+void update_COREGridZoneInfo_start_curve(GridZoneInfo* gridzoneinfo);
 void update_COREGridZoneInfo_end_curve(GridZoneInfo* gridzoneinfo);
 
-
 void write_polsegms_from_dgtrg(DivGeoTrg* trg, const char* filename);
-
 
 //update the poloidal normolized points distribution, also the number of point npoint.
 // void update_GridZone_pol_norm_distrb(GridZoneInfo* gridzoneinfo, const double* norm_distb, int n_point);

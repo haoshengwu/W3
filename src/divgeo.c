@@ -4,9 +4,9 @@
 #include <math.h>
 #include <stdbool.h>
 
-#include "gridzone.h"
+#include "gridzoneinfo.h"
 #include "utils.h"
-#include "polsegm.h"
+#include "polsegminfo.h"
 
 #define MAX_ITER_DG 1000
 #define EPSILON_DG 5.0E-7
@@ -921,7 +921,12 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
   insert_intersections_DLList(sep->line_list[sep->index[0]],
                               inner_tgt_curve->head,
                               &itsct_r_inner, &itsct_z_inner);
+
+  update_number_target_curve(inner_tgt_curve);
   write_DLList(inner_tgt_curve->head,"inner_targetcurve");
+
+  update_GridZoneInfo_start_curve(solgzinfo,inner_tgt_curve);
+  update_GridZoneInfo_start_curve(pfrgzinfo,inner_tgt_curve);
 
   //cut the separatrix which intersect with inner target
   cut_DLList_from_intersections(sep->line_list[sep->index[0]],itsct_r_inner, itsct_z_inner);
@@ -1019,6 +1024,7 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
                        coregzinfo->nr,"COREGR_RZ");
 
   //Use start points to update coregzinfo end curve;
+  update_COREGridZoneInfo_start_curve(coregzinfo);
   update_COREGridZoneInfo_end_curve(coregzinfo);
 
 /********************************************************************************
@@ -1346,6 +1352,48 @@ void update_GridZoneInfo_start_points(GridZoneInfo* gridzoneinfo, double* r, dou
   }
 }
 
+void update_GridZoneInfo_start_curve(GridZoneInfo* gridzoneinfo, const TargetDLListCurve* tgt_cur)
+{
+    if (!gridzoneinfo || !tgt_cur || !tgt_cur->head || tgt_cur->n < 2)
+    {
+        fprintf(stderr, "Invalid input to update_GridZone_end_curve.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if (gridzoneinfo->start_curve)
+    {
+        fprintf(stderr, "WARNING: There is alread an end_cure.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int n = tgt_cur->n;
+    //gridzoneinfo->end_curve = create_oldcurve(n);
+    gridzoneinfo->start_curve = create_curve(n);
+    if (!gridzoneinfo->start_curve)
+    {
+        fprintf(stderr, "Memory allocation failed for end_curve.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    DLListNode* node = tgt_cur->head;
+    for (int i = 0; i < n; ++i)
+    {
+        if (!node)  // enough node
+        {
+            fprintf(stderr, "tgt_cur->n is larger than actual linked list length.\n");
+            exit(EXIT_FAILURE);
+        }
+        add_last_point_curve(gridzoneinfo->start_curve, node->r,node->z);
+        node = node->next;
+    }
+
+    if (node != NULL)
+    {
+        fprintf(stderr, "tgt_cur->n is smaller than actual linked list length.\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
 void update_GridZoneInfo_end_curve(GridZoneInfo* gridzoneinfo, const TargetDLListCurve* tgt_cur)
 {
     if (!gridzoneinfo || !tgt_cur || !tgt_cur->head || tgt_cur->n < 2)
@@ -1416,8 +1464,35 @@ void update_COREGridZoneInfo_end_curve(GridZoneInfo* gridzoneinfo)
     add_last_point_curve(gridzoneinfo->end_curve, 
                          gridzoneinfo->start_point_R[i], 
                          gridzoneinfo->start_point_Z[i]);
-//    gridzoneinfo->end_curve->points[i][0]=gridzoneinfo->start_point_R[i];
-//    gridzoneinfo->end_curve->points[i][1]=gridzoneinfo->start_point_Z[i];
+  }
+}
+
+void update_COREGridZoneInfo_start_curve(GridZoneInfo* gridzoneinfo)
+{
+    if (!gridzoneinfo || !gridzoneinfo->start_point_R 
+        ||!gridzoneinfo->start_point_Z || gridzoneinfo->nr < 2) 
+    {
+        fprintf(stderr, "Empty or invalid input to update_COREGridZone_end_curve.\n");
+        exit(EXIT_FAILURE);
+    }
+  if(gridzoneinfo->start_curve)
+  {
+    fprintf(stderr,"There is already end curve for COREgridzone\n");
+  }
+  
+  int n = gridzoneinfo->nr;
+  gridzoneinfo->start_curve = create_curve(n);  // Create first, then assign points
+
+  if (!gridzoneinfo->start_curve)
+  {
+    fprintf(stderr, "Memory allocation failed for end_curve.\n");
+    exit(EXIT_FAILURE);
+  }
+  for(int i=0; i<n; i++)
+  {
+    add_last_point_curve(gridzoneinfo->start_curve, 
+                         gridzoneinfo->start_point_R[i], 
+                         gridzoneinfo->start_point_Z[i]);
   }
 }
 

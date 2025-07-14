@@ -1,4 +1,4 @@
-#include "polsegm.h"
+#include "polsegminfo.h"
 
 #include <math.h>
 #include <string.h>
