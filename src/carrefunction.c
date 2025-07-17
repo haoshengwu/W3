@@ -22,7 +22,7 @@ static double calc_length(double p1[2], double p2[2])
     return sqrt(pow(p1[0] - p2[0], 2.0) + pow(p1[1] - p2[1], 2.0));
 }
 
-static double dot_product(double a[2], double b[2]) 
+static double dot_product_array(double a[2], double b[2]) 
 {
     return a[0] * b[0] + a[1] * b[1];
 }
@@ -31,7 +31,7 @@ static double cosine_term(double base[2], double point1[2], double point2[2])
 {
     double vector1[2] = {point1[0] - base[0], point1[1] - base[1]};
     double vector2[2] = {point2[0] - base[0], point2[1] - base[1]};
-    return dot_product(vector1, vector2);
+    return dot_product_array(vector1, vector2);
 }
 
 void calc_ortho_CARRE(size_t n_point, double *length_prev_points, double **prev_point_coord,

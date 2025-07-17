@@ -202,7 +202,12 @@ test magnetic field line calculation
 /*****************************************************
 *  Verify 2D carre grid generation 
 ******************************************************/
-  meshgeneration_test();
+  // meshgeneration_test();
 
+/*****************************************************
+*  Verify 3D carre grid generation 
+******************************************************/
+  ThreeDimMeshGeneration_test();
+  
   return 0;
 }

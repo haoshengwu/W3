@@ -74,6 +74,20 @@ Curve* create_curve(size_t init_capacity)
     return c;
 }
 
+void expand_curve_size_with_NaN(Curve* c, size_t size)
+{
+  if(!c||!size)
+  {
+    fprintf(stderr,"Empty inputs for expand_curve_size_with_NaN.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for(int i=0;i<size;i++)
+  {
+    add_last_point_curve(c, NAN, NAN);
+  }
+}
+
 void free_curve(Curve* c) 
 {
     if (c) 
@@ -109,15 +123,15 @@ int add_last_point_curve(Curve* c, double x, double y)
     return 0;
 }
 
-int set_point_curve(Curve* c, size_t i, double x, double y) 
+int set_point_curve(Curve* c, size_t idx, double x, double y) 
 {
-    if (!c || i >= c->n_point) 
+    if (!c || idx >= c->n_point) 
     {
       fprintf(stderr,"Empty input for set_point.\n");
       return -1;
     }
-    c->points[i].x = x;
-    c->points[i].y = y;
+    c->points[idx].x = x;
+    c->points[idx].y = y;
     return 0;
 }
 
@@ -151,7 +165,7 @@ void write_curve(const char *filename, const Curve *c)
     }
 
     for (size_t i = 0; i < c->n_point; ++i) {
-        if (fprintf(fp, "%.10f %.10f\n", c->points[i].x, c->points[i].y) < 0) 
+        if (fprintf(fp, "%.12f %.12f\n", c->points[i].x, c->points[i].y) < 0) 
         {
             fprintf(stderr, "Error: write failed while writing to \"%s\"\n", filename);
             fclose(fp);

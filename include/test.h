@@ -19,4 +19,5 @@ void divgeo_test();
 
 void meshgeneration_test();
 
+void ThreeDimMeshGeneration_test();
 #endif

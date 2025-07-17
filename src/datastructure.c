@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdbool.h>
-#define EPS_DATASTR 1.0E-10
+#define EPS_DATASTR 1.0E-12
 
 //************** Double linked list related ******************//
 DLListNode* create_DLListNode(double r, double z)
@@ -169,10 +169,10 @@ void print_DLList(DLListNode* head)
 {
  while(head != NULL )
  {
-    printf("%lf, %lf\n", head->r, head->z);
+    printf("%.12f, %.12f\n", head->r, head->z);
     head = head->next;
  }
- printf("Already print all value in the double linked list");
+ printf("Already print all value in the double linked list.\n");
 }
 
 // write a double linked list to a file
@@ -416,12 +416,14 @@ int cut_DLList_from_intersections(DLListNode* head, double r, double z) {
     DLListNode* current = head;
     bool found = false;
     // Step 1: Find the node with matching (r, z)
-    while (current) {
-    if (fabs(current->r - r) < EPS_DATASTR && fabs(current->z - z) < EPS_DATASTR) 
+    while (current) 
+    {
+      // printf("DEBUG point %.12f %.12f\n",current->r, current->z);
+      if (fabs(current->r - r) < EPS_DATASTR && fabs(current->z - z) < EPS_DATASTR) 
         {
+          found = true;
           break;
         }
-        found = true;
         current = current->next;
     }
 
@@ -524,6 +526,96 @@ double total_length_DLList(DLListNode* head)
   return length;
 }
 
+
+int insert_point_for_DLList(DLListNode* head, double r, double z)
+{
+  // First check whether it is already exist.
+    DLListNode* current = head;
+    bool found = false;
+    while (current) 
+    {
+      // printf("DEBUG point %.12f %.12f\n",current->r, current->z);
+      if (fabs(current->r - r) < EPS_DATASTR && fabs(current->z - z) < EPS_DATASTR) 
+        {
+          found = true;
+          break;
+        }
+        current = current->next;
+    }
+    if (found) 
+    {
+      printf("The point (%.12f, %.12f) is aleady in the DLList.\n", r, z);
+      return 0;
+    }
+
+    found = false;
+    current = head;
+    while(current && current->next)
+    {
+      DLListNode* next = current->next;
+      double ax = current->r;
+      double ay = current->z;
+      double bx = next->r;
+      double by = next->z;
+      double px = r;
+      double py = z;
+      double pax = ax - px;
+      double pay = ay - py;
+      double pbx = bx - px;
+      double pby = by - py;
+
+      double pa_len = sqrt(pax * pax + pay * pay );
+      double pb_len = sqrt(pbx * pbx + pby * pby);
+
+
+      // if (pa_len < 1e-12 || pb_len < 1e-12) 
+      // {
+      //   current = current->next;
+      //   continue;
+      // }
+
+      pax /= pa_len;
+      pay /= pa_len;
+      pbx /= pb_len;
+      pby /= pb_len;
+
+      double cross = pax * pby - pay * pbx;
+
+      if (fabs(cross) > 0.01)
+      {
+        current = current->next;
+        continue;
+      }
+
+      double dot = pax * pbx + pay * pby;
+      if (dot<-0.99) 
+      {
+        found = true;
+        printf("DEBUG cross %.12f dot %.12f\n", cross, dot);
+        break;
+      }
+      current = current->next;
+    }
+    if(found)
+    {
+      DLListNode* node = malloc(sizeof(DLListNode));
+      node->r=r;
+      node->z=z;
+      node->prev=current;
+      node->next=current->next;
+      current->next->prev=node;
+      current->next=node;
+      printf("The point (%.12f, %.12f) is inserted in the DLList.\n", r, z);
+      return 0;
+    }
+    else
+    {
+      printf("Do not found position to inster the point (%.12f, %.12f).\n", r, z);
+      return 1;
+    }
+
+}
+
 //*****************************************************************
 
 
@@ -616,7 +708,6 @@ d3: third dimension number
       array[i][j] = array[0][0] + (i*d2 + j)*d3;
     }
   }
-
   return array;
 }
 

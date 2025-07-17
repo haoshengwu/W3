@@ -66,6 +66,12 @@ void reverse_DLList(DLListNode** head);
 //
 double total_length_DLList(DLListNode* head);
 
+// return 0: sucessfully insert the point
+// else return 1;
+int insert_point_for_DLList(DLListNode* head, double r, double z);
+
+
+
 
 /*
 Following are functions that allocate dynamic memory for 2D,3D,4D arrays

@@ -599,13 +599,13 @@ void divgeo_test()
 
 void meshgeneration_test()
 {
-
   InputPara w3_input;
   init_inputpara(&w3_input);
   print_inputpara(&w3_input);
   Equilibrium dtt_example;
   init_equilibrium(&dtt_example);
   read_equilib_geqdsk(&dtt_example,w3_input.equilibrium_file);
+  // correct_direction_lower_divertor(&dtt_example);
   print_equilibrium(&dtt_example);
 
 
@@ -699,12 +699,12 @@ void meshgeneration_test()
   update_sn_SepDistStr_from_GridZoneInfo(sepdist,solgzinfo);
   update_sn_SepDistStr_from_PolSegmsInfo(sepdist,polseginfo);
   update_SepDistStr_gridpoint_curve(sepdist);
-  // int idx=sepdist->index[0];
-  // write_curve("gridpoint_curve0", sepdist->edges[idx]->gridpoint_curve);
-  // idx=sepdist->index[1];
-  // write_curve("gridpoint_curve1", sepdist->edges[idx]->gridpoint_curve);
-  // idx=sepdist->index[2];
-  // write_curve("gridpoint_curve2", sepdist->edges[idx]->gridpoint_curve);
+  int idx=sepdist->index[0];
+  write_curve("gridpoint_curve0", sepdist->edges[idx]->gridpoint_curve);
+  idx=sepdist->index[1];
+  write_curve("gridpoint_curve1", sepdist->edges[idx]->gridpoint_curve);
+  idx=sepdist->index[2];
+  write_curve("gridpoint_curve2", sepdist->edges[idx]->gridpoint_curve);
 
   // write_DLList(sepdist->edges[sepdist->index[0]]->head,"sepdist_line0");
   // write_DLList(sepdist->edges[sepdist->index[1]]->head,"sepdist_line1");
@@ -753,6 +753,206 @@ void meshgeneration_test()
   free_GridZone(solgz);
   free_GridZone(pfrgz);
   free_GridZone(coregz);
+
+  free_GridZoneInfo(&solgzinfo);
+  free_GridZoneInfo(&pfrgzinfo);
+  free_GridZoneInfo(&coregzinfo);
+
+  free_PolSegmsInfo(polseginfo);
+
+  free_SepDistStr(sepdist);
+  free_gradpsiline_default(gradpsilines);
+  free_grad_psi(gradpsi);
+  free_separatrix_default(sep);
+
+  free_opoint(opoint);
+  brk5_finalize(&brk45_data);
+  free_interp1d_function(interp);
+  free_2d_array(est_xpt);
+  free_mag_field_torsys(&test_magfield);
+  free_equilibrium(&dtt_example);
+}
+
+
+void ThreeDimMeshGeneration_test()
+{
+
+  InputPara w3_input;
+  init_inputpara(&w3_input);
+  print_inputpara(&w3_input);
+  Equilibrium dtt_example;
+  init_equilibrium(&dtt_example);
+  read_equilib_geqdsk(&dtt_example,w3_input.equilibrium_file);
+  correct_direction_lower_divertor(&dtt_example);
+  print_equilibrium(&dtt_example);
+
+
+  int xpt_n = 2;
+  double **est_xpt = allocate_2d_array(xpt_n,2);
+  est_xpt[0][0] = 1.85;
+  est_xpt[0][1] = -1.16;
+
+  est_xpt[1][0] = 1.58;
+  est_xpt[1][1] = 1.61;
+
+  interpl_2D_1f interpl_2D_1f = cubicherm2d1f;
+  interpl_2D_2f interpl_2D_2f = cubicherm2d2f;
+
+  _XPointInfo xpt_array[2];
+
+  find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_2D_1f, interpl_2D_2f, xpt_array);
+
+  MagFieldTorSys test_magfield;
+  init_mag_field_torsys(&test_magfield);
+  char* method = "central_4th";
+  calc_mag_field_torsys(&dtt_example, &test_magfield, method);
+
+
+//build the interpolator; x_tmp,fx_tmp, dfdx_tmp are nothing realted to x or y. 
+
+  Interp1DFunction* interp=create_cubicherm1D_interp(NULL, NULL, NULL, 2);
+
+/************************************************
+*  Build the tracer for generation separatrix   *
+************************************************/ 
+  double direction[3]={1.0,1.0,1.0};
+  RKSolverData brk45_data;
+
+  double stepsize = 0.1;
+
+  ode_function ode_func = {
+    .ndim = 2,
+    .data = &test_magfield,
+    .rescale = direction,
+    .compute_f = ode_f_brz_torsys_cubicherm,
+  };
+  ode_solver brk45_solver =
+  {
+    .step_size = stepsize,
+    .solver_data = &brk45_data,
+    .next_step = brk5_next_step,
+    .initialize = brk5_initialize,
+    .finalize = brk5_finalize
+  };
+  brk45_solver.initialize(&brk45_data);
+
+  SeparatrixStr* sep=init_separatrix_default();
+  generate_separatrix_bytracing(sep, &xpt_array[1], &dtt_example,&test_magfield, interp,&ode_func, &brk45_solver);
+  
+  GradPsiStr *gradpsi=init_grad_psi();
+  calc_grad_psi(&dtt_example, gradpsi, central_diff_2nd_2d);
+  char name[32]="gradpsi";
+  write_grad_psi(gradpsi, name);
+
+// change the odf function for gradpsi line tracing
+  ode_func.compute_f=ode_f_gradpsi_cubicherm;
+  ode_func.data=gradpsi;
+
+  GradPsiLineStr* gradpsilines=init_gradpsiline_default();
+  
+  //Create a opoint structure
+  OPointStr* opoint = create_opoint();
+  opoint->centerX=2.27;
+  opoint->centerY=0.187;
+  
+  generate_gradpsiline_bytracing(gradpsilines, gradpsi, opoint, sep, NULL, &ode_func, &brk45_solver);
+
+/***********************************************
+*   1. Read input of GridZoneInfo
+***********************************************/
+  GridZoneInfo* solgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_SOL");
+  GridZoneInfo* pfrgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_PFR");
+  GridZoneInfo* coregzinfo=load_GridZoneInfo_from_input("gridzoneinfo_CORE");
+
+/***********************************************
+*   2. Read input of polsegminfo
+***********************************************/
+  PolSegmsInfo* polseginfo=read_PolSegmsInfo_from_file("polseginfo");
+
+  
+/***********************************************
+*   3. Create separatrix distribution
+***********************************************/
+  SepDistStr* sepdist=create_SepDistStr_from_sep(sep);
+  update_sn_SepDistStr_from_GridZoneInfo(sepdist,solgzinfo);
+  update_sn_SepDistStr_from_PolSegmsInfo(sepdist,polseginfo);
+  update_SepDistStr_gridpoint_curve(sepdist);
+  int idx=sepdist->index[0];
+  write_curve("gridpoint_curve0", sepdist->edges[idx]->gridpoint_curve);
+  idx=sepdist->index[1];
+  write_curve("gridpoint_curve1", sepdist->edges[idx]->gridpoint_curve);
+  idx=sepdist->index[2];
+  write_curve("gridpoint_curve2", sepdist->edges[idx]->gridpoint_curve);
+
+  // write_DLList(sepdist->edges[sepdist->index[0]]->head,"sepdist_line0");
+  // write_DLList(sepdist->edges[sepdist->index[1]]->head,"sepdist_line1");
+  // write_DLList(sepdist->edges[sepdist->index[2]]->head,"sepdist_line2");
+  // write_DLList(sepdist->edges[sepdist->index[3]]->head,"sepdist_line3");
+
+
+/***********************************************
+*   4. Update polseparatrix distribution 
+***********************************************/
+  ode_func.compute_f=ode_f_brz_torsys_cubicherm;
+  ode_func.data=&test_magfield;
+  ode_func.ndim=3;
+
+  //define 20 degree in phi direction
+  double phi[21];
+  phi[0]=0.0;
+  for(int i=1;i<21;i++)
+  {
+    phi[i]=phi[i-1]+1;
+  }
+
+  int nfirst;
+  int nlast;
+  update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(polseginfo, sepdist, &ode_func, &brk45_solver,
+                                                phi[10], 21, phi, &nfirst, &nlast);
+
+
+// /***********************************************
+// *   4. Create gridzone
+// ***********************************************/
+//   GridZone* solgz=create_sn_CARRE2D_GridZone(solgzinfo, sepdist);
+//   GridZone* pfrgz=create_sn_CARRE2D_GridZone(pfrgzinfo, sepdist);
+//   GridZone* coregz=create_sn_CARRE2D_GridZone(coregzinfo, sepdist);
+
+//   write_curve("sol_gz_c",solgz->first_bnd_curve);
+//   write_curve("sol_gz_gpc",solgz->first_gridpoint_curve);
+//   write_curve("pfr_gz_c",pfrgz->first_bnd_curve);
+//   write_curve("pfr_gz_gpc",pfrgz->first_gridpoint_curve);
+//   write_curve("core_gz_c",coregz->first_bnd_curve);
+//   write_curve("core_gz_gpc",coregz->first_gridpoint_curve);
+
+  
+  
+// /***********************************************
+// *   5. Generater grid for each gridzone
+// ***********************************************/
+  
+//   // change the odf function for gradpsi line tracing
+//   ode_func.compute_f=ode_f_brz_torsys_cubicherm;
+//   ode_func.data=&test_magfield;
+
+  
+//   TwoDimGrid* sol2dgrid=create_2Dgrid_default(solgz->first_gridpoint_curve->n_point, solgz->nr);
+//   generate_CARRE_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver);
+//   generate_CARRE_2Dgrid_default(sol2dgrid, pfrgz, &ode_func, &brk45_solver);
+//   generate_CARRE_2Dgrid_default(sol2dgrid, coregz, &ode_func, &brk45_solver);
+
+  
+
+
+/***********************************************
+*   6. Free space
+***********************************************/
+
+  // free_2Dgrid(sol2dgrid);
+  
+  // free_GridZone(solgz);
+  // free_GridZone(pfrgz);
+  // free_GridZone(coregz);
 
   free_GridZoneInfo(&solgzinfo);
   free_GridZoneInfo(&pfrgzinfo);

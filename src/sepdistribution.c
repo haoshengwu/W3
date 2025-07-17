@@ -243,3 +243,33 @@ void update_SepDistStr_gridpoint_curve(SepDistStr* sepdist)
     }
   }
 }
+
+Curve* create_gridpoint_curve(DLListNode* head, double* norm_dist, int n_norm_dist)
+{
+  if(!head || !norm_dist)
+  {
+    fprintf(stderr, "Empty inputs for create_gridpoint_curve.\n");
+    exit(EXIT_FAILURE);
+  }
+  const int SIZE = 20000;
+  Curve* tmp_c = create_curve(SIZE);
+  DLListNode* node = head;
+  while (node) 
+  {
+    add_last_point_curve(tmp_c, node->r, node->z);
+    node = node->next;
+  }
+  double tot_len = total_length_curve(tmp_c);
+  Curve* gridpoint_curve=create_curve(n_norm_dist);
+
+  for (int i = 0; i <n_norm_dist; i++) 
+  {
+    double len = tot_len * norm_dist[i];
+    CurvePoint* curve_p=malloc(sizeof(CurvePoint));
+    coordnates_in_curve(tmp_c, len, curve_p);
+    add_last_point_curve(gridpoint_curve,curve_p->x,curve_p->y);
+    free(curve_p);
+  }
+  free_curve(tmp_c);
+  return gridpoint_curve;
+}

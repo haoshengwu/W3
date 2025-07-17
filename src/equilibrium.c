@@ -601,3 +601,49 @@ void free_equilibrium(Equilibrium *equilib)
 // void find_Xpoint_from_DG(const Equilibrium* equilib, const double estimate[2], double accurate[2]){
 //
 // };
+
+void correct_direction_lower_divertor(Equilibrium *equilib)
+{
+  if (!equilib || !equilib->psi)
+  {
+    fprintf(stderr, "Error: 'equilib' or 'equilib->psi' is NULL in correct_direction().\n");
+    exit(EXIT_FAILURE);
+  }
+
+  printf("Correcting the direction of 3D magnetic field by modifying equilibrium.\n");
+  printf("The R-Z-Phi coordinate system is used.\n");
+  printf("Currently, only one direction definition is supported:\n");
+  printf("  - Ip is into the page (away from you).\n");
+  printf("  - BT is out of the page (towards you).\n");
+  printf("Regardless of actual Ip and BT directions, they will be converted to this definition.\n");
+
+  if (equilib->bcenter > 0)
+  {
+    equilib->bcenter = -equilib->bcenter;
+    printf("BT direction changed. Now it is out of the page (towards you).\n");
+  }
+  else
+  {
+    printf("BT direction already matches the target definition (out of the page towards you).\n");
+  }
+
+  if (equilib->simag < equilib->sibry)
+  {
+    int nw = equilib->nw;
+    int nh = equilib->nh;
+    for (int i = 0; i < nw; i++)
+    {
+      for (int j = 0; j < nh; j++)
+      {
+        equilib->psi[i][j] = -equilib->psi[i][j];
+      }
+    }
+    equilib->simag = -equilib->simag;
+    equilib->sibry = -equilib->sibry;
+    printf("Ip direction changed. Now it is into the page (away from you).\n");
+  }
+  else
+  {
+    printf("Ip direction already matches the target definition (into the page away from you).\n");
+  }
+}

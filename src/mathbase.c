@@ -19,6 +19,16 @@ double deg2rad(double phi)
   return phi * M_PI / 180.0;
 }
 
+double dot_product(double x1, double y1, double x2, double y2) 
+{
+    return x1*x2+y1*y2;
+}
+
+double cross_product(double x1, double y1, double x2, double y2) 
+{
+    return x1*y2-y1*x2;
+}
+
 void central_2nd_2d_diff(int nx, double *x,  int ny, double *y, double **f, double ***df)
 {
   for (int i = 1; i < nx - 1; i++) 

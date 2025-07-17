@@ -14,6 +14,11 @@ void swap_double(double* a, double* b);
 //convertion angle to radians
 double deg2rad(double phi);
 
+
+double dot_product(double x1, double y1, double x2, double y2);
+double cross_product(double x1, double y1, double x2, double y2);
+
+
 /******************************************************
  *    Difference Algorithm
  ******************************************************/

@@ -38,14 +38,18 @@ typedef struct {
 // Create a new curve with initial capacity (default to 128 if zero)
 Curve* create_curve(size_t init_capacity);
 
+// expand an exist curve with more size. The point position is NaN.
+void expand_curve_size_with_NaN(Curve* c, size_t size);
+
 // Free memory associated with the curve
 void free_curve(Curve* c);
 
 // Append a point (x, y) to the curve, automatically expanding memory
 int add_last_point_curve(Curve* c, double x, double y);
 
-// Set coordinates of the i-th point (must be within bounds)
-int set_point_curve(Curve* c, size_t i, double x, double y);
+// Set coordinates of the idx point (must be within bounds)
+// Start form ZERO!!!
+int set_point_curve(Curve* c, size_t idx, double x, double y);
 
 int delete_last_point(Curve* c);
 

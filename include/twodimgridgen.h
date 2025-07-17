@@ -30,7 +30,7 @@ typedef struct
     
     int nr; //magnetic line number in radial direction, elements number is nr-1;
     double* start_point_R;  // [nr]starting point R coordinate for tracing magnetic line
-    double* start_point_Z;  // [nr]starting point R coordinate for tracing magnetic line
+    double* start_point_Z;  // [nr]starting point Z coordinate for tracing magnetic line
     double* guard_start;    // [nr]
     double* guard_end;      // [nr]
     double* pasmin;         // [nr]
@@ -49,15 +49,11 @@ typedef struct
     Curve* sec_gridpoint_curve;
 } GridZone;
 
-
-GridZone* create_sn_CARRE2D_GridZone(GridZoneInfo* gridzoneinfo, SepDistStr* sepdist);
-
 void free_GridZone(GridZone* gridzone);
 
 typedef struct {
     double x, y;  // Physical coordinates of a Grid point
 } GridPoint;
-
 
 //TwoDimGrid is written in one dimention to have fast access 
 typedef struct {
@@ -75,14 +71,7 @@ typedef struct {
     GridPoint* points;
 } TwoDimGrid;
 
-TwoDimGrid* create_2Dgrid_default(int npol, int nrad);
-void free_2Dgrid(TwoDimGrid* grid);
-
-GridPoint* get_point_2Dgrid(TwoDimGrid* g, int ir, int ip);
-double get_x_2Dgrid(const TwoDimGrid* g, int ir, int ip);
-double get_y_2Dgrid(const TwoDimGrid* g, int ir, int ip);
-void set_point_2Dgrid(TwoDimGrid* g, int ir, int ip, double x, double y);
-
+GridZone* create_sn_CARRE2D_GridZone(GridZoneInfo* gzinfo, SepDistStr* sepdist);
 
 //use CARRE algorithm to generate grid points for on zone
 // TwoDimGrid* grid is the grid
@@ -93,10 +82,42 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
                                    ode_function* func,
                                    ode_solver* solver);
 
-void generate_EMC3_2Dgrid(TwoDimGrid* grid,
-                          GridZoneInfo* gridzoneinfo,
-                          ode_function* func,
-                          ode_solver* solver);
+
+/*
+* Following are used for EMC3 2D grid
+*/
+
+/*
+update the SepDist and PolSegmsInfo by phi0, nphi and array phi.
+phi0 is the toroidal position which is the poloidal section of 3D grid.
+phi is the array of the toroidal distrion.
+nphi is the total number of phi.
+nstart indicate the firt nstart+1 number, nend indictae the last nend+1 number, are fixed positions.
+These positions are deciced by magnetic field line tracing, can not change in the orthognoal optimization.
+These points are decided by phi0 and phi array.
+Here we don't assume phi is uniformly distribution, but phi0 must be in the phi array.
+the unit of phi is degree not radian.
+*/
+void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDistStr* sepdist,
+                                                   ode_function* func,ode_solver* solver,
+                                                   double phi0, int nphi, double* phi,
+                                                   int* nfirst, int* nlast);
+
+
+
+TwoDimGrid* create_2Dgrid_default(int npol, int nrad);
+void free_2Dgrid(TwoDimGrid* grid);
+
+GridPoint* get_point_2Dgrid(TwoDimGrid* g, int ir, int ip);
+double get_x_2Dgrid(const TwoDimGrid* g, int ir, int ip);
+double get_y_2Dgrid(const TwoDimGrid* g, int ir, int ip);
+void set_point_2Dgrid(TwoDimGrid* g, int ir, int ip, double x, double y);
+
+
+// void generate_EMC3_2Dgrid(TwoDimGrid* grid,
+//                           GridZoneInfo* gridzoneinfo,
+//                           ode_function* func,
+//                           ode_solver* solver);
 
 
 

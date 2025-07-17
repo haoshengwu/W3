@@ -424,10 +424,6 @@ static double calc_length(CurvePoint* p1, CurvePoint* p2)
     return hypot(p1->x-p2->x, p1->y-p2->y);
 }
 
-static double dot_product(double x1, double y1, double x2, double y2) 
-{
-    return x1*x2+y1*y2;
-}
 
 static double cosine_term(CurvePoint* base, CurvePoint* p1, CurvePoint* p2) 
 {
@@ -836,7 +832,7 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
 
 // Used to determind the tracing direction. Because the magnetic field line may not consistent with our assumed diretion.
 //Compare the initial direction of the magnetic field line with the direction of the poloidal boundary curve 
-//using a dot product, and then determine whether they align with the expected direction specified for SOL, PFR, or CORE.
+//using a cross product, and then determine whether they align with the expected direction specified for SOL, PFR, or CORE.
 static void check_poloidal_direction(GridZone* gridzone, ode_function* func, ode_solver* solver)
 {
   //Recover to initial 1.0;
@@ -887,14 +883,19 @@ static void check_poloidal_direction(GridZone* gridzone, ode_function* func, ode
   double t=0.00;
   solver->next_step(solver->step_size, &t, p1, p2, solver->solver_data, func);
 
-  double p3[2]={gridzone->start_point_R[start], gridzone->first_bnd_curve->points[start].y};
-  double p4[2]={gridzone->start_point_R[start+1], gridzone->first_bnd_curve->points[start+1].y};
+  //???
+  double p3[2]={gridzone->start_point_R[start], gridzone->start_point_Z[start]};
+  double p4[2]={gridzone->start_point_R[start+1], gridzone->start_point_Z[start+1]};
 
-  if(dot_product(p2[0]-p1[0], p2[1]-p1[1], p4[0]-p3[0], p4[1]-p3[1])*dir<0.0)
+  if(cross_product(p2[0]-p1[0], p2[1]-p1[1], p4[0]-p3[0], p4[1]-p3[1])*dir<0.0)
   {
     func->rescale[0]=-1.0;
     func->rescale[1]=-1.0;
     printf("DEBUG reverse the poloidal diretction in %s.\n",gridzone->name);
+  }
+  else
+  {
+    printf("DEBUG the poloidal diretction is correct in %s.\n",gridzone->name);
   }
 }
 
@@ -1077,3 +1078,216 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
 }
 
 
+
+void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDistStr* sepdist,
+                                                   ode_function* func,ode_solver* solver,
+                                                   double phi0, int nphi, double* phi,
+                                                   int* nfirst, int* nlast)
+
+{
+  if(!polseg||!sepdist)
+  {
+    fprintf(stderr,"Empty input for update_SepDist_PolSegmsInfo for EMC3 2Dgrid.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(strcmp(polseg->topo,"SNL")!=0)
+  {
+    fprintf(stderr,"Only support SNL topology.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  int idx_phi0=-1;
+  for(int i=0;i<nphi;i++)
+  {
+    if(fabs(phi[i]-phi0)<1.0E-10)
+    {
+      idx_phi0=i;
+      break;
+    }
+  }
+  if(idx_phi0==-1)
+  {
+    fprintf(stderr,"phi0 %lf is not in the phi range\n",phi0);
+    exit(EXIT_FAILURE);
+  }
+  *nfirst = nphi - 1 - idx_phi0;
+  *nlast = idx_phi0;
+
+  if(polseg->polsegments[0]->n_points<=*nlast  //outer leg
+     ||polseg->polsegments[1]->n_points<=*nfirst) //inner leg
+  {
+    fprintf(stderr,"The resolution in phi direction is too high!\n");
+    fprintf(stderr,"Decrease phi resolution (nphi and phi range) or increase PolSegStr resolution!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(polseg->polsegments[0]->n_points-*nlast<10  //outer leg
+     ||polseg->polsegments[1]->n_points-*nfirst<10) //inner leg
+  {
+    printf("Warning: The resolution in phi direction is close to PolSegStr resolution.\n");
+    printf("Suggest decrasing phi resolution and(or) increase PolSegStr resolution!\n");
+  }
+
+/*
+  Check the magnetic field to ensure it can be used for 3D grid generation
+*/
+  //check the dimension
+  if(func->ndim!=3)
+  {
+    fprintf(stderr,"The magnetic field is not 3D!\n");
+    fprintf(stderr,"Even though is 2D grid generation, but it is the base of 3D grid.\n");
+    fprintf(stderr,"Please check the magnetic field used for 3D gird genetration!\n");
+    exit(EXIT_FAILURE);
+  }
+
+  //check the directions Br,Bz,Bphi whether they are consistent with direction definition.
+  //restore rescale
+  for(int i=0;i<3;i++)
+  {
+    func->rescale[i]=1.0;
+  }
+  //check Bphi(Toroidal)
+  MagFieldTorSys *mag_field = (MagFieldTorSys *) func->data;
+  if(mag_field->b0r0>0)
+  {
+    fprintf(stderr,"BT is into the page (away from you).\n");
+    fprintf(stderr,"The direction of BT is not support.\n");
+    exit(EXIT_FAILURE);
+  }
+  //start point for checking the Br and Bz.
+  //We only cheeck at the inner target and assume that if inner is ok than outer is ok.
+  double p1[3];
+  int idx=sepdist->index[0];
+  int n_point=sepdist->edges[idx]->gridpoint_curve->n_point;
+  p1[0]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1].x;
+  p1[1]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1].y;
+  p1[2]=phi[nphi-1];
+
+  double t_tmp=0.0;
+  double p2[3];
+  solver->next_step(solver->step_size, &t_tmp, p1, p2, solver->solver_data, func);
+  printf("Start Point                  R Z Phi %.12f %.12f %.12f\n",p1[0],p1[1],p1[2]);
+  printf("After One step tracing Point R Z Phi %.12f %.12f %.12f\n",p2[0],p2[1],p2[2]);
+  double p3[2];
+  double p4[2];
+  p3[0]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1-1].x;
+  p3[0]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1-1].y;
+  p4[0]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1].x;
+  p4[1]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1].y;
+  if(dot_product(p2[0]-p1[0], p2[1]-p1[1], p4[0]-p3[0], p4[1]-p3[1])<0.0)
+  {
+    fprintf(stderr,"Ip is out of the page (towards you).\n");
+    fprintf(stderr,"Thus, Br&Bz is not consistent with expected direction.\n");
+    fprintf(stderr,"The direction of Ip is not support.\n");
+    exit(EXIT_FAILURE);
+  }
+  printf("BT and Ip directions are consitent with direction definition.\n");
+
+/***********************************************
+*  Correct the inner leg (sep line[index[0]])  *
+************************************************/
+  if(sepdist->edges[idx]->gridpoint_curve->n_point!=sepdist->edges[idx]->n_size)
+  {
+    fprintf(stderr,"The number of points of gridcurve is not consistent with size of normal distribution.\n");
+    exit(EXIT_FAILURE);
+  }
+  
+  //new gridpoint_curve for inner leg will used to replace the current one;
+  //new normalized distribution for inner leg will used to replace the current one;
+  int npoint_tmp=sepdist->edges[idx]->gridpoint_curve->n_point;
+  // DO NOT FORGET FREE/REPLACE
+  Curve* new_gpc_inner=create_curve(npoint_tmp);
+  expand_curve_size_with_NaN(new_gpc_inner, npoint_tmp);
+
+    // Calculate the new gridpoint_curve [npoint_tmp-1]
+  set_point_curve(new_gpc_inner,npoint_tmp-1, 
+                  sepdist->edges[idx]->gridpoint_curve->points[npoint_tmp-1].x,
+                  sepdist->edges[idx]->gridpoint_curve->points[npoint_tmp-1].y);
+  
+
+
+  //tempertory point, next_point by tracing, index.
+  double pt_tmp[3];
+  double next_pt_tmp[3];
+  int idx_tmp=sepdist->index[0];
+  
+  //BECAREFUL, *nfirst is veiw from inner target to outer target along magnetic filed.
+  //The direction of gridpointcurve is from X-point to inner/outer target.
+  //So, the *nfirst+1 points for inner leg the the last points of gridpointcurve.
+  //the index of the last points are [npoint_tmp-*nfirst-1:npoint_tmp-1].
+  //Calculate the fixed point from the last [npoint_tmp-*nfirst-1] to the last [npoint_tmp-2].
+  //The last point index is [npoint_tmp-1] and no need to change.
+
+  // Calculate the new gridpoint_curve from [npoint_tmp-*nfirst-1:npoint_tmp-2]
+  for(int i=1; i<*nfirst+1; i++)
+  {
+    pt_tmp[0]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x;
+    pt_tmp[1]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y;
+    pt_tmp[2]=phi[idx_phi0+i];
+    printf("DEBUG Phi is %.12f\n",pt_tmp[2]);
+    t_tmp=0.0;
+    while(true)
+    {
+      solver->next_step(solver->step_size, &t_tmp, pt_tmp, next_pt_tmp, solver->solver_data, func);
+      t_tmp=t_tmp + solver->step_size;
+      if(fabs(next_pt_tmp[2]-phi0)<1.0E-10)
+      {
+        set_point_curve(new_gpc_inner,npoint_tmp-1-i, 
+                        next_pt_tmp[0],next_pt_tmp[1]);
+        printf("DEBUG Found the point R Z Phi: %.15f %.12f %.12f\n",next_pt_tmp[0], next_pt_tmp[1], next_pt_tmp[2]);
+        break;
+      }
+      // copyt next_pt_tmp to pt_tmp for next step.
+      for(int i=0;i<3;i++)
+      {
+        pt_tmp[i]=next_pt_tmp[i];
+      }
+    }
+  }
+  write_curve("DEBUG_new_gpc_in",new_gpc_inner);
+
+
+  printf("DEBUG %.12f %.12f\n",new_gpc_inner->points[npoint_tmp-*nfirst-1].x,new_gpc_inner->points[npoint_tmp-*nfirst-1].y);
+
+  // Create new separatrix line DLList is fine.
+  DLListNode* head_in_tmp=copy_DLList(sepdist->edges[idx_tmp]->head);
+  if(insert_point_for_DLList(head_in_tmp, 
+                             new_gpc_inner->points[npoint_tmp-*nfirst-1].x,
+                             new_gpc_inner->points[npoint_tmp-*nfirst-1].y))
+  {
+    fprintf(stderr,"The point in not on the separatrix line.\n");
+    exit(EXIT_FAILURE);
+  }
+  write_DLList(head_in_tmp,"DEBUG_SEPLINE_IN");
+
+  cut_DLList_from_intersections(head_in_tmp,
+                                new_gpc_inner->points[npoint_tmp-*nfirst-1].x,
+                                new_gpc_inner->points[npoint_tmp-*nfirst-1].y);
+
+  // Create the coresponding normal distribution for the new separatrix line DLList
+  double* normdist_in_tmp=malloc((npoint_tmp-*nfirst)*sizeof(double));
+  double norm_factor = sepdist->edges[idx_tmp]->norm_dist[npoint_tmp-*nfirst-1];
+
+  for(int i=0;i<npoint_tmp-*nfirst;i++)
+  {
+    normdist_in_tmp[i]=sepdist->edges[idx_tmp]->norm_dist[i]/norm_factor;
+    printf("DEBUG normdist_in_tmp %i %lf\n",i,normdist_in_tmp[i]);
+  }
+  
+  // Calculate the new gridpoint_curve from [0:npoint_tmp-*nfirst-1]
+  Curve* gpc_in_tmp=create_gridpoint_curve(head_in_tmp, normdist_in_tmp, npoint_tmp-*nfirst);
+  write_curve("DEBUG_gpc_in_tmp",gpc_in_tmp);
+
+  // if(!cut_DLList_from_intersections(head_in_tmp, 
+  //                                  new_gpc_inner->points[npoint_tmp-*nfirst-1].x,
+  //                                  new_gpc_inner->points[npoint_tmp-*nfirst-1].y))
+  // {
+  //   fprintf(stderr,"We assume the point in the sepline because there are produced by the same line tracer\n");
+  //   fprintf(stderr,"However, the points[npoint_tmp-*nfirst-1] is not in the separatrix line.\n");
+  //   fprintf(stderr,"In the future, we will update this not now.\n");
+  //   exit(EXIT_FAILURE);
+  // }
+  free(gpc_in_tmp);
+  free(normdist_in_tmp);
+  free(head_in_tmp);
+}

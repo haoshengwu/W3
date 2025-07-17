@@ -76,4 +76,13 @@ double EqCorrCell(const Equilibrium *equilib,int cx,int cy,double level);
 double get_psi_from_rz(const Equilibrium *equilib, double x, double y);
 
 //void find_X_point(const Equilibrium* equilib, const double estimate[2], double accurate[2]); 
+
+//This is to correct the magnetic direction to make sure the magnect field direction is consistent 
+//to the current code. Currently, we only support 1 type direction. see magnetic field direction.
+//The equlibriums have different coordinate systems that have different positive or negative psi and bcenter.
+//This function is correct them. 
+//In nutshell, we only support one direction definition, if the equilibirum is not consistent with 
+//this defination, we transfer it forcely.
+//Current only support lower divertor. Upper divertor need be checked.
+void correct_direction_lower_divertor(Equilibrium *equilib);
 #endif

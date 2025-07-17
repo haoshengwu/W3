@@ -20,7 +20,7 @@ typedef struct
   // similar to GridZoneInfo, the following indicates
   // the polosegm corespond to which sep line part.
   int* xptidx; //which x-point
-  int* seplineidx; //which lince
+  int* seplineidx; //which line
   int* segmidx; //the segment of the line, for multiple X-points
 
   //whethere reverse the direction to have the same with sep line 
