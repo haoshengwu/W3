@@ -121,7 +121,7 @@ void write_GridZoneInfo(GridZoneInfo* z, const char* filename)
   fprintf(fp, "#nr\n%d\n", z->nr);
   fprintf(fp, "#start_point_R Start_point_Z guardstart guardend pasmin\n");
   for (int i = 0; i < z->nr; ++i) {
-    fprintf(fp, "%.10f %.10f %.10f %.10f %.10f\n",
+    fprintf(fp, "%.12f %.12f %.12f %.12f %.12f\n",
             z->start_point_R[i], z->start_point_Z[i],
             z->guard_start[i], z->guard_end[i], z->pasmin[i]);
   }
@@ -130,7 +130,7 @@ void write_GridZoneInfo(GridZoneInfo* z, const char* filename)
   if (z->start_curve && z->start_curve->points) {
     fprintf(fp, "%zu\n", z->start_curve->n_point);
     for (size_t i = 0; i < z->start_curve->n_point; ++i) {
-      fprintf(fp, "%.10f %.10f\n", z->start_curve->points[i].x, z->start_curve->points[i].y);
+      fprintf(fp, "%.12f %.12f\n", z->start_curve->points[i].x, z->start_curve->points[i].y);
     }
   } else {
     fprintf(fp, "0\n# No start_curve defined.\n");
@@ -140,7 +140,7 @@ void write_GridZoneInfo(GridZoneInfo* z, const char* filename)
   if (z->end_curve && z->end_curve->points) {
     fprintf(fp, "%zu\n", z->end_curve->n_point);
     for (size_t i = 0; i < z->end_curve->n_point; ++i) {
-      fprintf(fp, "%.10f %.10f\n", z->end_curve->points[i].x, z->end_curve->points[i].y);
+      fprintf(fp, "%.12f %.12f\n", z->end_curve->points[i].x, z->end_curve->points[i].y);
     }
   } else {
     fprintf(fp, "0\n# No end_curve defined.\n");
@@ -285,7 +285,7 @@ void print_GridZoneInfo(GridZoneInfo* gridzoneinfo)
 
   printf("\n== Tracing Start Points ==\n");
   for (int i = 0; i < gridzoneinfo->nr; ++i) {
-    printf("[%d] R=%.10f  Z=%.10f  guard_start=%.10f  guard_end=%.10f  pasmin=%.10f\n",
+    printf("[%d] R=%.12f  Z=%.12f  guard_start=%.12f  guard_end=%.12f  pasmin=%.12f\n",
            i,
            gridzoneinfo->start_point_R[i],
            gridzoneinfo->start_point_Z[i],
@@ -297,7 +297,7 @@ void print_GridZoneInfo(GridZoneInfo* gridzoneinfo)
   if (gridzoneinfo->start_curve && gridzoneinfo->start_curve->points) {
     printf("\n== Start Curve (%zu points) ==\n", gridzoneinfo->start_curve->n_point);
     for (size_t i = 0; i < gridzoneinfo->start_curve->n_point; ++i) {
-      printf("[%zu] R=%.10f  Z=%.10f\n",
+      printf("[%zu] R=%.12f  Z=%.12f\n",
              i,
              gridzoneinfo->start_curve->points[i].x,
              gridzoneinfo->start_curve->points[i].y);
@@ -309,7 +309,7 @@ void print_GridZoneInfo(GridZoneInfo* gridzoneinfo)
   if (gridzoneinfo->end_curve && gridzoneinfo->end_curve->points) {
     printf("\n== End Curve (%zu points) ==\n", gridzoneinfo->end_curve->n_point);
     for (size_t i = 0; i < gridzoneinfo->end_curve->n_point; ++i) {
-      printf("[%zu] R=%.10f  Z=%.10f\n",
+      printf("[%zu] R=%.12f  Z=%.12f\n",
              i,
              gridzoneinfo->end_curve->points[i].x,
              gridzoneinfo->end_curve->points[i].y);

@@ -199,7 +199,7 @@ void calc_points_CARRE(CarreMeshTube *tube)
                       tube->guard_top, tube->guard_end, tube->pasmin,
                       tmp_length_points,tmp_point_coord,
                       &tmp_ortho_value);
-      printf("debug origin ort: %.10f\n",tmp_ortho_value.ort[n_point-1]);
+      printf("debug origin ort: %.12f\n",tmp_ortho_value.ort[n_point-1]);
 
 //3. we proceed to a first displacement of the nodes
 
@@ -285,12 +285,12 @@ void calc_points_CARRE(CarreMeshTube *tube)
             tube->length_points[ipol] = tmp_length_points[ipol]+del;
           }
           // printf("debug in calc_points_CARRE line 241\n"); 
-          //printf("del: %.10f\n", del);
-          //printf("ipol: %d, length_point %.10f\n",ipol, tube->length_points[ipol]);
+          //printf("del: %.12f\n", del);
+          //printf("ipol: %d, length_point %.12f\n",ipol, tube->length_points[ipol]);
           coord_CARRE(tube->curve,tube->n_curve,tube->length_points[ipol], tube->point_coord[ipol]);
           ortmax=max(ortmax,fabs(ortho_current));
         }
-        printf("debug: ortmax %.10f\n",ortmax);
+        printf("debug: ortmax %.12f\n",ortmax);
         printf("i: %d\n",i);
         if ((ortmax < RLCEPT))
         {

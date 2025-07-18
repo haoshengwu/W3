@@ -786,13 +786,13 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
             tube->len_curr_gpt_c[ipol] = tmp_length_points[ipol]+del;
           }
           // printf("debug in calc_points_CARRE line 241\n"); 
-          //printf("del: %.10f\n", del);
-          //printf("ipol: %d, length_point %.10f\n",ipol, tube->length_points[ipol]);
+          //printf("del: %.12f\n", del);
+          //printf("ipol: %d, length_point %.12f\n",ipol, tube->length_points[ipol]);
           coordnates_in_curve(tube->curr_c, tube->len_curr_gpt_c[ipol], &(tube->curr_gpt_c->points[ipol]));
 
           ortmax=max(ortmax,fabs(ortho_current));
         }
-        // printf("debug: ortmax %.10f\n",ortmax);
+        // printf("debug: ortmax %.12f\n",ortmax);
         // printf("i: %d\n",i);
         if ((ortmax < RLCEPT))
         {
@@ -805,7 +805,7 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
         printf("WARING: After optimization, the orthognoality is not good\n");
         printf("please adjust the parameters\n");
       }
-      printf("debug: after optimaztion ortmax %.10f\n",ortmax);
+      printf("debug: after optimaztion ortmax %.12f\n",ortmax);
       //TODO write the orthognonal values
       //   do ipol=ipol1,ipoln
       //   somortp(ir)= somortp(ir)+ (ort2(ipol)/nppol)
@@ -1136,7 +1136,7 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   {
     fprintf(stderr,"The magnetic field is not 3D!\n");
     fprintf(stderr,"Even though is 2D grid generation, but it is the base of 3D grid.\n");
-    fprintf(stderr,"Please check the magnetic field used for 3D gird genetration!\n");
+    fprintf(stderr,"Please check the magnetic field used for 3D grid genetration!\n");
     exit(EXIT_FAILURE);
   }
 
@@ -1170,10 +1170,10 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   printf("After One step tracing Point R Z Phi %.12f %.12f %.12f\n",p2[0],p2[1],p2[2]);
   double p3[2];
   double p4[2];
-  p3[0]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1-1].x;
-  p3[0]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1-1].y;
-  p4[0]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1].x;
-  p4[1]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1].y;
+  p3[0]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1].x;
+  p3[1]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1].y;
+  p4[0]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1-1].x;
+  p4[1]=sepdist->edges[idx]->gridpoint_curve->points[n_point-1-1].y;
   if(dot_product(p2[0]-p1[0], p2[1]-p1[1], p4[0]-p3[0], p4[1]-p3[1])<0.0)
   {
     fprintf(stderr,"Ip is out of the page (towards you).\n");
@@ -1186,34 +1186,36 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
 /***********************************************
 *  Correct the inner leg (sep line[index[0]])  *
 ************************************************/
-  if(sepdist->edges[idx]->gridpoint_curve->n_point!=sepdist->edges[idx]->n_size)
+
+  int idx_tmp=sepdist->index[0];
+
+  if(sepdist->edges[idx_tmp]->gridpoint_curve->n_point!=sepdist->edges[idx_tmp]->n_size)
   {
     fprintf(stderr,"The number of points of gridcurve is not consistent with size of normal distribution.\n");
     exit(EXIT_FAILURE);
   }
   
   //new gridpoint_curve for inner leg will used to replace the current one;
-  //new normalized distribution for inner leg will used to replace the current one;
-  int npoint_tmp=sepdist->edges[idx]->gridpoint_curve->n_point;
+  //new normalized distribution for inner leg will be updated;
+
+  int npoint_tmp=sepdist->edges[idx_tmp]->gridpoint_curve->n_point;
   // DO NOT FORGET FREE/REPLACE
   Curve* new_gpc_inner=create_curve(npoint_tmp);
   expand_curve_size_with_NaN(new_gpc_inner, npoint_tmp);
 
-    // Calculate the new gridpoint_curve [npoint_tmp-1]
+  // Calculate the new gridpoint_curve [npoint_tmp-1]
   set_point_curve(new_gpc_inner,npoint_tmp-1, 
-                  sepdist->edges[idx]->gridpoint_curve->points[npoint_tmp-1].x,
-                  sepdist->edges[idx]->gridpoint_curve->points[npoint_tmp-1].y);
+                  sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x,
+                  sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y);
   
-
-
   //tempertory point, next_point by tracing, index.
   double pt_tmp[3];
   double next_pt_tmp[3];
-  int idx_tmp=sepdist->index[0];
+  
   
   //BECAREFUL, *nfirst is veiw from inner target to outer target along magnetic filed.
   //The direction of gridpointcurve is from X-point to inner/outer target.
-  //So, the *nfirst+1 points for inner leg the the last points of gridpointcurve.
+  //So, the *nfirst+1 points for inner leg of the last points of gridpointcurve.
   //the index of the last points are [npoint_tmp-*nfirst-1:npoint_tmp-1].
   //Calculate the fixed point from the last [npoint_tmp-*nfirst-1] to the last [npoint_tmp-2].
   //The last point index is [npoint_tmp-1] and no need to change.
@@ -1234,22 +1236,20 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
       {
         set_point_curve(new_gpc_inner,npoint_tmp-1-i, 
                         next_pt_tmp[0],next_pt_tmp[1]);
-        printf("DEBUG Found the point R Z Phi: %.15f %.12f %.12f\n",next_pt_tmp[0], next_pt_tmp[1], next_pt_tmp[2]);
+        printf("DEBUG Found the point R Z Phi: %.12f %.12f %.12f\n",next_pt_tmp[0], next_pt_tmp[1], next_pt_tmp[2]);
         break;
       }
       // copyt next_pt_tmp to pt_tmp for next step.
-      for(int i=0;i<3;i++)
+      for(int j=0;j<3;j++)
       {
-        pt_tmp[i]=next_pt_tmp[i];
+        pt_tmp[j]=next_pt_tmp[j];
       }
     }
   }
-  write_curve("DEBUG_new_gpc_in",new_gpc_inner);
-
 
   printf("DEBUG %.12f %.12f\n",new_gpc_inner->points[npoint_tmp-*nfirst-1].x,new_gpc_inner->points[npoint_tmp-*nfirst-1].y);
 
-  // Create new separatrix line DLList is fine.
+  // Create temporary new separatrix line DLList.
   DLListNode* head_in_tmp=copy_DLList(sepdist->edges[idx_tmp]->head);
   if(insert_point_for_DLList(head_in_tmp, 
                              new_gpc_inner->points[npoint_tmp-*nfirst-1].x,
@@ -1268,6 +1268,11 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   double* normdist_in_tmp=malloc((npoint_tmp-*nfirst)*sizeof(double));
   double norm_factor = sepdist->edges[idx_tmp]->norm_dist[npoint_tmp-*nfirst-1];
 
+  if(fabs(norm_factor) < 1.0E-12) 
+  {
+    fprintf(stderr,"Normalization factor is too small or zero!\n");
+    exit(EXIT_FAILURE);
+  }  
   for(int i=0;i<npoint_tmp-*nfirst;i++)
   {
     normdist_in_tmp[i]=sepdist->edges[idx_tmp]->norm_dist[i]/norm_factor;
@@ -1278,16 +1283,168 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   Curve* gpc_in_tmp=create_gridpoint_curve(head_in_tmp, normdist_in_tmp, npoint_tmp-*nfirst);
   write_curve("DEBUG_gpc_in_tmp",gpc_in_tmp);
 
-  // if(!cut_DLList_from_intersections(head_in_tmp, 
-  //                                  new_gpc_inner->points[npoint_tmp-*nfirst-1].x,
-  //                                  new_gpc_inner->points[npoint_tmp-*nfirst-1].y))
-  // {
-  //   fprintf(stderr,"We assume the point in the sepline because there are produced by the same line tracer\n");
-  //   fprintf(stderr,"However, the points[npoint_tmp-*nfirst-1] is not in the separatrix line.\n");
-  //   fprintf(stderr,"In the future, we will update this not now.\n");
-  //   exit(EXIT_FAILURE);
-  // }
-  free(gpc_in_tmp);
+  //fill out the new_gpc_inner from gpc_in_tmp[0:npoint_tmp-*nfirst-2]
+  for(int i=0; i<npoint_tmp-*nfirst-1; i++)
+  {
+    new_gpc_inner->points[i].x=gpc_in_tmp->points[i].x;
+    new_gpc_inner->points[i].y=gpc_in_tmp->points[i].y;
+  }
+
+  //Update the normalized distribution,norm_dist[0]=0.0 and norm_dist[npoint-1]=1.0
+  double tot_len_tmp = total_length_curve(new_gpc_inner);
+  for(int i=0; i<npoint_tmp;i++)
+  {
+    sepdist->edges[idx_tmp]->norm_dist[i]=length_curve(new_gpc_inner,i+1)/tot_len_tmp;
+    //the 2nd polseg is coresponding to the inner leg!!! 
+    polseg->polsegments[1]->norm_dist[i]=sepdist->edges[idx_tmp]->norm_dist[i];
+    printf("DEBUG new norm dist %i %.12f\n",i, sepdist->edges[idx_tmp]->norm_dist[i]);
+  }
+
+  //Replace the old curve by the new curve.
+  free_curve(sepdist->edges[idx_tmp]->gridpoint_curve);
+  sepdist->edges[idx_tmp]->gridpoint_curve=new_gpc_inner;
+
+  write_curve("DEBUG_new_gpc_in",new_gpc_inner);
+  free_curve(gpc_in_tmp);
+  free_DLList(head_in_tmp);
   free(normdist_in_tmp);
-  free(head_in_tmp);
+
+
+/***********************************************
+*  Correct the outer leg (sep line[index[1]])  *
+************************************************/
+  idx_tmp=sepdist->index[1];
+
+  if(sepdist->edges[idx_tmp]->gridpoint_curve->n_point!=sepdist->edges[idx_tmp]->n_size)
+  {
+    fprintf(stderr,"The number of points of gridcurve is not consistent with size of normal distribution.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  //new gridpoint_curve for outer leg will used to replace the current one;
+  //new normalized distribution for outer leg will be updated;
+  npoint_tmp=sepdist->edges[idx_tmp]->gridpoint_curve->n_point;
+  // DO NOT FORGET FREE/REPLACE
+  Curve* new_gpc_outer=create_curve(npoint_tmp);
+  expand_curve_size_with_NaN(new_gpc_outer, npoint_tmp);
+
+  // Calculate the new gridpoint_curve [npoint_tmp-1]
+  set_point_curve(new_gpc_outer,npoint_tmp-1, 
+                  sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x,
+                  sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y);
+
+  //BECAREFUL, *nlast is veiw from inner target to outer target along magnetic filed.
+  //The direction of gridpointcurve is from X-point to inner/outer target.
+  //So, the *nlast+1 points for outer leg of the last points of gridpointcurve.
+  //the index of the last points are [npoint_tmp-*nlast-1:npoint_tmp-1].
+  //Calculate the fixed point from the last [npoint_tmp-*nlast-1] to the last [npoint_tmp-2].
+  //The last point index is [npoint_tmp-1] and no need to change.
+
+
+  //For outer leg, the tracing direction is along the reversed magnetic field line.
+  for(int i=0; i<3; i++)
+  {
+    func->rescale[i]=-1.0;
+  }
+
+  // Calculate the new gridpoint_curve from [npoint_tmp-*nlast1-1:npoint_tmp-2]
+  for(int i=1; i<*nlast+1; i++)
+  {
+    pt_tmp[0]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x;
+    pt_tmp[1]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y;
+    pt_tmp[2]=phi[idx_phi0-i];
+    printf("DEBUG Phi is %.12f\n",pt_tmp[2]);
+    t_tmp=0.0;
+    while(true)
+    {
+      solver->next_step(solver->step_size, &t_tmp, pt_tmp, next_pt_tmp, solver->solver_data, func);
+      t_tmp=t_tmp + solver->step_size;
+      if(fabs(next_pt_tmp[2]-phi0)<1.0E-10)
+      {
+        set_point_curve(new_gpc_outer,npoint_tmp-1-i, 
+                        next_pt_tmp[0],next_pt_tmp[1]);
+        printf("DEBUG Found the point R Z Phi: %.12f %.12f %.12f\n",next_pt_tmp[0], next_pt_tmp[1], next_pt_tmp[2]);
+        break;
+      }
+      // copyt next_pt_tmp to pt_tmp for next step.
+      for(int j=0;j<3;j++)
+      {
+        pt_tmp[j]=next_pt_tmp[j];
+      }
+    }
+  }
+
+  printf("DEBUG %.12f %.12f\n",
+          new_gpc_outer->points[npoint_tmp-*nlast-1].x,
+          new_gpc_outer->points[npoint_tmp-*nlast-1].y);
+
+  // Create temporary new separatrix line DLList.
+  DLListNode* head_out_tmp=copy_DLList(sepdist->edges[idx_tmp]->head);
+  if(insert_point_for_DLList(head_out_tmp, 
+                             new_gpc_outer->points[npoint_tmp-*nlast-1].x,
+                             new_gpc_outer->points[npoint_tmp-*nlast-1].y))
+  {
+    fprintf(stderr,"The point in not on the separatrix line.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  cut_DLList_from_intersections(head_out_tmp,
+                               new_gpc_outer->points[npoint_tmp-*nlast-1].x,
+                               new_gpc_outer->points[npoint_tmp-*nlast-1].y);
+  write_DLList(head_out_tmp,"DEBUG_SEPLINE_OUT");
+
+
+  // Create the coresponding normal distribution for the new separatrix line DLList
+  double* normdist_out_tmp=malloc((npoint_tmp-*nlast)*sizeof(double));
+  norm_factor = sepdist->edges[idx_tmp]->norm_dist[npoint_tmp-*nlast-1];
+
+  if(fabs(norm_factor) < 1.0E-12) 
+  {
+    fprintf(stderr,"Normalization factor is too small or zero!\n");
+    exit(EXIT_FAILURE);
+  }  
+
+  for(int i=0;i<npoint_tmp-*nlast;i++)
+  {
+    normdist_out_tmp[i]=sepdist->edges[idx_tmp]->norm_dist[i]/norm_factor;
+    printf("DEBUG normdist_out_tmp %i %.12f\n",i,normdist_out_tmp[i]);
+  }
+
+  // Calculate the new gridpoint_curve from [0:npoint_tmp-*nfirst-1]
+  Curve* gpc_out_tmp=create_gridpoint_curve(head_out_tmp, normdist_out_tmp, npoint_tmp-*nlast);
+  write_curve("DEBUG_gpc_out_tmp",gpc_out_tmp);
+
+  //fill out the new_gpc_inner from gpc_in_tmp[0:npoint_tmp-*nfirst-2]
+  for(int i=0; i<npoint_tmp-*nlast-1; i++)
+  {
+    new_gpc_outer->points[i].x=gpc_out_tmp->points[i].x;
+    new_gpc_outer->points[i].y=gpc_out_tmp->points[i].y;
+  }
+
+  //Update the normalized distribution,norm_dist[0]=0.0 and norm_dist[npoint-1]=1.0
+  tot_len_tmp = total_length_curve(new_gpc_outer);
+  for(int i=0; i<npoint_tmp;i++)
+  {
+    sepdist->edges[idx_tmp]->norm_dist[i]=length_curve(new_gpc_outer,i+1)/tot_len_tmp;
+    //the 2nd polseg is coresponding to the inner leg!!! 
+    polseg->polsegments[0]->norm_dist[i]=sepdist->edges[idx_tmp]->norm_dist[i];
+    printf("DEBUG new norm dist %i %.12f\n",i, sepdist->edges[idx_tmp]->norm_dist[i]);
+  }
+
+  //Replace the old curve by the new curve.
+  free_curve(sepdist->edges[idx_tmp]->gridpoint_curve);
+  sepdist->edges[idx_tmp]->gridpoint_curve=new_gpc_outer;
+
+  write_curve("DEBUG_new_gpc_out",new_gpc_outer);
+  free_curve(gpc_out_tmp);
+  free_DLList(head_out_tmp);
+  free(normdist_out_tmp);
+
+
+  //restore the tracing direction.
+  for(int i=0; i<3; i++)
+  {
+    func->rescale[i]=1.0;
+  }
+
 }

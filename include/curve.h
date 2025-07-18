@@ -78,9 +78,9 @@ int get_intersection_point(double x1, double y1, double x2, double y2,
 //total length of the curve
 double total_length_curve(const Curve *c);
 
-//calcule the length until the nth points of a curve.
+//calcule the length until the i-th points of a curve.
 //Coresponding to 'long_CARRE'
-double length_curve(Curve *c, size_t n);
+double length_curve(Curve *c, size_t ith);
 
 //Coresponding to 'indcrb_CARRE'
 int indcrb_curve(Curve* curve, CurvePoint* point, double d);

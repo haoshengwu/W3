@@ -126,7 +126,7 @@ void write_PolSegStr(PolSegStr* polseg, FILE* fp)
   fprintf(fp, "#size\n%d\n", polseg->n_points);
   fprintf(fp, "#normal distribution\n");
   for (int i = 0; i < polseg->n_points; ++i) {
-    fprintf(fp, "%.10f\n", polseg->norm_dist[i]);
+    fprintf(fp, "%.12f\n", polseg->norm_dist[i]);
   }
 }
 
@@ -178,7 +178,7 @@ void print_PolSegStr(PolSegStr* polseg)
   printf("    Normalized distribution:\n");
 
   for (int i = 0; i < polseg->n_points; ++i) {
-    printf("      [%3d] %.10f\n", i, polseg->norm_dist[i]);
+    printf("      [%3d] %.12f\n", i, polseg->norm_dist[i]);
   }
 }
 

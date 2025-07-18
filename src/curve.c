@@ -127,7 +127,7 @@ int set_point_curve(Curve* c, size_t idx, double x, double y)
 {
     if (!c || idx >= c->n_point) 
     {
-      fprintf(stderr,"Empty input for set_point.\n");
+      fprintf(stderr,"Empty input for set_point_curve.\n");
       return -1;
     }
     c->points[idx].x = x;
@@ -358,22 +358,22 @@ double total_length_curve(const Curve *c)
     return length;
 }
 
-double length_curve(Curve *curve, size_t n)
+double length_curve(Curve *curve, size_t ith)
 {
     if (!curve) {
         fprintf(stderr, "Error: NULL input to length_curve.\n");
         exit(EXIT_FAILURE);
     }
-    if (n > curve->n_point) {
-        fprintf(stderr, "Error: n (%zu) is larger than curve->n_point (%zu).\n", n, curve->n_point);
+    if (ith > curve->n_point) {
+        fprintf(stderr, "Error: n (%zu) is larger than curve->n_point (%zu).\n", ith, curve->n_point);
         exit(EXIT_FAILURE);
     }
-    if (n < 2) {
+    if (ith < 2) {
         return 0.0;  // 0 or 1 point → no length
     }
 
     double length = 0.0;
-    for (size_t i = 1; i < n; ++i) {
+    for (size_t i = 1; i < ith; ++i) {
         double dx = curve->points[i].x - curve->points[i - 1].x;
         double dy = curve->points[i].y - curve->points[i - 1].y;
         length += hypot(dx, dy);
