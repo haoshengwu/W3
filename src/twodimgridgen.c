@@ -1077,25 +1077,10 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
   return;
 }
 
-
-
-void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDistStr* sepdist,
-                                                   ode_function* func,ode_solver* solver,
-                                                   double phi0, int nphi, double* phi,
-                                                   int* nfirst, int* nlast)
-
+//phi0, nphi and array phi will decided the nfirst and nlast. 
+//nstart indicate the firt nstart+1 number, nend indictae the last nend+1 number, are fixed positions.
+static void calc_nfirst_nlast(double phi0, int nphi, double* phi, int* nfirst_ptr, int* nlast_ptr)
 {
-  if(!polseg||!sepdist)
-  {
-    fprintf(stderr,"Empty input for update_SepDist_PolSegmsInfo for EMC3 2Dgrid.\n");
-    exit(EXIT_FAILURE);
-  }
-  if(strcmp(polseg->topo,"SNL")!=0)
-  {
-    fprintf(stderr,"Only support SNL topology.\n");
-    exit(EXIT_FAILURE);
-  }
-
   int idx_phi0=-1;
   for(int i=0;i<nphi;i++)
   {
@@ -1110,19 +1095,42 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
     fprintf(stderr,"phi0 %lf is not in the phi range\n",phi0);
     exit(EXIT_FAILURE);
   }
-  *nfirst = nphi - 1 - idx_phi0;
-  *nlast = idx_phi0;
+  *nfirst_ptr = nphi - 1 - idx_phi0;
+  *nlast_ptr = idx_phi0;
+}
 
-  if(polseg->polsegments[0]->n_points<=*nlast  //outer leg
-     ||polseg->polsegments[1]->n_points<=*nfirst) //inner leg
+void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDistStr* sepdist,
+                                                   ode_function* func,ode_solver* solver,
+                                                   double phi0, int nphi, double* phi)
+
+{
+  if(!polseg||!sepdist)
+  {
+    fprintf(stderr,"Empty input for update_SepDist_PolSegmsInfo for EMC3 2Dgrid.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(strcmp(polseg->topo,"SNL")!=0)
+  {
+    fprintf(stderr,"Only support SNL topology.\n");
+    exit(EXIT_FAILURE);
+  }
+  int nfirst;
+  int nlast;
+  calc_nfirst_nlast(phi0, nphi, phi, &nfirst, &nlast);
+  //!idx_phi0 is the index, nlast is the i-th
+  int idx_phi0=nlast;
+
+
+  if(polseg->polsegments[0]->n_points<=nlast  //outer leg
+     ||polseg->polsegments[1]->n_points<=nfirst) //inner leg
   {
     fprintf(stderr,"The resolution in phi direction is too high!\n");
     fprintf(stderr,"Decrease phi resolution (nphi and phi range) or increase PolSegStr resolution!\n");
     exit(EXIT_FAILURE);
   }
 
-  if(polseg->polsegments[0]->n_points-*nlast<10  //outer leg
-     ||polseg->polsegments[1]->n_points-*nfirst<10) //inner leg
+  if(polseg->polsegments[0]->n_points-nlast<10  //outer leg
+     ||polseg->polsegments[1]->n_points-nfirst<10) //inner leg
   {
     printf("Warning: The resolution in phi direction is close to PolSegStr resolution.\n");
     printf("Suggest decrasing phi resolution and(or) increase PolSegStr resolution!\n");
@@ -1213,15 +1221,15 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   double next_pt_tmp[3];
   
   
-  //BECAREFUL, *nfirst is veiw from inner target to outer target along magnetic filed.
+  //BECAREFUL, nfirst is veiw from inner target to outer target along magnetic filed.
   //The direction of gridpointcurve is from X-point to inner/outer target.
-  //So, the *nfirst+1 points for inner leg of the last points of gridpointcurve.
-  //the index of the last points are [npoint_tmp-*nfirst-1:npoint_tmp-1].
-  //Calculate the fixed point from the last [npoint_tmp-*nfirst-1] to the last [npoint_tmp-2].
+  //So, the nfirst+1 points for inner leg of the last points of gridpointcurve.
+  //the index of the last points are [npoint_tmp-nfirst-1:npoint_tmp-1].
+  //Calculate the fixed point from the last [npoint_tmp-nfirst-1] to the last [npoint_tmp-2].
   //The last point index is [npoint_tmp-1] and no need to change.
 
-  // Calculate the new gridpoint_curve from [npoint_tmp-*nfirst-1:npoint_tmp-2]
-  for(int i=1; i<*nfirst+1; i++)
+  // Calculate the new gridpoint_curve from [npoint_tmp-nfirst-1:npoint_tmp-2]
+  for(int i=1; i<nfirst+1; i++)
   {
     pt_tmp[0]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x;
     pt_tmp[1]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y;
@@ -1247,13 +1255,13 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
     }
   }
 
-  printf("DEBUG %.12f %.12f\n",new_gpc_inner->points[npoint_tmp-*nfirst-1].x,new_gpc_inner->points[npoint_tmp-*nfirst-1].y);
+  printf("DEBUG %.12f %.12f\n",new_gpc_inner->points[npoint_tmp-nfirst-1].x,new_gpc_inner->points[npoint_tmp-nfirst-1].y);
 
   // Create temporary new separatrix line DLList.
   DLListNode* head_in_tmp=copy_DLList(sepdist->edges[idx_tmp]->head);
   if(insert_point_for_DLList(head_in_tmp, 
-                             new_gpc_inner->points[npoint_tmp-*nfirst-1].x,
-                             new_gpc_inner->points[npoint_tmp-*nfirst-1].y))
+                             new_gpc_inner->points[npoint_tmp-nfirst-1].x,
+                             new_gpc_inner->points[npoint_tmp-nfirst-1].y))
   {
     fprintf(stderr,"The point in not on the separatrix line.\n");
     exit(EXIT_FAILURE);
@@ -1261,30 +1269,30 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   write_DLList(head_in_tmp,"DEBUG_SEPLINE_IN");
 
   cut_DLList_from_intersections(head_in_tmp,
-                                new_gpc_inner->points[npoint_tmp-*nfirst-1].x,
-                                new_gpc_inner->points[npoint_tmp-*nfirst-1].y);
+                                new_gpc_inner->points[npoint_tmp-nfirst-1].x,
+                                new_gpc_inner->points[npoint_tmp-nfirst-1].y);
 
   // Create the coresponding normal distribution for the new separatrix line DLList
-  double* normdist_in_tmp=malloc((npoint_tmp-*nfirst)*sizeof(double));
-  double norm_factor = sepdist->edges[idx_tmp]->norm_dist[npoint_tmp-*nfirst-1];
+  double* normdist_in_tmp=malloc((npoint_tmp-nfirst)*sizeof(double));
+  double norm_factor = sepdist->edges[idx_tmp]->norm_dist[npoint_tmp-nfirst-1];
 
   if(fabs(norm_factor) < 1.0E-12) 
   {
     fprintf(stderr,"Normalization factor is too small or zero!\n");
     exit(EXIT_FAILURE);
   }  
-  for(int i=0;i<npoint_tmp-*nfirst;i++)
+  for(int i=0;i<npoint_tmp-nfirst;i++)
   {
     normdist_in_tmp[i]=sepdist->edges[idx_tmp]->norm_dist[i]/norm_factor;
     printf("DEBUG normdist_in_tmp %i %lf\n",i,normdist_in_tmp[i]);
   }
   
-  // Calculate the new gridpoint_curve from [0:npoint_tmp-*nfirst-1]
-  Curve* gpc_in_tmp=create_gridpoint_curve(head_in_tmp, normdist_in_tmp, npoint_tmp-*nfirst);
+  // Calculate the new gridpoint_curve from [0:npoint_tmp-nfirst-1]
+  Curve* gpc_in_tmp=create_gridpoint_curve(head_in_tmp, normdist_in_tmp, npoint_tmp-nfirst);
   write_curve("DEBUG_gpc_in_tmp",gpc_in_tmp);
 
-  //fill out the new_gpc_inner from gpc_in_tmp[0:npoint_tmp-*nfirst-2]
-  for(int i=0; i<npoint_tmp-*nfirst-1; i++)
+  //fill out the new_gpc_inner from gpc_in_tmp[0:npoint_tmp-nfirst-2]
+  for(int i=0; i<npoint_tmp-nfirst-1; i++)
   {
     new_gpc_inner->points[i].x=gpc_in_tmp->points[i].x;
     new_gpc_inner->points[i].y=gpc_in_tmp->points[i].y;
@@ -1333,11 +1341,11 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
                   sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x,
                   sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y);
 
-  //BECAREFUL, *nlast is veiw from inner target to outer target along magnetic filed.
+  //BECAREFUL, nlast is veiw from inner target to outer target along magnetic filed.
   //The direction of gridpointcurve is from X-point to inner/outer target.
-  //So, the *nlast+1 points for outer leg of the last points of gridpointcurve.
-  //the index of the last points are [npoint_tmp-*nlast-1:npoint_tmp-1].
-  //Calculate the fixed point from the last [npoint_tmp-*nlast-1] to the last [npoint_tmp-2].
+  //So, the nlast+1 points for outer leg of the last points of gridpointcurve.
+  //the index of the last points are [npoint_tmp-nlast-1:npoint_tmp-1].
+  //Calculate the fixed point from the last [npoint_tmp-nlast-1] to the last [npoint_tmp-2].
   //The last point index is [npoint_tmp-1] and no need to change.
 
 
@@ -1347,8 +1355,8 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
     func->rescale[i]=-1.0;
   }
 
-  // Calculate the new gridpoint_curve from [npoint_tmp-*nlast1-1:npoint_tmp-2]
-  for(int i=1; i<*nlast+1; i++)
+  // Calculate the new gridpoint_curve from [npoint_tmp-nlast1-1:npoint_tmp-2]
+  for(int i=1; i<nlast+1; i++)
   {
     pt_tmp[0]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x;
     pt_tmp[1]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y;
@@ -1375,28 +1383,28 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   }
 
   printf("DEBUG %.12f %.12f\n",
-          new_gpc_outer->points[npoint_tmp-*nlast-1].x,
-          new_gpc_outer->points[npoint_tmp-*nlast-1].y);
+          new_gpc_outer->points[npoint_tmp-nlast-1].x,
+          new_gpc_outer->points[npoint_tmp-nlast-1].y);
 
   // Create temporary new separatrix line DLList.
   DLListNode* head_out_tmp=copy_DLList(sepdist->edges[idx_tmp]->head);
   if(insert_point_for_DLList(head_out_tmp, 
-                             new_gpc_outer->points[npoint_tmp-*nlast-1].x,
-                             new_gpc_outer->points[npoint_tmp-*nlast-1].y))
+                             new_gpc_outer->points[npoint_tmp-nlast-1].x,
+                             new_gpc_outer->points[npoint_tmp-nlast-1].y))
   {
     fprintf(stderr,"The point in not on the separatrix line.\n");
     exit(EXIT_FAILURE);
   }
 
   cut_DLList_from_intersections(head_out_tmp,
-                               new_gpc_outer->points[npoint_tmp-*nlast-1].x,
-                               new_gpc_outer->points[npoint_tmp-*nlast-1].y);
+                               new_gpc_outer->points[npoint_tmp-nlast-1].x,
+                               new_gpc_outer->points[npoint_tmp-nlast-1].y);
   write_DLList(head_out_tmp,"DEBUG_SEPLINE_OUT");
 
 
   // Create the coresponding normal distribution for the new separatrix line DLList
-  double* normdist_out_tmp=malloc((npoint_tmp-*nlast)*sizeof(double));
-  norm_factor = sepdist->edges[idx_tmp]->norm_dist[npoint_tmp-*nlast-1];
+  double* normdist_out_tmp=malloc((npoint_tmp-nlast)*sizeof(double));
+  norm_factor = sepdist->edges[idx_tmp]->norm_dist[npoint_tmp-nlast-1];
 
   if(fabs(norm_factor) < 1.0E-12) 
   {
@@ -1404,18 +1412,18 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
     exit(EXIT_FAILURE);
   }  
 
-  for(int i=0;i<npoint_tmp-*nlast;i++)
+  for(int i=0;i<npoint_tmp-nlast;i++)
   {
     normdist_out_tmp[i]=sepdist->edges[idx_tmp]->norm_dist[i]/norm_factor;
     printf("DEBUG normdist_out_tmp %i %.12f\n",i,normdist_out_tmp[i]);
   }
 
-  // Calculate the new gridpoint_curve from [0:npoint_tmp-*nfirst-1]
-  Curve* gpc_out_tmp=create_gridpoint_curve(head_out_tmp, normdist_out_tmp, npoint_tmp-*nlast);
+  // Calculate the new gridpoint_curve from [0:npoint_tmp-nfirst-1]
+  Curve* gpc_out_tmp=create_gridpoint_curve(head_out_tmp, normdist_out_tmp, npoint_tmp-nlast);
   write_curve("DEBUG_gpc_out_tmp",gpc_out_tmp);
 
-  //fill out the new_gpc_inner from gpc_in_tmp[0:npoint_tmp-*nfirst-2]
-  for(int i=0; i<npoint_tmp-*nlast-1; i++)
+  //fill out the new_gpc_inner from gpc_in_tmp[0:npoint_tmp-nfirst-2]
+  for(int i=0; i<npoint_tmp-nlast-1; i++)
   {
     new_gpc_outer->points[i].x=gpc_out_tmp->points[i].x;
     new_gpc_outer->points[i].y=gpc_out_tmp->points[i].y;
@@ -1446,5 +1454,17 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   {
     func->rescale[i]=1.0;
   }
+
+}
+
+
+void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
+                                   GridZone* grizone,
+                                   ode_function* func,
+                                   ode_solver* solver,
+                                   double phi0, int nphi, double* phi)
+{
+
+
 
 }

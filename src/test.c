@@ -905,18 +905,16 @@ void ThreeDimMeshGeneration_test()
     phi[i]=phi[i-1]+1;
   }
 
-  int nfirst;
-  int nlast;
   update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(polseginfo, sepdist, &ode_func, &brk45_solver,
-                                                phi[10], 21, phi, &nfirst, &nlast);
+                                                phi[10], 21, phi);
+  write_PolSegmsInfo(polseginfo, "polseginfo_3DGRID");
 
-
-// /***********************************************
-// *   4. Create gridzone
-// ***********************************************/
-//   GridZone* solgz=create_sn_CARRE2D_GridZone(solgzinfo, sepdist);
-//   GridZone* pfrgz=create_sn_CARRE2D_GridZone(pfrgzinfo, sepdist);
-//   GridZone* coregz=create_sn_CARRE2D_GridZone(coregzinfo, sepdist);
+/***********************************************
+*   5. Create gridzone
+***********************************************/
+  GridZone* solgz=create_sn_CARRE2D_GridZone(solgzinfo, sepdist);
+  GridZone* pfrgz=create_sn_CARRE2D_GridZone(pfrgzinfo, sepdist);
+  GridZone* coregz=create_sn_CARRE2D_GridZone(coregzinfo, sepdist);
 
 //   write_curve("sol_gz_c",solgz->first_bnd_curve);
 //   write_curve("sol_gz_gpc",solgz->first_gridpoint_curve);
@@ -928,7 +926,7 @@ void ThreeDimMeshGeneration_test()
   
   
 // /***********************************************
-// *   5. Generater grid for each gridzone
+// *   6. Generater grid for each gridzone
 // ***********************************************/
   
 //   // change the odf function for gradpsi line tracing
@@ -950,9 +948,9 @@ void ThreeDimMeshGeneration_test()
 
   // free_2Dgrid(sol2dgrid);
   
-  // free_GridZone(solgz);
-  // free_GridZone(pfrgz);
-  // free_GridZone(coregz);
+  free_GridZone(solgz);
+  free_GridZone(pfrgz);
+  free_GridZone(coregz);
 
   free_GridZoneInfo(&solgzinfo);
   free_GridZoneInfo(&pfrgzinfo);
