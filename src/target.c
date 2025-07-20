@@ -71,7 +71,7 @@ void split_intersections_target_curve(TargetDLListCurve* tgt_cur,
                                       TargetDLListCurve* new_tgt_cur)
 {
   int status;
-  status=split_intersections_DLList(tgt_cur->head, r, z, &(new_tgt_cur->head));
+  status=split_DLList_at_point(tgt_cur->head, r, z, &(new_tgt_cur->head));
   if(status)
   {
     fprintf(stderr,"Failed to split the DLList in the target curve.\n");
@@ -91,7 +91,7 @@ void cut_target_curve(TargetDLListCurve* tgt_cur, double r, double z)
   }
   
   int status;
-  status = cut_DLList_from_intersections(tgt_cur->head, r ,z);
+  status = cut_DLList_after_point(tgt_cur->head, r ,z);
   
   if(status==0)
   {

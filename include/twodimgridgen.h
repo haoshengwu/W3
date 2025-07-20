@@ -107,8 +107,9 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
 //The main logic is same with generate_CARRE_2Dgrid_default.
 //phi0, nphi and array phi will decided the nfirst and nlast. 
 //the first nfirst+1 and the laast nlast+1 are decided by line tracing and fixed. 
+//!!!We don't check magnetic field direction in this function. (TO DO)
 void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
-                                   GridZone* grizone,
+                                   GridZone* gridzone,
                                    ode_function* func,
                                    ode_solver* solver,
                                    double phi0, int nphi, double* phi);

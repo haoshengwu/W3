@@ -929,7 +929,7 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
   update_GridZoneInfo_start_curve(pfrgzinfo,inner_tgt_curve);
 
   //cut the separatrix which intersect with inner target
-  cut_DLList_from_intersections(sep->line_list[sep->index[0]],itsct_r_inner, itsct_z_inner);
+  cut_DLList_after_point(sep->line_list[sep->index[0]],itsct_r_inner, itsct_z_inner);
 
   double itsct_r_outer, itsct_z_outer;
   //calcute the intersection point between sep and the outer target
@@ -948,7 +948,7 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
   update_GridZoneInfo_end_curve(pfrgzinfo,outer_tgt_curve);
 
   //cut the separatrix
-  cut_DLList_from_intersections(sep->line_list[sep->index[1]],itsct_r_outer, itsct_z_outer);
+  cut_DLList_after_point(sep->line_list[sep->index[1]],itsct_r_outer, itsct_z_outer);
   
   //create the curve which will used to store the SOL radregion
   TargetDLListCurve* sol_tgt_curve=create_target_curve();

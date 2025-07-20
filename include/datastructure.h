@@ -55,10 +55,15 @@ int insert_intersections_DLList(DLListNode* head1, DLListNode* head2, double* r,
 
 // return how many node are delete, cut the NEXT point of (r,z), NOT (r,z) itself
 // -1 means not in the line, 0 means r z is the last
-int cut_DLList_from_intersections(DLListNode* head, double r, double z);
+int cut_DLList_after_point(DLListNode* head, double r, double z);
+
+// Cut all nodes before the specified point (r, z), update head to new position
+// Returns the number of nodes deleted
+// If point not found, returns 0 and head remains unchanged
+int cut_DLList_before_point(DLListNode** head, double r, double z);
 
 // split the DLList from point r,z and create a new node with rz and bound to new_head;
-int split_intersections_DLList(DLListNode* head, double r, double z, DLListNode** new_head);
+int split_DLList_at_point(DLListNode* head, double r, double z, DLListNode** new_head);
 
 //Reverse the DLList
 void reverse_DLList(DLListNode** head);
@@ -69,8 +74,6 @@ double total_length_DLList(DLListNode* head);
 // return 0: sucessfully insert the point
 // else return 1;
 int insert_point_for_DLList(DLListNode* head, double r, double z);
-
-
 
 
 /*
@@ -90,4 +93,10 @@ void write_2d_array(const int d1, const int d2, double** array, const char* file
 double*** allocate_3d_array(const int d1, const int d2, const int d3);
 // free 3D array
 void free_3d_array(double ***array);
+
+// Write 3D array to file
+// dim=1: write in d1-major order (i->j->k)
+// dim=2: write in d2-major order (j->i->k)
+void write_3d_array(const int d1, const int d2, const int d3, double*** array, 
+                    const char* filename, int dim);
 #endif

@@ -127,14 +127,14 @@ void update_sn_SepDistStr_from_GridZoneInfo(SepDistStr* sepdist, GridZoneInfo* g
   insert_intersections_DLList(sepdist->edges[idx]->head,
                               head_inner,
                               &itsct_r_inner, &itsct_z_inner);
-  cut_DLList_from_intersections(sepdist->edges[idx]->head,itsct_r_inner, itsct_z_inner);
+  cut_DLList_after_point(sepdist->edges[idx]->head,itsct_r_inner, itsct_z_inner);
 
   double itsct_r_outer, itsct_z_outer;
   idx = sepdist->index[1];
   insert_intersections_DLList(sepdist->edges[idx]->head,
                               head_outer,
                               &itsct_r_outer, &itsct_z_outer);
-  cut_DLList_from_intersections(sepdist->edges[idx]->head,itsct_r_outer, itsct_z_outer);
+  cut_DLList_after_point(sepdist->edges[idx]->head,itsct_r_outer, itsct_z_outer);
 
   //===== 3. Free
   free_DLList(head_inner);

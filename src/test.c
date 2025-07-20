@@ -343,7 +343,7 @@ void target_curve_test()
     }
   }
   int n_cut;
-  n_cut = cut_DLList_from_intersections(sep->line_list[num_itrsct], itrsct_r,itrsct_z);
+  n_cut = cut_DLList_after_point(sep->line_list[num_itrsct], itrsct_r,itrsct_z);
   printf("Deleted points: %d\n", n_cut);
   char* cut_sep="sep_cut_baseline";
   write_DLList(sep->line_list[num_itrsct], cut_sep);
@@ -605,7 +605,7 @@ void meshgeneration_test()
   Equilibrium dtt_example;
   init_equilibrium(&dtt_example);
   read_equilib_geqdsk(&dtt_example,w3_input.equilibrium_file);
-  // correct_direction_lower_divertor(&dtt_example);
+  correct_direction_lower_divertor(&dtt_example);
   print_equilibrium(&dtt_example);
 
 
@@ -916,6 +916,8 @@ void ThreeDimMeshGeneration_test()
   GridZone* pfrgz=create_sn_CARRE2D_GridZone(pfrgzinfo, sepdist);
   GridZone* coregz=create_sn_CARRE2D_GridZone(coregzinfo, sepdist);
 
+  TwoDimGrid* sol2dgrid=create_2Dgrid_default(solgz->first_gridpoint_curve->n_point, solgz->nr);
+  generate_EMC3_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver, phi[10], 21, phi);
 //   write_curve("sol_gz_c",solgz->first_bnd_curve);
 //   write_curve("sol_gz_gpc",solgz->first_gridpoint_curve);
 //   write_curve("pfr_gz_c",pfrgz->first_bnd_curve);
@@ -946,7 +948,7 @@ void ThreeDimMeshGeneration_test()
 *   6. Free space
 ***********************************************/
 
-  // free_2Dgrid(sol2dgrid);
+  free_2Dgrid(sol2dgrid);
   
   free_GridZone(solgz);
   free_GridZone(pfrgz);

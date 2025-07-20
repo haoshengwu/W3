@@ -412,7 +412,7 @@ int insert_intersections_DLList(DLListNode* head1, DLListNode* head2, double* r_
     return found;
 }
 
-int cut_DLList_from_intersections(DLListNode* head, double r, double z) {
+int cut_DLList_after_point(DLListNode* head, double r, double z) {
     DLListNode* current = head;
     bool found = false;
     // Step 1: Find the node with matching (r, z)
@@ -448,10 +448,52 @@ int cut_DLList_from_intersections(DLListNode* head, double r, double z) {
     return count; // Number of nodes deleted
 }
 
+int cut_DLList_before_point(DLListNode** head, double r, double z) {
+    if (!head || !*head) {
+      fprintf(stderr,"Empty input for cut_DLList_before_point.\n");
+      exit(EXIT_FAILURE);
+    }
+    
+    DLListNode* current = *head;
+    bool found = false;
+    
+    // Step 1: Find the node with matching (r, z)
+    while (current) {
+        if (fabs(current->r - r) < EPS_DATASTR && fabs(current->z - z) < EPS_DATASTR) {
+            found = true;
+            break;
+        }
+        current = current->next;
+    }
+    
+    if (!found) {
+        printf("The point (%.12f, %.12f) is not in the DLList.\n", r, z);
+        return 0;
+    }
+    
+    // Step 2: Delete all nodes before current
+    DLListNode* node_to_delete = *head;
+    int count = 0;
+    
+    // Delete all nodes from head to current (exclusive)
+    while (node_to_delete != current) {
+        DLListNode* next = node_to_delete->next;
+        free(node_to_delete);
+        node_to_delete = next;
+        count++;
+    }
+    
+    // Step 3: Set current as new head
+    current->prev = NULL; // The found node becomes the new head
+    *head = current; // Update head pointer
+    
+    printf("Cut %d points before the specified point in the DLList.\n", count);
+    return count; // Number of nodes deleted
+}
 
 // Split the list at the first (r,z) point — clone (r,z) node as new head
 // 0 means slit
-int split_intersections_DLList(DLListNode* head, double r, double z, DLListNode** new_head) 
+int split_DLList_at_point(DLListNode* head, double r, double z, DLListNode** new_head) 
 {
     DLListNode* curr = head;
     while (curr) {
@@ -718,3 +760,46 @@ void free_3d_array(double ***array)
   free(array);
 }
 
+void write_3d_array(const int d1, const int d2, const int d3, double*** array, 
+                    const char* filename, int dim) 
+{
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        fprintf(stderr, "Error: Cannot open file %s for writing\n", filename);
+        exit(1);
+    }
+    
+    // Write dimension information and write order
+    fprintf(file, "# d1 d2 d3 dim: %d %d %d %d\n", d1, d2, d3, dim);
+    
+    if (dim == 1) {
+        // Write in d1-major order: i->j->k
+        printf("Writing in d1-major order (i->j->k)\n");
+        for (int i = 0; i < d1; i++) {
+            for (int j = 0; j < d2; j++) {
+                for (int k = 0; k < d3; k++) {
+                    fprintf(file, "%.12f ", array[i][j][k]);
+                }
+                fprintf(file, "\n");
+            }
+        }
+    } else if (dim == 2) {
+        // Write in d2-major order: j->i->k
+        printf("Writing in d2-major order (j->i->k)\n");
+        for (int j = 0; j < d2; j++) {
+            for (int i = 0; i < d1; i++) {
+                for (int k = 0; k < d3; k++) {
+                    fprintf(file, "%.12f ", array[i][j][k]);
+                }
+                fprintf(file, "\n");
+            }
+        }
+    } else {
+        fprintf(stderr, "Error: Invalid dim value %d. Only 1 and 2 are supported.\n", dim);
+        fclose(file);
+        exit(1);
+    }
+    
+    fclose(file);
+    printf("Successfully wrote 3D array (%dx%dx%d) to file: %s with dim=%d\n", d1, d2, d3, filename, dim);
+}
