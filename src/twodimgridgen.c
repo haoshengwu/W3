@@ -9,11 +9,11 @@
 #define MAX_NUM_TRACING 40000
 
 #ifndef EPS_TDGG
-#define EPS_TDGG 1.0E-10
+#define EPS_TDGG 1.0E-12
 #endif
 
 #ifndef NRELAX
-#define NRELAX 2000
+#define NRELAX 5000
 #endif
 
 #ifndef RLCEPT
@@ -649,11 +649,8 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
 
     //initialize all points to zero;
     Curve* tmp_gpt_c=create_curve(n_point);
-    for(int i=0;i<n_point;i++)
-    {
-      add_last_point_curve(tmp_gpt_c,0.0,0.0);
-    }
 
+    expand_curve_size_with_NaN(tmp_gpt_c,n_point);
     tmp_length_points[0] = 0.0; 
     double length = total_length_curve(tube->curr_c);
     tmp_length_points[n_point-1] = length;
@@ -661,16 +658,16 @@ void calc_points_from_CARRE(GirdTubeStr *tube)
     double prev_length = tube->len_prev_gpt_c[n_point-1];
     
     // the first and the last point of mesh points are the same with curve
-    int size = tube->curr_c->n_point-1;
+    int idx = tube->curr_c->n_point-1;
     tube->curr_gpt_c->points[0].x=tube->curr_c->points[0].x;
     tube->curr_gpt_c->points[0].y=tube->curr_c->points[0].y;
-    tube->curr_gpt_c->points[n_point-1].x=tube->curr_c->points[size-1].x;
-    tube->curr_gpt_c->points[n_point-1].y=tube->curr_c->points[size-1].y;
+    tube->curr_gpt_c->points[n_point-1].x=tube->curr_c->points[idx].x;
+    tube->curr_gpt_c->points[n_point-1].y=tube->curr_c->points[idx].y;
 
     tmp_gpt_c->points[0].x = tube->curr_c->points[0].x;
     tmp_gpt_c->points[0].y = tube->curr_c->points[0].y;
-    tmp_gpt_c->points[n_point-1].x = tube->curr_c->points[size-1].x;
-    tmp_gpt_c->points[n_point-1].y = tube->curr_c->points[size-1].y;
+    tmp_gpt_c->points[n_point-1].x = tube->curr_c->points[idx].x;
+    tmp_gpt_c->points[n_point-1].y = tube->curr_c->points[idx].y;
 
     //DEBUG
     // write_curve("DEBUG_prev_gpt_c", tube->prev_gpt_c);
@@ -908,15 +905,16 @@ static void check_poloidal_direction(GridZone* gridzone, ode_function* func, ode
 // We also asumme that the tracing line will arrive at the end curve.
 // after use, do not forget to FREE it!!!!!
 // We also asumme there is only ONE intersection on the end curve.
-// THIS IS FOR 2D MAGNETIC FIELD!!!
-static Curve* create_GridTubeCurve_by_tracing(double start_R, double start_Z, Curve* end_curve, 
+// THIS IS EXPECTED FOR 2D MAGNETIC FIELD. 
+static Curve* create_2d_GridTubeCurve_2d_tracing(double start_R, double start_Z, Curve* end_curve, 
                                               ode_function* func,ode_solver* solver)
 {
   if(func->ndim!=2)
   {
-    fprintf(stderr, "Error: Only support 2D dimention\n");
+    fprintf(stderr, "create_2d_GridTubeCurve_2d_tracing used for 2D magnetic field.\n");
     exit(EXIT_FAILURE);
   }
+
   if (end_curve->n_point < 2) 
   {
     fprintf(stderr, "Error: end_curve has too few points.\n");
@@ -936,7 +934,7 @@ static Curve* create_GridTubeCurve_by_tracing(double start_R, double start_Z, Cu
     for(int i=1; i<end_curve->n_point;i++)
     {
       // return 0 means found intersection
-      // new_c->n_point>2 otherwise for the core region the frist element of curve is always
+      // new_c->n_point>2 otherwise for the core region the first element of curve is always
       // has intersection with end curve.
       if(has_intersection(curr_p[0],curr_p[1],next_p[0],next_p[1],
                           end_curve->points[i-1].x, end_curve->points[i-1].y,
@@ -978,6 +976,87 @@ static Curve* create_GridTubeCurve_by_tracing(double start_R, double start_Z, Cu
     }
   }
   // write_curve("DEBUG_tracing_c", new_c);
+
+  return new_c;
+}
+
+// tracing from a grid zone start point and finally arrive to the end curve.
+// Here we assume the tracing direction HAS BEEN CORRECTED.
+// We also asumme that the tracing line will arrive at the end curve.
+// after use, do not forget to FREE it!!!!!
+// We also asumme there is only ONE intersection on the end curve.
+// THIS IS EXPECTED FOR 3D MAGNETIC FIELD. 
+static Curve* create_2d_GridTubeCurve_3d_tracing(double start_R, double start_Z, double start_phi,Curve* end_curve, 
+                                              ode_function* func,ode_solver* solver)
+{
+  if(func->ndim!=3)
+  {
+    fprintf(stderr, "create_2d_GridTubeCurve_2d_tracing used for 2D magnetic field.\n");
+    exit(EXIT_FAILURE);
+  }
+  if (end_curve->n_point < 2) 
+  {
+    fprintf(stderr, "Error: end_curve has too few points.\n");
+    exit(EXIT_FAILURE);
+  }
+  Curve* new_c=create_curve(MAX_NUM_TRACING);
+  add_last_point_curve(new_c, start_R, start_Z);
+  double curr_p[3]={start_R, start_Z, start_phi};
+  double next_p[3];
+  double t=0.00;
+  double step_size=0.1;
+  while(true)
+  {
+    solver->next_step(step_size, &t, curr_p, next_p, solver->solver_data, func);
+    bool intersection=false;
+    bool isclosed=false;
+    for(int i=1; i<end_curve->n_point;i++)
+    {
+      // return 0 means found intersection
+      // new_c->n_point>2 otherwise for the core region the first element of curve is always
+      // has intersection with end curve.
+      if(has_intersection(curr_p[0],curr_p[1],next_p[0],next_p[1],
+                          end_curve->points[i-1].x, end_curve->points[i-1].y,
+                          end_curve->points[i].x, end_curve->points[i].y)==0
+                          && new_c->n_point>2) 
+      {
+        double intsect_x, intsect_y;
+        get_intersection_point(curr_p[0],curr_p[1],next_p[0],next_p[1],
+                               end_curve->points[i-1].x, end_curve->points[i-1].y,
+                               end_curve->points[i].x, end_curve->points[i].y,
+                               &intsect_x, &intsect_y);
+        if(fabs(intsect_x-start_R)<1.0E-8&&fabs(intsect_y-start_Z)<1.0E-8)
+        {
+          add_last_point_curve(new_c,start_R, start_Z);
+        }
+        else
+        {
+          add_last_point_curve(new_c, intsect_x, intsect_y);
+        }
+        intersection=true;
+        break;
+      }
+    }
+    if(intersection||isclosed)
+    {
+      break;
+    }
+    else
+    {
+      add_last_point_curve(new_c, next_p[0], next_p[1]);
+      curr_p[0]=next_p[0];
+      curr_p[1]=next_p[1];
+    }
+    if(new_c->n_point>MAX_NUM_TRACING)
+    {
+      printf("The points of the curve has %zu\n", new_c->n_point);
+      fprintf(stderr,"WARNING: please check the points number in the curve.\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  // write_curve("DEBUG_tracing_c", new_c);
+
+  //Restore dim
   return new_c;
 }
 
@@ -1012,16 +1091,14 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
   // ==== DO NOT FORGET CHECK and CORRECT the poloidal tracing direction
   check_poloidal_direction(gridzone, func, solver);
 
-  Curve* curr_c=create_GridTubeCurve_by_tracing(gridzone->start_point_R[1],
+  Curve* curr_c=create_2d_GridTubeCurve_2d_tracing(gridzone->start_point_R[1],
                                                 gridzone->start_point_Z[1],
                                                 gridzone->end_curve,
                                                 func, solver);
   Curve* curr_gpt_c=create_curve(np);
 
-  for(int i=0;i<np;i++)
-  {
-    add_last_point_curve(curr_gpt_c, 0.0, 0.0);
-  }
+  expand_curve_size_with_NaN(curr_gpt_c,np);
+
   double* len_curr_gpt_c=malloc(np*sizeof(double));
   GirdTubeStr* gridtube=create_GridTube(prev_c, prev_gpt_c, len_prev_gpt_c, 
                                         curr_c, curr_gpt_c, len_curr_gpt_c,
@@ -1049,7 +1126,7 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
 
     memcpy(len_prev_gpt_c,len_curr_gpt_c,np*sizeof(double));
 
-    curr_c=create_GridTubeCurve_by_tracing(gridzone->start_point_R[i],
+    curr_c=create_2d_GridTubeCurve_2d_tracing(gridzone->start_point_R[i],
                                            gridzone->start_point_Z[i],
                                            gridzone->end_curve,
                                            func, solver);
@@ -1096,31 +1173,198 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
   return;
 }
 
-//phi0, nphi and array phi will decided the nfirst and nlast. 
+//phim, nphi and array phi will decided the nfirst and nlast. 
 //nstart indicate the firt nstart+1 number, nend indictae the last nend+1 number, are fixed positions.
-static void calc_nfirst_nlast(double phi0, int nphi, double* phi, int* nfirst_ptr, int* nlast_ptr)
+static void calc_nfirst_nlast(double phim, int nphi, double* phi, int* nfirst_ptr, int* nlast_ptr)
 {
-  int idx_phi0=-1;
+  int idx_phim=-1;
   for(int i=0;i<nphi;i++)
   {
-    if(fabs(phi[i]-phi0)<1.0E-12)
+    if(fabs(phi[i]-phim)<EPS_TDGG)
     {
-      idx_phi0=i;
+      idx_phim=i;
       break;
     }
   }
-  if(idx_phi0==-1)
+  if(idx_phim==-1)
   {
-    fprintf(stderr,"phi0 %lf is not in the phi range\n",phi0);
+    fprintf(stderr,"phim %lf is not in the phi range\n",phim);
     exit(EXIT_FAILURE);
   }
-  *nfirst_ptr = nphi - 1 - idx_phi0;
-  *nlast_ptr = idx_phi0;
+  *nfirst_ptr = nphi - 1 - idx_phim;
+  *nlast_ptr = idx_phim;
 }
+
+static void restore_3D_mag_direction(ode_function* func)
+{
+  if(func->ndim!=3)
+  {
+    fprintf(stderr,"restore_3D_mag_direction for 3D magnetic.\n");
+    exit(EXIT_FAILURE);
+  }
+  for(int i=0;i<3;i++)
+  {
+    func->rescale[i]=1.0;
+  }
+}
+
+static void reverse_3D_mag_direction(ode_function* func)
+{
+  if(func->ndim!=3)
+  {
+    fprintf(stderr,"reverse_3D_mag_direction for 3D magnetic.\n");
+    exit(EXIT_FAILURE);
+  }
+  for(int i=0;i<3;i++)
+  {
+    func->rescale[i]=-1.0;
+  }
+}
+// Fast but dangerous 3D line tracing.
+// Start from pt, then transport along magnetic field line,
+// until the pt[2] equals phi_tgt. Then store the value in pt_tgt.
+// This function is very dangerous, the user should ensure the magnetic field is ok.
+// 0 means arrive to the phi_tgt, 1 means failure.
+// len_rz is used to record the total lengh in the RZ plane.
+static int fast_3D_line_tracing(double* pt, double* pt_tgt, double phi_tgt, double* len_RZ,
+                              ode_function* func, ode_solver* solver)
+{
+  *len_RZ=0.0;
+  if(func->ndim!=3)
+  {
+    fprintf(stderr,"fast_3D_line_tracing only used for 3D magnetic field.\n");
+    exit(EXIT_FAILURE);
+  }
+  int n=0;
+  double pt_tmp[3];
+  // Copy initial point
+  for(int i=0;i<3;i++)
+  {
+    pt_tmp[i]=pt[i];
+  }
+  double next_pt_tmp[3];
+  double t_tmp=0.0;
+  
+  while(true)
+  {
+    // Take one integration step
+    solver->next_step(solver->step_size, &t_tmp, pt_tmp, next_pt_tmp, 
+                      solver->solver_data, func);
+    t_tmp=t_tmp + solver->step_size;
+    n=n+1;
+    *len_RZ=hypot(next_pt_tmp[0]-pt_tmp[0],next_pt_tmp[1]-pt_tmp[1])+*len_RZ;
+    // Check if we reached the target phi value
+    if(fabs(next_pt_tmp[2]-phi_tgt)<EPS_TDGG)
+    {
+      // #ifdef DEBUG
+      //   printf("======================================================\n");
+      //   printf("DEBUG Target          Phi: %.12f\n",phi_tgt);
+      //   printf("DEBUG Start point R Z Phi: %.12f %.12f %.12f\n",pt[0], pt[1], pt[2]);
+      //   printf("DEBUG End   point R Z Phi: %.12f %.12f %.12f\n",next_pt_tmp[0], next_pt_tmp[1], next_pt_tmp[2]);
+      //   printf("======================================================\n");
+      // #endif
+      // Copy result to output array
+      for(int i=0;i<3;i++)
+      {
+        pt_tgt[i]=next_pt_tmp[i];
+      }
+      return 0; // Success
+    }
+
+    // Update starting point for next iteration
+    for(int j=0;j<3;j++)
+    {
+      pt_tmp[j]=next_pt_tmp[j];
+    }
+
+    // printf("DEBUG %12.f\n",pt_tmp[2]);
+
+    // Check if we exceeded maximum number of steps
+    if(n>MAX_NUM_TRACING)
+    {
+      fprintf(stderr,"Reached the tracing limitation %i\n",n);
+      fprintf(stderr,"Please check all inputs for fast_3D_line_tracing\n");
+      return 1; // Failure
+    }
+  }
+}
+
+// Fast but dangerous 2D line tracing.
+// Start from pt, then transport along magnetic field line,
+// until intersect with the Curve end_curve. 
+// The intersection point is stored in intersct_pt
+// This function is very dangerous, the user should ensure the magnetic field is ok.
+// 0 means found the intersection, 1 means failure.
+static int fast_3D_line_tracing_intersection(double* pt, Curve* end_curve, double* intersct_pt,
+                                          ode_function* func, ode_solver* solver)
+{
+  int n=0;
+  double curr_p[3];
+  // Copy initial point
+  for(int i=0;i<3;i++)
+  {
+    curr_p[i]=pt[i];
+  }
+  double next_p[3];
+  double t_tmp=0.0;
+
+  while (true)
+  {
+    solver->next_step(solver->step_size, &t_tmp, curr_p, next_p, solver->solver_data, func);
+    n++;
+    bool intersection=false;
+    int np=end_curve->n_point;
+    for(int i=1; i<np;i++)
+    {
+      // return 0 means found intersection
+      if(has_intersection(curr_p[0],curr_p[1],next_p[0],next_p[1],
+                          end_curve->points[i-1].x, end_curve->points[i-1].y,
+                          end_curve->points[i].x, end_curve->points[i].y)==0) 
+      {
+        get_intersection_point(curr_p[0],curr_p[1],next_p[0],next_p[1],
+                               end_curve->points[i-1].x, end_curve->points[i-1].y,
+                               end_curve->points[i].x, end_curve->points[i].y,
+                               &intersct_pt[0], &intersct_pt[1]);
+        // Calculate interpolation ratio - position of intersection on curr_p to next_p line segment
+        double dx = next_p[0] - curr_p[0];
+        double dy = next_p[1] - curr_p[1];
+        double line_length = sqrt(dx*dx + dy*dy);
+    
+        if(line_length > 1e-12) {  // Avoid division by zero
+          double dx_to_intersect = intersct_pt[0] - curr_p[0];
+          double dy_to_intersect = intersct_pt[1] - curr_p[1];
+          double intersect_length = sqrt(dx_to_intersect*dx_to_intersect + dy_to_intersect*dy_to_intersect);
+          double t_ratio = intersect_length / line_length;
+          // Linear interpolation to calculate phi coordinate
+          intersct_pt[2] = curr_p[2] + t_ratio * (next_p[2] - curr_p[2]);
+        } else {
+          intersct_pt[2] = curr_p[2];  // If step size is very small, use current point's Z coordinate
+        }
+        intersection=true;
+        break;
+      }
+    }
+    if(intersection)
+    {
+      return 0;
+    }
+
+    if(n>MAX_NUM_TRACING)
+    {
+      fprintf(stderr,"Unexpected: Reached the tracing limitation in fast_3D_line_tracing_intersection.\n");
+      return 1;
+    }
+    for(int i=0;i<3;i++) 
+    {
+      curr_p[i] = next_p[i];
+    }
+  }
+}
+
 
 void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDistStr* sepdist,
                                                    ode_function* func,ode_solver* solver,
-                                                   double phi0, int nphi, double* phi)
+                                                   double phim, int nphi, double* phi)
 
 {
   if(!polseg||!sepdist)
@@ -1135,9 +1379,9 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   }
   int nfirst;
   int nlast;
-  calc_nfirst_nlast(phi0, nphi, phi, &nfirst, &nlast);
-  //!idx_phi0 is the index, nlast is the i-th
-  int idx_phi0=nlast;
+  calc_nfirst_nlast(phim, nphi, phi, &nfirst, &nlast);
+  //!idx_phim is the index, nlast is the i-th
+  int idx_phim=nlast;
 
 
   if(polseg->polsegments[0]->n_points<=nlast  //outer leg
@@ -1211,7 +1455,7 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   printf("BT and Ip directions are consitent with direction definition.\n");
 
 /***********************************************
-*  Correct the inner leg (sep line[index[0]])  *
+*  Correct the inner leg ((sepdist->edges[index[0]])  *
 ************************************************/
 
   int idx_tmp=sepdist->index[0];
@@ -1235,11 +1479,6 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
                   sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x,
                   sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y);
   
-  //tempertory point, next_point by tracing, index.
-  double pt_tmp[3];
-  double next_pt_tmp[3];
-  
-  
   //BECAREFUL, nfirst is veiw from inner target to outer target along magnetic filed.
   //The direction of gridpointcurve is from X-point to inner/outer target.
   //So, the nfirst+1 points for inner leg of the last points of gridpointcurve.
@@ -1247,31 +1486,20 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   //Calculate the fixed point from the last [npoint_tmp-nfirst-1] to the last [npoint_tmp-2].
   //The last point index is [npoint_tmp-1] and no need to change.
 
+
   // Calculate the new gridpoint_curve from [npoint_tmp-nfirst-1:npoint_tmp-2]
+  restore_3D_mag_direction(func);
   for(int i=1; i<nfirst+1; i++)
   {
-    pt_tmp[0]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x;
-    pt_tmp[1]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y;
-    pt_tmp[2]=phi[idx_phi0+i];
-    printf("DEBUG Phi is %.12f\n",pt_tmp[2]);
-    t_tmp=0.0;
-    while(true)
-    {
-      solver->next_step(solver->step_size, &t_tmp, pt_tmp, next_pt_tmp, solver->solver_data, func);
-      t_tmp=t_tmp + solver->step_size;
-      if(fabs(next_pt_tmp[2]-phi0)<1.0E-12)
-      {
-        set_point_curve(new_gpc_inner,npoint_tmp-1-i, 
-                        next_pt_tmp[0],next_pt_tmp[1]);
-        printf("DEBUG Found the point R Z Phi: %.12f %.12f %.12f\n",next_pt_tmp[0], next_pt_tmp[1], next_pt_tmp[2]);
-        break;
-      }
-      // copyt next_pt_tmp to pt_tmp for next step.
-      for(int j=0;j<3;j++)
-      {
-        pt_tmp[j]=next_pt_tmp[j];
-      }
-    }
+    double pt[3];
+    double pt_tgt[3];
+    pt[0]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x;
+    pt[1]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y;
+    pt[2]=phi[idx_phim+i];
+    printf("DEBUG Phi is %.12f\n",pt[2]);
+    double len_RZ;
+    fast_3D_line_tracing(pt,pt_tgt, phim,&len_RZ, func, solver);
+    set_point_curve(new_gpc_inner,npoint_tmp-1-i, pt_tgt[0],pt_tgt[1]);
   }
 
   printf("DEBUG %.12f %.12f\n",new_gpc_inner->points[npoint_tmp-nfirst-1].x,new_gpc_inner->points[npoint_tmp-nfirst-1].y);
@@ -1295,7 +1523,7 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   double* normdist_in_tmp=malloc((npoint_tmp-nfirst)*sizeof(double));
   double norm_factor = sepdist->edges[idx_tmp]->norm_dist[npoint_tmp-nfirst-1];
 
-  if(fabs(norm_factor) < 1.0E-12) 
+  if(fabs(norm_factor) < EPS_TDGG) 
   {
     fprintf(stderr,"Normalization factor is too small or zero!\n");
     exit(EXIT_FAILURE);
@@ -1326,6 +1554,8 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
     polseg->polsegments[1]->norm_dist[i]=sepdist->edges[idx_tmp]->norm_dist[i];
     printf("DEBUG new norm dist %i %.12f\n",i, sepdist->edges[idx_tmp]->norm_dist[i]);
   }
+  polseg->polsegments[1]->norm_dist[0]=0.0;
+  polseg->polsegments[1]->norm_dist[npoint_tmp-1]=1.0;
 
   //Replace the old curve by the new curve.
   free_curve(sepdist->edges[idx_tmp]->gridpoint_curve);
@@ -1336,10 +1566,9 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   free_DLList(head_in_tmp);
   free(normdist_in_tmp);
 
-
-/***********************************************
-*  Correct the outer leg (sep line[index[1]])  *
-************************************************/
+/*****************************************************
+*  Correct the outer leg (sepdist->edges[index[1]])   *
+*****************************************************/
   idx_tmp=sepdist->index[1];
 
   if(sepdist->edges[idx_tmp]->gridpoint_curve->n_point!=sepdist->edges[idx_tmp]->n_size)
@@ -1369,37 +1598,21 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
 
 
   //For outer leg, the tracing direction is along the reversed magnetic field line.
-  for(int i=0; i<3; i++)
-  {
-    func->rescale[i]=-1.0;
-  }
-
+  reverse_3D_mag_direction(func);
   // Calculate the new gridpoint_curve from [npoint_tmp-nlast1-1:npoint_tmp-2]
   for(int i=1; i<nlast+1; i++)
   {
-    pt_tmp[0]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x;
-    pt_tmp[1]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y;
-    pt_tmp[2]=phi[idx_phi0-i];
-    printf("DEBUG Phi is %.12f\n",pt_tmp[2]);
-    t_tmp=0.0;
-    while(true)
-    {
-      solver->next_step(solver->step_size, &t_tmp, pt_tmp, next_pt_tmp, solver->solver_data, func);
-      t_tmp=t_tmp + solver->step_size;
-      if(fabs(next_pt_tmp[2]-phi0)<1.0E-12)
-      {
-        set_point_curve(new_gpc_outer,npoint_tmp-1-i, 
-                        next_pt_tmp[0],next_pt_tmp[1]);
-        printf("DEBUG Found the point R Z Phi: %.12f %.12f %.12f\n",next_pt_tmp[0], next_pt_tmp[1], next_pt_tmp[2]);
-        break;
-      }
-      // copyt next_pt_tmp to pt_tmp for next step.
-      for(int j=0;j<3;j++)
-      {
-        pt_tmp[j]=next_pt_tmp[j];
-      }
-    }
+    double pt[3];
+    double pt_tgt[3];
+    pt[0]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].x;
+    pt[1]=sepdist->edges[idx_tmp]->gridpoint_curve->points[npoint_tmp-1].y;
+    pt[2]=phi[idx_phim-i];
+    printf("DEBUG Phi is %.12f\n",pt[2]);
+    double len_RZ;
+    fast_3D_line_tracing(pt,pt_tgt, phim,&len_RZ, func, solver);
+    set_point_curve(new_gpc_outer,npoint_tmp-1-i, pt_tgt[0],pt_tgt[1]);
   }
+  restore_3D_mag_direction(func);
 
   printf("DEBUG %.12f %.12f\n",
           new_gpc_outer->points[npoint_tmp-nlast-1].x,
@@ -1425,7 +1638,7 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   double* normdist_out_tmp=malloc((npoint_tmp-nlast)*sizeof(double));
   norm_factor = sepdist->edges[idx_tmp]->norm_dist[npoint_tmp-nlast-1];
 
-  if(fabs(norm_factor) < 1.0E-12) 
+  if(fabs(norm_factor) < EPS_TDGG) 
   {
     fprintf(stderr,"Normalization factor is too small or zero!\n");
     exit(EXIT_FAILURE);
@@ -1441,7 +1654,7 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   Curve* gpc_out_tmp=create_gridpoint_curve(head_out_tmp, normdist_out_tmp, npoint_tmp-nlast);
   write_curve("DEBUG_gpc_out_tmp",gpc_out_tmp);
 
-  //fill out the new_gpc_inner from gpc_in_tmp[0:npoint_tmp-nfirst-2]
+  //fill out the new_gpc_outer from gpc_out_tmp[0:npoint_tmp-nfirst-2]
   for(int i=0; i<npoint_tmp-nlast-1; i++)
   {
     new_gpc_outer->points[i].x=gpc_out_tmp->points[i].x;
@@ -1453,10 +1666,12 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   for(int i=0; i<npoint_tmp;i++)
   {
     sepdist->edges[idx_tmp]->norm_dist[i]=length_curve(new_gpc_outer,i+1)/tot_len_tmp;
-    //the 2nd polseg is coresponding to the inner leg!!! 
+    //the 1st polseg is coresponding to the inner leg!!! 
     polseg->polsegments[0]->norm_dist[i]=sepdist->edges[idx_tmp]->norm_dist[i];
     printf("DEBUG new norm dist %i %.12f\n",i, sepdist->edges[idx_tmp]->norm_dist[i]);
   }
+  polseg->polsegments[0]->norm_dist[0]=0.0;
+  polseg->polsegments[0]->norm_dist[npoint_tmp-1]=1.0;
 
   //Replace the old curve by the new curve.
   free_curve(sepdist->edges[idx_tmp]->gridpoint_curve);
@@ -1467,154 +1682,6 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   free_DLList(head_out_tmp);
   free(normdist_out_tmp);
 
-
-  //restore the tracing direction.
-  for(int i=0; i<3; i++)
-  {
-    func->rescale[i]=1.0;
-  }
-
-}
-
-// Fast but dangerous 3D line tracing.
-// Start from pt, then transport along magnetic field line,
-// until the pt[2] equals phi_tgt. Then store the value in next_pt.
-// This function is very dangerous, the user should ensure the magnetic field is ok.
-// 0 means arrive to the phi_tgt, 1 means failure.
-// len_rz is used to record the total lengh in the RZ plane.
-static int fast_line_tracing(double* pt, double* next_pt, double phi_tgt, double* len_RZ,
-                              ode_function* func, ode_solver* solver)
-{
-  *len_RZ=0.0;
-  if(func->ndim!=3)
-  {
-    fprintf(stderr,"fast_line_tracing only used for 3D magnetic field.\n");
-    exit(EXIT_FAILURE);
-  }
-  int n=0;
-  double pt_tmp[3];
-  // Copy initial point
-  for(int i=0;i<3;i++)
-  {
-    pt_tmp[i]=pt[i];
-  }
-  double next_pt_tmp[3];
-  double t_tmp=0.0;
-  
-  while(true)
-  {
-    // Take one integration step
-    solver->next_step(solver->step_size, &t_tmp, pt_tmp, next_pt_tmp, 
-                      solver->solver_data, func);
-    t_tmp=t_tmp + solver->step_size;
-    n=n+1;
-    *len_RZ=hypot(next_pt_tmp[0]-pt_tmp[0],next_pt_tmp[1]-pt_tmp[1])+*len_RZ;
-    // Check if we reached the target phi value
-    if(fabs(next_pt_tmp[2]-phi_tgt)<1.0E-12)
-    {
-      // #ifdef DEBUG
-      //   printf("======================================================\n");
-      //   printf("DEBUG Target          Phi: %.12f\n",phi_tgt);
-      //   printf("DEBUG Start point R Z Phi: %.12f %.12f %.12f\n",pt[0], pt[1], pt[2]);
-      //   printf("DEBUG End   point R Z Phi: %.12f %.12f %.12f\n",next_pt_tmp[0], next_pt_tmp[1], next_pt_tmp[2]);
-      //   printf("======================================================\n");
-      // #endif
-      // Copy result to output array
-      for(int i=0;i<3;i++)
-      {
-        next_pt[i]=next_pt_tmp[i];
-      }
-      return 0; // Success
-    }
-
-    // Update starting point for next iteration
-    for(int j=0;j<3;j++)
-    {
-      pt_tmp[j]=next_pt_tmp[j];
-    }
-
-    // printf("DEBUG %12.f\n",pt_tmp[2]);
-
-    // Check if we exceeded maximum number of steps
-    if(n>MAX_NUM_TRACING)
-    {
-      fprintf(stderr,"Reached the tracing limitation %i\n",n);
-      fprintf(stderr,"Please check all inputs for fast_line_tracing\n");
-      return 1; // Failure
-    }
-  }
-}
-
-// Fast but dangerous 2D line tracing.
-// Start from pt, then transport along magnetic field line,
-// until intersect with the Curve end_curve. 
-// The intersection point is stored in intersct_pt
-// This function is very dangerous, the user should ensure the magnetic field is ok.
-// 0 means found the intersection, 1 means failure.
-static int fast_line_tracing_intersection(double* pt, Curve* end_curve, double* intersct_pt,
-                                          ode_function* func, ode_solver* solver)
-{
-  int n=0;
-  double curr_p[3];
-  // Copy initial point
-  for(int i=0;i<3;i++)
-  {
-    curr_p[i]=pt[i];
-  }
-  double next_p[3];
-  double t_tmp=0.0;
-
-  while (true)
-  {
-    solver->next_step(solver->step_size, &t_tmp, curr_p, next_p, solver->solver_data, func);
-    n++;
-    bool intersection=false;
-    int np=end_curve->n_point;
-    for(int i=1; i<np;i++)
-    {
-      // return 0 means found intersection
-      if(has_intersection(curr_p[0],curr_p[1],next_p[0],next_p[1],
-                          end_curve->points[i-1].x, end_curve->points[i-1].y,
-                          end_curve->points[i].x, end_curve->points[i].y)==0) 
-      {
-        get_intersection_point(curr_p[0],curr_p[1],next_p[0],next_p[1],
-                               end_curve->points[i-1].x, end_curve->points[i-1].y,
-                               end_curve->points[i].x, end_curve->points[i].y,
-                               &intersct_pt[0], &intersct_pt[1]);
-        // Calculate interpolation ratio - position of intersection on curr_p to next_p line segment
-        double dx = next_p[0] - curr_p[0];
-        double dy = next_p[1] - curr_p[1];
-        double line_length = sqrt(dx*dx + dy*dy);
-    
-        if(line_length > 1e-12) {  // Avoid division by zero
-          double dx_to_intersect = intersct_pt[0] - curr_p[0];
-          double dy_to_intersect = intersct_pt[1] - curr_p[1];
-          double intersect_length = sqrt(dx_to_intersect*dx_to_intersect + dy_to_intersect*dy_to_intersect);
-          double t_ratio = intersect_length / line_length;
-          // Linear interpolation to calculate phi coordinate
-          intersct_pt[2] = curr_p[2] + t_ratio * (next_p[2] - curr_p[2]);
-        } else {
-          intersct_pt[2] = curr_p[2];  // If step size is very small, use current point's Z coordinate
-        }
-        intersection=true;
-        break;
-      }
-    }
-    if(intersection)
-    {
-      return 0;
-    }
-
-    if(n>MAX_NUM_TRACING)
-    {
-      fprintf(stderr,"Unexpected: Reached the tracing limitation in fast_line_tracing_intersection.\n");
-      return 1;
-    }
-    for(int i=0;i<3;i++) 
-    {
-      curr_p[i] = next_p[i];
-    }
-  }
 }
 
 
@@ -1622,7 +1689,7 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
                                    GridZone* gridzone,
                                    ode_function* func,
                                    ode_solver* solver,
-                                   double phi0, int nphi, double* phi)
+                                   double phim, int nphi, double* phi)
 {
 /*****************************************************
 *  Check input variables
@@ -1632,17 +1699,19 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
     fprintf(stderr,"The inputs about phi are wrong.\n");
     exit(EXIT_FAILURE);
   }
-  int nfirst, nlast;
+  int nfirst, nlast, idx_phim;
   // For core gridzone
   if(strncmp(gridzone->name,"CORE",4)==0)
   {
     nfirst=0;
     nlast=0;
+    idx_phim=0;
   }
   // For SOL and PFR gridzone
   else
   {
-    calc_nfirst_nlast(phi0, nphi, phi, &nfirst, &nlast);
+    calc_nfirst_nlast(phim, nphi, phi, &nfirst, &nlast);
+    idx_phim=nlast;
     #ifdef DEBUG
       printf("nfirst %i, nlast %i\n",nfirst,nlast);
     #endif
@@ -1655,7 +1724,7 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
 
 /**************************************************************************
 * New first boundary curve and new first gridpoint curve
-* This is because the first nfrist+1 and the (nlast+1) to the last
+* This is because the first nfirst+1 and the (nlast+1) to the last
 ***************************************************************************/
 
   int np=gridzone->first_gridpoint_curve->n_point-nfirst-nlast; //poloidal number along a magnetic field line.
@@ -1723,7 +1792,7 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
 
 /**************************************************************************
 * New senond boundary curve and new second gridpoint curve
-* This is because the first nfrist+1 and the last 
+* This is because the first nfirst+1 and the last 
 ***************************************************************************/
 //TODO
   if(gridzone->sec_bnd)
@@ -1735,7 +1804,7 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
 
 /**************************************************************************
 * New start_point_R, start_point_Z, guard_start,
-* This is because the first (nfrist+1) points 
+* This is because the first (nfirst+1) points 
 ***************************************************************************/
   int nr =gridzone->nr;
   double* new_start_point_R=malloc(nr*sizeof(double));
@@ -1759,8 +1828,7 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
     double next_pt_tmp[3];
     double R_tmp = gridzone->start_point_R[i];
     double Z_tmp = gridzone->start_point_Z[i];
-    int idx_phi0=nlast;
-    double phi_tgt = phi[idx_phi0];
+    double phi_tgt = phi[idx_phim];
     double len_RZ_tmp=0.0;
     for(int j=0;j<nfirst+1;j++)
     {
@@ -1773,9 +1841,9 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
       {
         pt_tmp[0]=R_tmp;
         pt_tmp[1]=Z_tmp;
-        pt_tmp[2]=phi[idx_phi0+j];
+        pt_tmp[2]=phi[idx_phim+j];
 
-        if(fast_line_tracing(pt_tmp, next_pt_tmp, phi_tgt, &len_RZ_tmp, func, solver))
+        if(fast_3D_line_tracing(pt_tmp, next_pt_tmp, phi_tgt, &len_RZ_tmp, func, solver))
         {
           fprintf(stderr,"UNEXPECTED ERROR: Cannot Found the point in nr %i np %i\n", i, j);
           exit(EXIT_FAILURE);
@@ -1802,10 +1870,10 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
     }
   }
   //consistency check.
-  for(int i=0;i<nfirst;i++)
+  for(int i=0;i<nfirst+1;i++)
   {
-    if(fabs(first_gridpoint[i][0][0]- gridzone->first_gridpoint_curve->points[i].x)>1.0E-12||
-       fabs(first_gridpoint[i][0][1]- gridzone->first_gridpoint_curve->points[i].y)>1.0E-12)
+    if(fabs(first_gridpoint[i][0][0]- gridzone->first_gridpoint_curve->points[i].x)>EPS_TDGG||
+       fabs(first_gridpoint[i][0][1]- gridzone->first_gridpoint_curve->points[i].y)>EPS_TDGG)
     {
       fprintf(stderr,"UNEXPECTED ERROR: first gridpoint not consistent with gridpoint_curve\n");
       exit(EXIT_FAILURE);
@@ -1820,7 +1888,7 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
   }
 
   char name_tmp[32];
-  sprintf(name_tmp,"%s_FRIST",gridzone->name);
+  sprintf(name_tmp,"%s_FIRST",gridzone->name);
   write_3d_array(nfirst+1,nr,2,first_gridpoint,name_tmp,2);
 
 /**************************************************************************
@@ -1846,13 +1914,12 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
   for(int i=1;i<nr;i++)
   {
     double pt_tmp[3];
-    int idx_phi0=nlast;
-    double phi_tgt = phi[idx_phi0];
+    double phi_tgt = phi[idx_phim];
     pt_tmp[0]=new_start_point_R[i];
     pt_tmp[1]=new_start_point_Z[i];
-    pt_tmp[2]=phi[idx_phi0];
+    pt_tmp[2]=phi[idx_phim];
     double intersct_pt[3];
-    if(fast_line_tracing_intersection(pt_tmp, gridzone->end_curve, intersct_pt, func, solver))
+    if(fast_3D_line_tracing_intersection(pt_tmp, gridzone->end_curve, intersct_pt, func, solver))
     {
       fprintf(stderr,"UNEXPECTED ERROR: Cannot Found the intersecton.\n");
       exit(EXIT_FAILURE);
@@ -1861,18 +1928,13 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
     last_gridpoint[nlast][i][1]=intersct_pt[1];
   }
 
-  //reverse the magnetic field
-  for(int i=0;i<3;i++)
-  {
-    func->rescale[i]=-1.0;
-  }
-
+  //reversed magnetic field
+  reverse_3D_mag_direction(func);
   for(int i=0;i<nr;i++)
   {
     double pt_tmp[3];
     double next_pt_tmp[3];
-    int idx_phi0=nlast;
-    double phi_tgt = phi[idx_phi0];
+    double phi_tgt = phi[idx_phim];
     double len_RZ_tmp=0.0;
 
     for(int j=0;j<nlast;j++)
@@ -1884,7 +1946,7 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
       //   printf("pt_tmp R Z Phi: %.12f %.12f %.12f\n",pt_tmp[0],pt_tmp[1],pt_tmp[2]);
       //   printf("phi_tgt: %.12f\n",phi_tgt);
       // #endif
-      if(fast_line_tracing(pt_tmp, next_pt_tmp, phi_tgt, &len_RZ_tmp, func, solver))
+      if(fast_3D_line_tracing(pt_tmp, next_pt_tmp, phi_tgt, &len_RZ_tmp, func, solver))
       {
         fprintf(stderr,"UNEXPECTED ERROR: Cannot Found the point in nr %i np %i\n", i, j);
         exit(EXIT_FAILURE);
@@ -1908,29 +1970,131 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
       }
     }
   }
+
+  //restore the magnetic field
+  restore_3D_mag_direction(func);
+
+  // //consistency check. 
+  tmp=gridzone->first_gridpoint_curve->n_point-1-nlast;
+  sprintf(name_tmp,"%s_FIRST_GPC",gridzone->name);
+  write_curve(name_tmp,gridzone->first_gridpoint_curve);
+  for(int i=0;i<nlast+1;i++)
+  {
+    if(fabs(last_gridpoint[i][0][0]- gridzone->first_gridpoint_curve->points[tmp+i].x)>EPS_TDGG||
+       fabs(last_gridpoint[i][0][1]- gridzone->first_gridpoint_curve->points[tmp+i].y)>EPS_TDGG)
+    {
+      fprintf(stderr,"UNEXPECTED ERROR: last gridpoint not consistent with gridpoint_curve\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  
   //Update new_end_curve
   for(int i=0;i<n_new_endcurve;i++)
   {
     add_last_point_curve(new_end_curve, 
-                        last_gridpoint[nlast][i][0],
-                        last_gridpoint[nlast][i][1]);
+                        last_gridpoint[0][i][0],
+                        last_gridpoint[0][i][1]);
   }
+
+  sprintf(name_tmp,"%s_new_end_curve",gridzone->name);
+  write_curve(name_tmp, new_end_curve);
 
   sprintf(name_tmp,"%s_LAST",gridzone->name);
   write_3d_array(nlast+1,nr,2,last_gridpoint,name_tmp,2);
 
-  //restore the magnetic field
-  for(int i=0;i<3;i++)
-  {
-    func->rescale[i]=1.0;
-  }
 
 /**************************************************************************
-* Firtst GridTube
+* Firtst GridTube 
 ***************************************************************************/
+// Similar to generate_CARRE_2Dgrid_default function
 
+  Curve* prev_c=new_first_bnd_curve;
+  Curve* prev_gpt_c=new_first_gridpoint_curve;
+  double* len_prev_gpt_c=malloc(np*sizeof(double));
+  len_prev_gpt_c[0]=0.0;
+  len_prev_gpt_c[np-1]=total_length_curve(prev_c);
 
+  double d1=0.0;
 
+  for(int i=1;i<np-1;i++)
+  {
+    d1 = ruban_curve(prev_c, &(prev_gpt_c->points[i]), d1);
+    len_prev_gpt_c[i]=d1;
+  }
+  double new_start_point_phi=phi[nlast];
+  Curve* curr_c=create_2d_GridTubeCurve_3d_tracing(new_start_point_R[1],
+                                                   new_start_point_Z[1],
+                                                   new_start_point_phi,
+                                                   new_end_curve,
+                                                   func, solver);
+  sprintf(name_tmp,"%s_curr_c",gridzone->name);
+  write_curve(name_tmp,curr_c); 
+
+  Curve* curr_gpt_c=create_curve(np);
+  expand_curve_size_with_NaN(curr_gpt_c,np);
+  
+  double* len_curr_gpt_c=malloc(np*sizeof(double));
+  GirdTubeStr* gridtube=create_GridTube(prev_c, prev_gpt_c, len_prev_gpt_c, 
+                                        curr_c, curr_gpt_c, len_curr_gpt_c,
+                                        new_guard_start[0],
+                                        new_guard_end[0],
+                                        gridzone->pasmin[0]);
+
+  /*****************************************************
+  * CORE ALGORITHM: Calculate the poloidal distribution.
+  *****************************************************/
+  calc_points_from_CARRE(gridtube);
+
+  sprintf(name_tmp,"%s_2DBASE_1",gridzone->name);
+  write_curve(name_tmp,curr_gpt_c);
+
+  for(int i=2;i<gridzone->nr; i++)
+  {
+  //Becareful!!!, Just change the adress and not copy the content.
+    prev_c=curr_c;
+    prev_gpt_c = curr_gpt_c;
+
+    memcpy(len_prev_gpt_c,len_curr_gpt_c,np*sizeof(double));
+
+    curr_c=create_2d_GridTubeCurve_3d_tracing(new_start_point_R[i],
+                                              new_start_point_Z[i],
+                                              new_start_point_phi,
+                                              new_end_curve,
+                                              func, solver);
+    curr_gpt_c=create_curve(np);
+    for(int j=0;j<np;j++)
+    {
+      add_last_point_curve(curr_gpt_c, 0.0, 0.0);
+    }
+
+    gridtube->prev_c=prev_c;
+    gridtube->prev_gpt_c=prev_gpt_c;
+    gridtube->len_prev_gpt_c=len_prev_gpt_c;
+    gridtube->curr_c=curr_c;
+    gridtube->curr_gpt_c=curr_gpt_c;
+    gridtube->len_curr_gpt_c=len_curr_gpt_c;
+    gridtube->guard_top=new_guard_start[i];
+    gridtube->guard_end=new_guard_end[i];
+    gridtube->pasmin = gridzone->pasmin[i];
+
+  /*****************************************************
+  * CORE ALGORITHM: Calculate the poloidal distribution.
+  *****************************************************/
+    calc_points_from_CARRE(gridtube);
+  
+  #ifdef DEBUG
+    sprintf(name_tmp,"%s_2DBASE_%d",gridzone->name, i);
+    write_curve(name_tmp,curr_gpt_c);
+  #endif
+    
+    free_curve(prev_c);
+    free_curve(prev_gpt_c);
+
+    if(i==gridzone->nr-1&&gridzone->sec_bnd)
+    {
+      //TODO specific operation for multiple X-points situations.
+    }
+  }
 
 /**************************************************************************
 * Free

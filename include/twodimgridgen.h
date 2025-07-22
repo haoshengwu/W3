@@ -88,31 +88,31 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
 */
 
 /*
-update the SepDist and PolSegmsInfo by phi0, nphi and array phi.
-phi0 is the toroidal position which is the poloidal section of 3D grid.
+update the SepDist and PolSegmsInfo by phim, nphi and array phi.
+phim is the toroidal position which is the poloidal section of 3D grid.
 phi is the array of the toroidal distrion.
 nphi is the total number of phi.
-phi0, nphi and array phi will decided the nfirst and nlast. 
+phim, nphi and array phi will decided the nfirst and nlast. 
 nstart indicate the firt nstart+1 number, nend indictae the last nend+1 number, are fixed positions.
 These positions are deciced by magnetic field line tracing, can not change in the orthognoal optimization.
-These points are decided by phi0 and phi array.
-Here we don't assume phi is uniformly distribution, but phi0 must be in the phi array.
+These points are decided by phim and phi array.
+Here we don't assume phi is uniformly distribution, but phim must be in the phi array.
 the unit of phi is degree not radian.
 */
 void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDistStr* sepdist,
                                                    ode_function* func,ode_solver* solver,
-                                                   double phi0, int nphi, double* phi);
+                                                   double phim, int nphi, double* phi);
 
 
 //The main logic is same with generate_CARRE_2Dgrid_default.
-//phi0, nphi and array phi will decided the nfirst and nlast. 
+//phim, nphi and array phi will decided the nfirst and nlast. 
 //the first nfirst+1 and the laast nlast+1 are decided by line tracing and fixed. 
 //!!!We don't check magnetic field direction in this function. (TO DO)
 void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
                                    GridZone* gridzone,
                                    ode_function* func,
                                    ode_solver* solver,
-                                   double phi0, int nphi, double* phi);
+                                   double phim, int nphi, double* phi);
 
 TwoDimGrid* create_2Dgrid_default(int npol, int nrad);
 void free_2Dgrid(TwoDimGrid* grid);

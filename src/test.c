@@ -917,7 +917,15 @@ void ThreeDimMeshGeneration_test()
   GridZone* coregz=create_sn_CARRE2D_GridZone(coregzinfo, sepdist);
 
   TwoDimGrid* sol2dgrid=create_2Dgrid_default(solgz->first_gridpoint_curve->n_point, solgz->nr);
-  generate_EMC3_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver, phi[10], 21, phi);
+  // generate_EMC3_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver, phi[10], 21, phi);
+
+  TwoDimGrid* pfr2dgrid=create_2Dgrid_default(pfrgz->first_gridpoint_curve->n_point, pfrgz->nr);
+  // generate_EMC3_2Dgrid_default(pfr2dgrid, pfrgz, &ode_func, &brk45_solver, phi[10], 21, phi);
+
+  //Becaure full about CORE GRIDZONE
+  TwoDimGrid* core2dgrid=create_2Dgrid_default(coregz->first_gridpoint_curve->n_point, coregz->nr);
+  ode_func.ndim=2;
+  generate_CARRE_2Dgrid_default(core2dgrid, coregz, &ode_func, &brk45_solver);
 //   write_curve("sol_gz_c",solgz->first_bnd_curve);
 //   write_curve("sol_gz_gpc",solgz->first_gridpoint_curve);
 //   write_curve("pfr_gz_c",pfrgz->first_bnd_curve);
@@ -949,6 +957,9 @@ void ThreeDimMeshGeneration_test()
 ***********************************************/
 
   free_2Dgrid(sol2dgrid);
+  free_2Dgrid(pfr2dgrid);
+  free_2Dgrid(core2dgrid);
+
   
   free_GridZone(solgz);
   free_GridZone(pfrgz);
