@@ -5,6 +5,8 @@
 #include "utils.h"
 #include "datastructure.h"
 
+#define _POSIX_C_SOURCE 200112L
+
 #define DEFAULT_MARGIN 20
 #define MAX_NUM_TRACING 40000
 
@@ -317,101 +319,286 @@ static GirdTubeStr* create_GridTube(Curve *prev_c,
   return gridtube;
 }
 
-TwoDimGrid* create_2Dgrid_default(int npol, int nrad)
+/*====================================================================
+| Adaptive 2D Grid System with Storage Order Optimization
+| Just choose the optimization direction when creating the grid;
+| all implementation details are fully encapsulated.
+|
+| This version uses 32-byte aligned memory allocation for GridPoint
+| arrays, suitable for SIMD/high-performance scenarios.
+|====================================================================*/
+
+TwoDimGrid* create_2Dgrid_poloidal_major(int npol, int nrad)
+{
+    return create_2Dgrid_optimized_for(npol, nrad, GRID_OPTIMIZE_FOR_IP);
+}
+
+TwoDimGrid* create_2Dgrid_radial_major(int npol, int nrad)
+{
+    return create_2Dgrid_optimized_for(npol, nrad, GRID_OPTIMIZE_FOR_IR);
+}
+
+TwoDimGrid* create_2Dgrid_optimized_for(int npol, int nrad, GridOptimization opt)
 {
     int margin_pol = DEFAULT_MARGIN;
     int margin_rad = DEFAULT_MARGIN;
 
-    /* Allocate the grid container */
     TwoDimGrid* grid = malloc(sizeof(TwoDimGrid));
-    if (!grid) 
-    {
+    if (!grid) {
         fprintf(stderr, "Failed to allocate TwoDimGrid.\n");
         exit(EXIT_FAILURE);
     }
 
-    /* Logical size */
     grid->npol = npol;
     grid->nrad = nrad;
-
-    /* Physical capacity (size + padding on both sides) */
-    grid->cap_npol  = npol + 2 * margin_pol;
-    grid->cap_nrad  = nrad + 2 * margin_rad;
-
-    /* Offsets that map (ir,ip) → physical index */
+    grid->cap_npol = npol + 2 * margin_pol;
+    grid->cap_nrad = nrad + 2 * margin_rad;
     grid->offset_pol = margin_pol;
     grid->offset_rad = margin_rad;
+    grid->opt_direction = opt;
 
-    /* Allocate and zero-initialize the point array */
+    // Allocate aligned memory for high performance (32 bytes for AVX/SIMD)
     size_t total = (size_t)grid->cap_npol * grid->cap_nrad;
-    grid->points = malloc(total * sizeof(GridPoint));
-    if (!grid->points) 
-    {
-      fprintf(stderr, "Failed to allocate grid points.\n");
-      free(grid);
-      exit(EXIT_FAILURE);
-    }
-    for (size_t i = 0; i < total; ++i) 
-    {
-      grid->points[i].x = NAN;
-      grid->points[i].y = NAN;
-    }
+    size_t size = total * sizeof(GridPoint);
+    
+    // use aligned_alloc (C11)
+    grid->points = aligned_alloc(32, size);
+
     if (!grid->points) {
-        fprintf(stderr, "Failed to allocate grid points.\n");
+        fprintf(stderr, "Failed to allocate aligned grid points.\n");
         free(grid);
         exit(EXIT_FAILURE);
+    }
+    // Zero-initialize all points (calloc-style effect)
+    for (size_t i = 0; i < total; ++i) {
+        grid->points[i].x = 0.0;
+        grid->points[i].y = 0.0;
     }
     return grid;
 }
 
-/*--------------------------------------------------------------------
-  Release all memory held by a 2-D grid
---------------------------------------------------------------------*/
 void free_2Dgrid(TwoDimGrid* grid)
 {
     if (!grid) return;
     free(grid->points);
+    grid->points = NULL;
     free(grid);
 }
 
-/*--------------------------------------------------------------------
-  Internal helper: convert logical (ir, ip) to a linear index
---------------------------------------------------------------------*/
-static inline size_t idx_2Dgrid(const TwoDimGrid* g, int ir, int ip)
+static inline size_t idx_2Dgrid(const TwoDimGrid* g, int ip, int ir)
 {
-    return (size_t)(g->offset_rad + ir) * g->cap_npol
-         + (size_t)(g->offset_pol + ip);
+    if (g->opt_direction == GRID_OPTIMIZE_FOR_IP) {
+        // Row-major: optimize ip access
+        return (size_t)(g->offset_rad + ir) * g->cap_npol
+             + (size_t)(g->offset_pol + ip);
+    } else {
+        // Column-major: optimize ir access
+        return (size_t)(g->offset_pol + ip) * g->cap_nrad
+             + (size_t)(g->offset_rad + ir);
+    }
 }
 
-/*--------------------------------------------------------------------
-  Return a pointer to the GridPoint at (ir, ip)
---------------------------------------------------------------------*/
-GridPoint* get_point_2Dgrid(TwoDimGrid* g, int ir, int ip)
+static inline bool is_valid_index(const TwoDimGrid* g, int ip, int ir) 
 {
-    return &g->points[idx_2Dgrid(g, ir, ip)];
+    return ip >= 0 && ip < g->npol && ir >= 0 && ir < g->nrad;
 }
 
-/*--------------------------------------------------------------------
-  Read-only accessors for x and y
---------------------------------------------------------------------*/
-double get_x_2Dgrid(const TwoDimGrid* g, int ir, int ip)
+GridPoint* get_point_2Dgrid(const TwoDimGrid* g, int ip, int ir)
 {
-    return g->points[idx_2Dgrid(g, ir, ip)].x;
+    return &g->points[idx_2Dgrid(g, ip, ir)];
+}
+double get_x_2Dgrid(const TwoDimGrid* g, int ip, int ir)
+{
+    return g->points[idx_2Dgrid(g, ip, ir)].x;
 }
 
-double get_y_2Dgrid(const TwoDimGrid* g, int ir, int ip)
+double get_y_2Dgrid(const TwoDimGrid* g, int ip, int ir)
 {
-    return g->points[idx_2Dgrid(g, ir, ip)].y;
+    return g->points[idx_2Dgrid(g, ip, ir)].y;
 }
 
-/*--------------------------------------------------------------------
-  Set the coordinates of point (ir, ip)
---------------------------------------------------------------------*/
-void set_point_2Dgrid(TwoDimGrid* g, int ir, int ip, double x, double y)
+void set_point_2Dgrid(TwoDimGrid* g, int ip, int ir, double x, double y)
 {
-    GridPoint* p = &g->points[idx_2Dgrid(g, ir, ip)];
+    GridPoint* p = &g->points[idx_2Dgrid(g, ip, ir)];
     p->x = x;
     p->y = y;
+}
+
+int get_npol_2Dgrid(const TwoDimGrid* g) { return g->npol; }
+int get_nrad_2Dgrid(const TwoDimGrid* g) { return g->nrad; }
+
+/*--------------------------------------------------------------------
+  High-performance traversal - automatically uses optimal order
+--------------------------------------------------------------------*/
+void foreach_point_2Dgrid(const TwoDimGrid* g, 
+                          void (*callback)(int ip, int ir, double x, double y, void* userdata),
+                          void* userdata)
+{
+    if (g->opt_direction == GRID_OPTIMIZE_FOR_IP) {
+        // Optimize ip: outer loop ir, inner loop ip
+        for (int ir = 0; ir < g->nrad; ir++) {
+            for (int ip = 0; ip < g->npol; ip++) {
+                double x = get_x_2Dgrid(g, ip, ir);
+                double y = get_y_2Dgrid(g, ip, ir);
+                callback(ip, ir, x, y, userdata);
+            }
+        }
+    } else {
+        // Optimize ir: outer loop ip, inner loop ir
+        for (int ip = 0; ip < g->npol; ip++) {
+            for (int ir = 0; ir < g->nrad; ir++) {
+                double x = get_x_2Dgrid(g, ip, ir);
+                double y = get_y_2Dgrid(g, ip, ir);
+                callback(ip, ir, x, y, userdata);
+            }
+        }
+    }
+}
+
+void expand_2Dgrid(TwoDimGrid* g, 
+                   int add_pol_head, int add_pol_tail,
+                   int add_rad_head, int add_rad_tail)
+{
+  if (!g) return;
+  if (add_pol_head < 0 || add_pol_tail < 0 || add_rad_head < 0 || add_rad_tail < 0)
+  {
+    fprintf(stderr,"expaned number should>=0 for expand_2Dgrid");
+    exit(EXIT_FAILURE);
+  }
+  
+  int new_npol = g->npol + add_pol_head + add_pol_tail;
+  int new_nrad = g->nrad + add_rad_head + add_rad_tail;
+  int new_offset_pol = g->offset_pol - add_pol_head;
+  int new_offset_rad = g->offset_rad - add_rad_head;
+  
+  if (new_offset_pol < 0 || new_offset_rad < 0 ||
+      (new_offset_pol + new_npol) > g->cap_npol ||
+      (new_offset_rad + new_nrad) > g->cap_nrad) 
+  {
+    fprintf(stderr,
+           "expand_2Dgrid: expansion exceeds allocated memory (capacity: pol=%d, rad=%d). "
+           "Requested offset_pol=%d, npol=%d, offset_rad=%d, nrad=%d\n",
+            g->cap_npol, g->cap_nrad,
+            new_offset_pol, new_npol, new_offset_rad, new_nrad);
+    fprintf(stderr,"In the future, dynamic expansion will be supported.\n");
+    exit(EXIT_FAILURE); 
+  }
+  g->offset_pol = new_offset_pol;
+  g->offset_rad = new_offset_rad;
+  g->npol = new_npol;
+  g->nrad = new_nrad;
+}
+
+static void write_2Dgrid_callback(int ip, int ir, double x, double y, void* userdata) {
+    FILE* f = (FILE*)userdata;
+    fprintf(f, "%.12f %.12f\n", x, y);
+}
+
+void write_2Dgrid(const TwoDimGrid* g, char* filename)
+{
+  if (!filename || !g) 
+  {
+    fprintf(stderr, "Error: NULL input to write_2Dgrid.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  FILE *fp = fopen(filename, "w");
+  if (!fp) 
+  {
+    fprintf(stderr, "Error: cannot open file \"%s\" \n",filename);
+    exit(EXIT_FAILURE);
+  }
+  fprintf(fp, "# %d %d %s\n",g->npol, g->nrad,
+         (g->opt_direction == GRID_OPTIMIZE_FOR_IP) ? "GRID_OPTIMIZE_FOR_IP" : "GRID_OPTIMIZE_FOR_IR");
+  foreach_point_2Dgrid(g, write_2Dgrid_callback, fp);
+  printf("Finish writing 2Dgrid to %s file.\n",filename);
+  fclose(fp);
+}
+
+
+TwoDimGrid* load_2Dgrid_from_file(char* filename)
+{
+  FILE* fp = fopen(filename, "r");
+  if (!fp) {
+    perror("Failed to open input file");
+    exit(EXIT_FAILURE);
+  }
+  int npol, nrad;
+  char opt_str[32];
+  if (fscanf(fp, "# %d %d %s\n", &npol, &nrad, opt_str) != 3)
+  {
+    fprintf(stderr, "Error: invalid header format in file \"%s\"\n", filename);
+    fclose(fp);
+    exit(EXIT_FAILURE);
+  }
+  GridOptimization opt_direction;
+  TwoDimGrid* grid;
+  if (strcmp(opt_str, "GRID_OPTIMIZE_FOR_IP") == 0)
+  {
+    opt_direction = GRID_OPTIMIZE_FOR_IP;
+    grid=create_2Dgrid_poloidal_major(npol,nrad);
+  }
+  else if (strcmp(opt_str, "GRID_OPTIMIZE_FOR_IR") == 0)
+  {
+    opt_direction = GRID_OPTIMIZE_FOR_IR;
+    grid=create_2Dgrid_radial_major(npol,nrad);
+  }
+  else
+  {
+    fprintf(stderr, "Error: unknown optimization direction \"%s\"\n", opt_str);
+    fclose(fp);
+    exit(EXIT_FAILURE);
+  }
+  // Use the same traversal order based on optimization direction
+  if (opt_direction == GRID_OPTIMIZE_FOR_IP)
+  {
+    // Same as write: outer loop ir, inner loop ip
+    for (int ir = 0; ir < nrad; ir++) 
+    {
+      for (int ip = 0; ip < npol; ip++) 
+      {
+        double x, y;
+        if (fscanf(fp, "%lf %lf", &x, &y) != 2)
+        {
+          fprintf(stderr, "Error: failed to read grid point (%d, %d)\n", ip, ir);
+          fclose(fp);
+          free_2Dgrid(grid);
+          exit(EXIT_FAILURE);
+        }
+        set_point_2Dgrid(grid, ip, ir, x, y);
+      }
+    }
+  } 
+  else if (opt_direction == GRID_OPTIMIZE_FOR_IR)
+  {
+    // Same as write: outer loop ip, inner loop ir
+    for (int ip = 0; ip < npol; ip++) 
+    {
+      for (int ir = 0; ir < nrad; ir++) 
+      {
+        double x, y;
+        if (fscanf(fp, "%lf %lf", &x, &y) != 2)
+        {
+          fprintf(stderr, "Error: failed to read grid point (%d, %d)\n", ip, ir);
+          fclose(fp);
+          free_2Dgrid(grid);
+          exit(EXIT_FAILURE);
+        }
+        set_point_2Dgrid(grid, ip, ir, x, y);
+      }
+    }
+  }
+  else
+  {
+    fprintf(stderr, "Error: unknown optimization direction \"%s\"\n", opt_str);
+    fclose(fp);
+    exit(EXIT_FAILURE);
+  }
+
+  printf("Finish loading 2Dgrid from %s file.\n", filename);
+  fclose(fp);
+  
+  return grid;
 }
 
 

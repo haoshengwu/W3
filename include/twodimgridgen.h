@@ -55,6 +55,25 @@ typedef struct {
     double x, y;  // Physical coordinates of a Grid point
 } GridPoint;
 
+
+
+
+
+/*====================================================================
+| Adaptive 2D Grid System with Storage Order Optimization
+| Just choose the optimization direction when creating the grid;
+| all implementation details are fully encapsulated.
+|
+| This version uses 32-byte aligned memory allocation for GridPoint
+| arrays, suitable for SIMD/high-performance scenarios.
+|====================================================================*/
+
+// Storage order optimization direction
+typedef enum {
+    GRID_OPTIMIZE_FOR_IP,  // Optimize for ip (row-major storage)
+    GRID_OPTIMIZE_FOR_IR   // Optimize for ir (column-major storage)
+} GridOptimization;
+
 //TwoDimGrid is written in one dimention to have fast access 
 typedef struct {
     int npol;       // Logical number of poloidal points (columns)
@@ -64,12 +83,71 @@ typedef struct {
     int offset_rad; // Row offset from physical memory origin
     int offset_pol; // Column offset from physical memory origin
 
+
     // Grid points stored in row-major order:
     //   - ir = 0 to nrad-1 maps to offset_rad + ir
     //   - ip = 0 to npol-1 maps to offset_pol + ip
     // Access: points[(offset_rad + ir) * cap_npol + (offset_pol + ip)]
     GridPoint* points;
+    GridOptimization opt_direction; // Optimization direction (internal use)
+
 } TwoDimGrid;
+
+
+//Create a grid optimized for ip (row-major)
+//Suitable for: fixed ir, loop over ip
+TwoDimGrid* create_2Dgrid_poloidal_major(int npol, int nrad);
+
+
+//Create a grid optimized for ir (column-major)
+//Suitable for: fixed ip, loop over ir (e.g. radial profile analysis)
+TwoDimGrid* create_2Dgrid_radial_major(int npol, int nrad);
+
+//General creation function (choose optimization direction)
+//This version allocates the grid points array with 32-byte alignment.
+TwoDimGrid* create_2Dgrid_optimized_for(int npol, int nrad, GridOptimization opt);
+
+void free_2Dgrid(TwoDimGrid* grid);
+
+
+//  Get pointer to grid point
+GridPoint* get_point_2Dgrid(const TwoDimGrid* g, int ip, int ir);
+
+//  Get x coordinate
+double get_x_2Dgrid(const TwoDimGrid* g, int ip, int ir);
+
+//  Get y coordinate
+double get_y_2Dgrid(const TwoDimGrid* g, int ip, int ir);
+
+//  Set x and y coordinate
+void set_point_2Dgrid(TwoDimGrid* g, int ip, int ir, double x, double y);
+
+int get_npol_2Dgrid(const TwoDimGrid* g);
+int get_nrad_2Dgrid(const TwoDimGrid* g);
+
+/*--------------------------------------------------------------------
+  High-performance traversal - automatically uses optimal order
+--------------------------------------------------------------------*/
+void foreach_point_2Dgrid(const TwoDimGrid* g, 
+                          void (*callback)(int ip, int ir, double x, double y, void* userdata),
+                          void* userdata);
+
+
+/*--------------------------------------------------------------------
+ * Expand the grid in all directions.
+ * @param g              The grid to expand
+ * @param add_pol_head   Number of columns to add at poloidal head (left)
+ * @param add_pol_tail   Number of columns to add at poloidal tail (right)
+ * @param add_rad_head   Number of rows to add at radial head (top)
+ * @param add_rad_tail   Number of rows to add at radial tail (bottom)
+ * BECAREFUL, it is the NUMBER
+----------------------------------------------------------------------*/
+
+void expand_2Dgrid(TwoDimGrid* g, int add_pol_head, int add_pol_tail, int add_rad_head, int add_rad_tail);
+void write_2Dgrid(const TwoDimGrid* g, char* filename);
+TwoDimGrid* load_2Dgrid_from_file(char* filename);
+
+
 
 GridZone* create_sn_CARRE2D_GridZone(GridZoneInfo* gzinfo, SepDistStr* sepdist);
 
@@ -114,19 +192,8 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
                                    ode_solver* solver,
                                    double phim, int nphi, double* phi);
 
-TwoDimGrid* create_2Dgrid_default(int npol, int nrad);
-void free_2Dgrid(TwoDimGrid* grid);
-
-GridPoint* get_point_2Dgrid(TwoDimGrid* g, int ir, int ip);
-double get_x_2Dgrid(const TwoDimGrid* g, int ir, int ip);
-double get_y_2Dgrid(const TwoDimGrid* g, int ir, int ip);
-void set_point_2Dgrid(TwoDimGrid* g, int ir, int ip, double x, double y);
 
 
-// void generate_EMC3_2Dgrid(TwoDimGrid* grid,
-//                           GridZoneInfo* gridzoneinfo,
-//                           ode_function* func,
-//                           ode_solver* solver);
 
 
 

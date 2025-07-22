@@ -736,7 +736,7 @@ void meshgeneration_test()
   ode_func.data=&test_magfield;
 
   
-  TwoDimGrid* sol2dgrid=create_2Dgrid_default(solgz->first_gridpoint_curve->n_point, solgz->nr);
+  TwoDimGrid* sol2dgrid=create_2Dgrid_poloidal_major(solgz->first_gridpoint_curve->n_point, solgz->nr);
   generate_CARRE_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver);
   generate_CARRE_2Dgrid_default(sol2dgrid, pfrgz, &ode_func, &brk45_solver);
   generate_CARRE_2Dgrid_default(sol2dgrid, coregz, &ode_func, &brk45_solver);
@@ -910,20 +910,20 @@ void ThreeDimMeshGeneration_test()
   write_PolSegmsInfo(polseginfo, "polseginfo_3DGRID");
 
 /***********************************************
-*   5. Create gridzone
+*   5. Create gridzone and 2D basegrid
 ***********************************************/
   GridZone* solgz=create_sn_CARRE2D_GridZone(solgzinfo, sepdist);
   GridZone* pfrgz=create_sn_CARRE2D_GridZone(pfrgzinfo, sepdist);
   GridZone* coregz=create_sn_CARRE2D_GridZone(coregzinfo, sepdist);
 
-  TwoDimGrid* sol2dgrid=create_2Dgrid_default(solgz->first_gridpoint_curve->n_point, solgz->nr);
+  TwoDimGrid* sol2dgrid=create_2Dgrid_poloidal_major(solgz->first_gridpoint_curve->n_point, solgz->nr);
   // generate_EMC3_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver, phi[10], 21, phi);
 
-  TwoDimGrid* pfr2dgrid=create_2Dgrid_default(pfrgz->first_gridpoint_curve->n_point, pfrgz->nr);
+  TwoDimGrid* pfr2dgrid=create_2Dgrid_poloidal_major(pfrgz->first_gridpoint_curve->n_point, pfrgz->nr);
   // generate_EMC3_2Dgrid_default(pfr2dgrid, pfrgz, &ode_func, &brk45_solver, phi[10], 21, phi);
 
   //Becaure full about CORE GRIDZONE
-  TwoDimGrid* core2dgrid=create_2Dgrid_default(coregz->first_gridpoint_curve->n_point, coregz->nr);
+  TwoDimGrid* core2dgrid=create_2Dgrid_poloidal_major(coregz->first_gridpoint_curve->n_point, coregz->nr);
   ode_func.ndim=2;
   generate_CARRE_2Dgrid_default(core2dgrid, coregz, &ode_func, &brk45_solver);
 //   write_curve("sol_gz_c",solgz->first_bnd_curve);
@@ -936,7 +936,7 @@ void ThreeDimMeshGeneration_test()
   
   
 // /***********************************************
-// *   6. Generater grid for each gridzone
+// *   6. Expand the 2D basegrid
 // ***********************************************/
   
 //   // change the odf function for gradpsi line tracing
@@ -950,7 +950,6 @@ void ThreeDimMeshGeneration_test()
 //   generate_CARRE_2Dgrid_default(sol2dgrid, coregz, &ode_func, &brk45_solver);
 
   
-
 
 /***********************************************
 *   6. Free space
