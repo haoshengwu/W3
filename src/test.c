@@ -924,8 +924,9 @@ void ThreeDimMeshGeneration_test()
 
   //Becaure full about CORE GRIDZONE
   TwoDimGrid* core2dgrid=create_2Dgrid_poloidal_major(coregz->first_gridpoint_curve->n_point, coregz->nr);
-  ode_func.ndim=2;
-  generate_CARRE_2Dgrid_default(core2dgrid, coregz, &ode_func, &brk45_solver);
+  // ode_func.ndim=2;
+  // generate_CARRE_2Dgrid_default(core2dgrid, coregz, &ode_func, &brk45_solver);
+  
 //   write_curve("sol_gz_c",solgz->first_bnd_curve);
 //   write_curve("sol_gz_gpc",solgz->first_gridpoint_curve);
 //   write_curve("pfr_gz_c",pfrgz->first_bnd_curve);
@@ -938,22 +939,21 @@ void ThreeDimMeshGeneration_test()
 // /***********************************************
 // *   6. Expand the 2D basegrid
 // ***********************************************/
-  
-//   // change the odf function for gradpsi line tracing
-//   ode_func.compute_f=ode_f_brz_torsys_cubicherm;
-//   ode_func.data=&test_magfield;
+  TwoDimGrid* sol2dgrid_exptgt=load_2Dgrid_from_file("SOLGRIDZONEINFO_3D_2DBASEGRID");
 
-  
-//   TwoDimGrid* sol2dgrid=create_2Dgrid_default(solgz->first_gridpoint_curve->n_point, solgz->nr);
-//   generate_CARRE_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver);
-//   generate_CARRE_2Dgrid_default(sol2dgrid, pfrgz, &ode_func, &brk45_solver);
-//   generate_CARRE_2Dgrid_default(sol2dgrid, coregz, &ode_func, &brk45_solver);
+  expand_target_EMC3_2Dgrid_default(sol2dgrid_exptgt, &ode_func, &brk45_solver, phi[10], 21, phi);
+  write_2Dgrid(sol2dgrid_exptgt,"SOLGRIDZONEINFO_3D_2DEXPTGT");
+
+
 
   
 
 /***********************************************
 *   6. Free space
 ***********************************************/
+
+  free_2Dgrid(sol2dgrid_exptgt);
+
 
   free_2Dgrid(sol2dgrid);
   free_2Dgrid(pfr2dgrid);

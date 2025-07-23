@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "twodimgridgen.h"
 #include "curve.h"
 #include <math.h>
@@ -5,9 +7,7 @@
 #include "utils.h"
 #include "datastructure.h"
 
-#define _POSIX_C_SOURCE 200112L
 
-#define DEFAULT_MARGIN 20
 #define MAX_NUM_TRACING 40000
 
 #ifndef EPS_TDGG
@@ -15,7 +15,7 @@
 #endif
 
 #ifndef NRELAX
-#define NRELAX 5000
+#define NRELAX 1
 #endif
 
 #ifndef RLCEPT
@@ -340,8 +340,8 @@ TwoDimGrid* create_2Dgrid_radial_major(int npol, int nrad)
 
 TwoDimGrid* create_2Dgrid_optimized_for(int npol, int nrad, GridOptimization opt)
 {
-    int margin_pol = DEFAULT_MARGIN;
-    int margin_rad = DEFAULT_MARGIN;
+    int margin_pol = DEFAULT_POL_MARGIN;
+    int margin_rad = DEFAULT_RAD_MARGIN;
 
     TwoDimGrid* grid = malloc(sizeof(TwoDimGrid));
     if (!grid) {
@@ -358,11 +358,12 @@ TwoDimGrid* create_2Dgrid_optimized_for(int npol, int nrad, GridOptimization opt
     grid->opt_direction = opt;
 
     // Allocate aligned memory for high performance (32 bytes for AVX/SIMD)
-    size_t total = (size_t)grid->cap_npol * grid->cap_nrad;
-    size_t size = total * sizeof(GridPoint);
-    
     // use aligned_alloc (C11)
-    grid->points = aligned_alloc(32, size);
+
+    size_t total = (size_t)grid->cap_npol * grid->cap_nrad;
+    size_t alloc_size = total * sizeof(GridPoint);
+    size_t aligned_size = ((alloc_size + GRID_ALIGNMENT - 1) / GRID_ALIGNMENT) * GRID_ALIGNMENT;
+    grid->points = aligned_alloc(GRID_ALIGNMENT, aligned_size);
 
     if (!grid->points) {
         fprintf(stderr, "Failed to allocate aligned grid points.\n");
@@ -370,10 +371,7 @@ TwoDimGrid* create_2Dgrid_optimized_for(int npol, int nrad, GridOptimization opt
         exit(EXIT_FAILURE);
     }
     // Zero-initialize all points (calloc-style effect)
-    for (size_t i = 0; i < total; ++i) {
-        grid->points[i].x = 0.0;
-        grid->points[i].y = 0.0;
-    }
+    memset(grid->points, 0, aligned_size);
     return grid;
 }
 
@@ -1301,9 +1299,20 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
   *****************************************************/
   calc_points_from_CARRE(gridtube);
 
-  char name[32];
-  sprintf(name,"%s1",gridzone->name);
-  write_curve(name,curr_gpt_c);
+  char name_tmp[32];
+  sprintf(name_tmp,"%s1",gridzone->name);
+  write_curve(name_tmp,curr_gpt_c);
+
+  /************************************************
+  * Use grid by the prev_gpt_c and curr_gpt_c     *
+  *************************************************/
+  for (int i=0;i<np;i++)
+  {
+    set_point_2Dgrid(grid, i, 0, prev_gpt_c->points[i].x, prev_gpt_c->points[i].y);
+    set_point_2Dgrid(grid, i, 1, curr_gpt_c->points[i].x, curr_gpt_c->points[i].y);
+  }
+
+  
 
   for(int i=2;i<gridzone->nr; i++)
   {
@@ -1339,10 +1348,17 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
     calc_points_from_CARRE(gridtube);
   
   #ifdef DEBUG
-    sprintf(name,"%s%d",gridzone->name, i);
-    write_curve(name,curr_gpt_c);
+    sprintf(name_tmp,"%s%d",gridzone->name, i);
+    write_curve(name_tmp,curr_gpt_c);
   #endif
-    
+  /*********************************************
+  * Use grid by the curr_gpt_c                 *
+  *********************************************/
+    for (int j=0;j<np;j++) // j for poloidal because i is occupied.
+    {
+      set_point_2Dgrid(grid, j, i, curr_gpt_c->points[j].x, curr_gpt_c->points[j].y);
+    }
+
     free_curve(prev_c);
     free_curve(prev_gpt_c);
     if(i==gridzone->nr-1&&gridzone->sec_bnd)
@@ -1350,6 +1366,9 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
       //TODO specific operation for multiple X-points situations.
     }
   }
+
+  sprintf(name_tmp,"%s_2DGRID",gridzone->name);
+  write_2Dgrid(grid,name_tmp);
 
   //NOT FREE the entries in gridtube, but the gridtube space itself!
   free(gridtube);
@@ -1754,7 +1773,7 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   free(normdist_in_tmp);
 
 /*****************************************************
-*  Correct the outer leg (sepdist->edges[index[1]])   *
+*  Correct the outer leg (sepdist->edges[index[1]])  *
 *****************************************************/
   idx_tmp=sepdist->index[1];
 
@@ -1890,9 +1909,8 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
   // For core gridzone
   if(strncmp(gridzone->name,"CORE",4)==0)
   {
-    nfirst=0;
-    nlast=0;
-    idx_phim=0;
+    fprintf(stderr,"CORE gridzone is not support.\n");
+    exit(EXIT_FAILURE);
   }
   // For SOL and PFR gridzone
   else
@@ -1904,6 +1922,7 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
     #endif
   }
   
+
 /**************************************************************************
 * Check the magnetic field to ensure it can be used for 3D grid generation
 ***************************************************************************/
@@ -2078,6 +2097,29 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
   sprintf(name_tmp,"%s_FIRST",gridzone->name);
   write_3d_array(nfirst+1,nr,2,first_gridpoint,name_tmp,2);
 
+
+/*************************************
+* Use grid by the first_gridpoint    *
+*************************************/
+
+/*
+     ***********************x-------curr_gpt_c ---------x******************* idx: nr-1
+     ***********************x-------curr_gpt_c ---------x******************* 
+     ***********************x-------curr_gpt_c ---------x******************* 
+     ***********************x-------curr_gpt_c ---------x******************* 
+     ***********************x----new_first_bnd_curve----x******************** idx: 0
+     first_gridpoint[0:end][:]                          last_gridpoint[0:end][:]
+*/
+
+  for(int j=0;j<nr;j++)
+  {
+    for (int i=0;i<nfirst+1;i++)
+    {
+      set_point_2Dgrid(grid, i, j, first_gridpoint[i][j][0],first_gridpoint[i][j][1]);
+    }
+  }
+
+
 /**************************************************************************
 * New guard_end and endcurve
 * This is because the  (nlast1+1) points to the last 
@@ -2189,6 +2231,31 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
   sprintf(name_tmp,"%s_LAST",gridzone->name);
   write_3d_array(nlast+1,nr,2,last_gridpoint,name_tmp,2);
 
+/*************************************
+* Use grid by the last_gridpoint    *
+*************************************/
+
+
+/*
+     ***********************x-------curr_gpt_c ---------x******************* idx: nr-1
+     ***********************x-------curr_gpt_c ---------x******************* 
+     ***********************x-------curr_gpt_c ---------x******************* 
+     ***********************x-------curr_gpt_c ---------x******************* 
+     ***********************x----new_first_bnd_curve----x******************** idx: 0
+     first_gridpoint[0:end][:]                          last_gridpoint[0:end][:]
+
+     x represent the points which are overloped between curr_gpt_c/new_first_bnd_curve and first_gridpoint/last_gridpoint.
+*/
+  tmp=gridzone->first_gridpoint_curve->n_point-1-nlast;
+  for(int j=0;j<nr;j++)
+  {
+    for (int i=0;i<nlast+1;i++)
+    {
+      set_point_2Dgrid(grid, tmp+i, j, last_gridpoint[i][j][0],last_gridpoint[i][j][1]);
+    }
+  }
+
+
 
 /**************************************************************************
 * Firtst GridTube 
@@ -2235,6 +2302,17 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
   sprintf(name_tmp,"%s_2DBASE_1",gridzone->name);
   write_curve(name_tmp,curr_gpt_c);
 
+ /************************************************
+ * Use grid by the prev_gpt_c and curr_gpt_c     *
+ *************************************************/
+  tmp=nfirst+1 ;
+  for (int i=0;i<np-1;i++)
+  {
+    set_point_2Dgrid(grid, tmp+i, 0, prev_gpt_c->points[i].x, prev_gpt_c->points[i].y);
+    set_point_2Dgrid(grid, tmp+i, 1, curr_gpt_c->points[i].x, curr_gpt_c->points[i].y);
+  }
+
+
   for(int i=2;i<gridzone->nr; i++)
   {
   //Becareful!!!, Just change the adress and not copy the content.
@@ -2274,6 +2352,15 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
     write_curve(name_tmp,curr_gpt_c);
   #endif
     
+  /*********************************************
+  * Use grid by the curr_gpt_c                 *
+  *********************************************/
+    tmp=nfirst+1;
+    for (int j=0;j<np-1;j++) // j for poloidal because i is occupied.
+    {
+      set_point_2Dgrid(grid, tmp+j, i, curr_gpt_c->points[j].x, curr_gpt_c->points[j].y);
+    }
+
     free_curve(prev_c);
     free_curve(prev_gpt_c);
 
@@ -2282,10 +2369,20 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
       //TODO specific operation for multiple X-points situations.
     }
   }
-
+  sprintf(name_tmp,"%s_3D_2DBASEGRID",gridzone->name);
+  write_2Dgrid(grid,name_tmp);
 /**************************************************************************
 * Free
 ***************************************************************************/
+
+  //NOT FREE THE ENTRIES INSIDE GRIDTUBE, BUT FREE THE ADDRESS OF GRIDTUBE ITSELF. 
+  //gridtube is just a container. 
+  free(gridtube);
+  free_curve(curr_c);
+  free_curve(curr_gpt_c);
+  free(len_prev_gpt_c);
+  free(len_curr_gpt_c);
+
   free_curve(new_first_bnd_curve);
   free_curve(new_first_gridpoint_curve);
   free_curve(new_end_curve); 
@@ -2295,5 +2392,140 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
   free(new_guard_end);
   free_3d_array(first_gridpoint);
   free_3d_array(last_gridpoint);
+
+}
+
+void expand_target_EMC3_2Dgrid_default(TwoDimGrid* grid,
+                                       ode_function* func,
+                                       ode_solver* solver,
+                                       double phim, int nphi, double* phi)
+{
+
+ /***************************************************************************
+ * Check the magnetic field to ensure it can be used for 3D grid generation *
+ ****************************************************************************/
+ //TO DO
+
+ /*************************
+ * Check input variables *
+ *************************/
+  if(!grid)
+  {
+    fprintf(stderr,"Empty input for expand_target_EMC3_2Dgrid_default.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(grid->opt_direction!=GRID_OPTIMIZE_FOR_IP)
+  {
+    fprintf(stderr,"Only GRID_OPTIMIZE_FOR_IP is support in expand_target_EMC3_2Dgrid_default.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  int npol=grid->npol;
+  int nrad=grid->nrad;
+
+  // check whether is CORE grid
+  if( get_x_2Dgrid(grid,0,0)==get_x_2Dgrid(grid,npol-1,nrad-1) ||
+      get_y_2Dgrid(grid,0,0)==get_y_2Dgrid(grid,npol-1,nrad-1))
+  {
+    fprintf(stderr,"It seems the grid is closed, is it CORE GRID?\n");
+    exit(EXIT_FAILURE);
+  }
+
+  int nfirst, nlast, idx_phim;
+  calc_nfirst_nlast(phim, nphi, phi, &nfirst, &nlast);
+  idx_phim=nlast;
+  #ifdef DEBUG
+    printf("nfirst %i, nlast %i\n",nfirst,nlast);
+  #endif
+
+ /********************************************
+ * Expand the grid point out of inner target *
+ *********************************************/
+  //reversed magnetic field
+  //for inner part the direction is opposite to magnetic field
+  double* Start_R=malloc(nrad*sizeof(double));
+  double* Start_Z=malloc(nrad*sizeof(double));
+
+  if(!Start_R || !Start_Z) 
+  {
+    free(Start_R); 
+    free(Start_Z);
+    fprintf(stderr, "Memory allocation failed\n");
+    exit(EXIT_FAILURE);
+ }
+  for(int i=0;i<nrad;i++)
+  {
+    Start_R[i]=get_x_2Dgrid(grid, 0, i);
+    Start_Z[i]=get_y_2Dgrid(grid, 0, i);
+  }
+  //Expand the 2dgrid
+  expand_2Dgrid(grid,nlast,0,0,0);
+
+
+  //Fill the Expansion of the 2d grid
+  reverse_3D_mag_direction(func);
+  for(int j=0;j<nrad;j++)
+  {
+    double pt_tmp[3];
+    double next_pt_tmp[3];
+    double len_RZ_tmp=0.0;
+    double phi_tgt=phi[idx_phim];
+    pt_tmp[0]=Start_R[j];
+    pt_tmp[1]=Start_Z[j];
+
+    for(int i=0;i<nlast;i++)
+    {
+      pt_tmp[2]=phi[idx_phim-1-i];
+
+      if(fast_3D_line_tracing(pt_tmp, next_pt_tmp, phi_tgt, &len_RZ_tmp, func, solver))
+      {
+        fprintf(stderr,"UNEXPECTED ERROR: Cannot Found the point.\n");
+        exit(EXIT_FAILURE);
+      }
+      set_point_2Dgrid(grid,nlast-1-i,j,next_pt_tmp[0], next_pt_tmp[1]);
+    }
+  }
+  //restore magnetic field
+  restore_3D_mag_direction(func);
+
+ /********************************************
+ * Expand the grid point out of outer target *
+ *********************************************/
+  int idx_tmp=get_npol_2Dgrid(grid)-1;
+
+  for(int i=0;i<nrad;i++)
+  {
+    Start_R[i]=get_x_2Dgrid(grid, idx_tmp, i);
+    Start_Z[i]=get_y_2Dgrid(grid, idx_tmp, i);
+  }
+  expand_2Dgrid(grid,0,nfirst,0,0);
+
+  for(int j=0;j<nrad;j++)
+  {
+    double pt_tmp[3];
+    double next_pt_tmp[3];
+    double len_RZ_tmp=0.0;
+    double phi_tgt=phi[idx_phim];
+    pt_tmp[0]=Start_R[j];
+    pt_tmp[1]=Start_Z[j];
+    for(int i=0;i<nfirst;i++)
+    {
+      pt_tmp[2]=phi[idx_phim+1+i];
+
+      if(fast_3D_line_tracing(pt_tmp, next_pt_tmp, phi_tgt, &len_RZ_tmp, func, solver))
+      {
+        fprintf(stderr,"UNEXPECTED ERROR: Cannot Found the point in np %i nr %i\n", i, j);
+        exit(EXIT_FAILURE);
+      }
+      set_point_2Dgrid(grid,idx_tmp+1+i,j,next_pt_tmp[0], next_pt_tmp[1]);
+    }
+  }
+
+ /*************
+ *    Free    *
+ **************/
+  free(Start_R);
+  free(Start_Z);
 
 }

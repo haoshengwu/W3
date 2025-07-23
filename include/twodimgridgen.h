@@ -193,6 +193,15 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
                                    double phim, int nphi, double* phi);
 
 
+//The EMC3_2DBASEGRID is expand at the inner and outer targets.
+//This is because there are grid points out of inner and outer targets in the 2DBASEGRID.
+//The gridpoints will be used for magnetic field line tracing to the 3DBASEGRID.
+void expand_target_EMC3_2Dgrid_default(TwoDimGrid* grid,
+                                       ode_function* func,
+                                       ode_solver* solver,
+                                       double phim, int nphi, double* phi);
+
+
 
 
 
