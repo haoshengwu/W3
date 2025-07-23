@@ -171,7 +171,7 @@ void assign_2D_to_3d_tor_slice(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, i
     fprintf(stderr, "Error: Toroidal index it is out of range.\n");
     exit(EXIT_FAILURE);
   }
-  if(grid2d->npol!=grid3d->cap_npol||grid2d->cap_nrad!=grid3d->cap_nrad)
+  if(grid2d->npol!=grid3d->npol||grid2d->nrad!=grid3d->nrad)
   {
     fprintf(stderr, "Error: The 2D grid size is not consistent with 3D grid slice.\n");
     exit(EXIT_FAILURE);

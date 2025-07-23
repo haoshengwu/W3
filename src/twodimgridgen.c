@@ -8,15 +8,13 @@
 #include "datastructure.h"
 
 
-#define MAX_NUM_TRACING 40000
+
 
 #ifndef EPS_TDGG
 #define EPS_TDGG 1.0E-12
 #endif
 
-#ifndef NRELAX
-#define NRELAX 1
-#endif
+
 
 #ifndef RLCEPT
 #define RLCEPT 1.0E-6
@@ -1660,9 +1658,9 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
   }
   printf("BT and Ip directions are consitent with direction definition.\n");
 
-/***********************************************
+/******************************************************
 *  Correct the inner leg ((sepdist->edges[index[0]])  *
-************************************************/
+*******************************************************/
 
   int idx_tmp=sepdist->index[0];
 
@@ -2305,8 +2303,10 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
  /************************************************
  * Use grid by the prev_gpt_c and curr_gpt_c     *
  *************************************************/
-  tmp=nfirst+1 ;
-  for (int i=0;i<np-1;i++)
+  tmp=nfirst;//index 0-base
+  //!!!BECAREFUL, we exclude the 1st and last points of curr_gpt_c.
+  // the (nfirst+2) 1-based of grid = (2nd) 1-based curr_gpt_c->points.
+  for (int i=1;i<np-1;i++)
   {
     set_point_2Dgrid(grid, tmp+i, 0, prev_gpt_c->points[i].x, prev_gpt_c->points[i].y);
     set_point_2Dgrid(grid, tmp+i, 1, curr_gpt_c->points[i].x, curr_gpt_c->points[i].y);
@@ -2355,8 +2355,11 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
   /*********************************************
   * Use grid by the curr_gpt_c                 *
   *********************************************/
-    tmp=nfirst+1;
-    for (int j=0;j<np-1;j++) // j for poloidal because i is occupied.
+    tmp=nfirst;//index
+    // j for poloidal because i is occupied.
+    //!!!BECAREFUL, we exclude the 1st and last points of curr_gpt_c.
+    // the (nfirst+2) 1-based of grid = (2nd) 1-based curr_gpt_c->points.
+    for (int j=1;j<np-1;j++) 
     {
       set_point_2Dgrid(grid, tmp+j, i, curr_gpt_c->points[j].x, curr_gpt_c->points[j].y);
     }
@@ -2442,7 +2445,6 @@ void expand_target_EMC3_2Dgrid_default(TwoDimGrid* grid,
  /********************************************
  * Expand the grid point out of inner target *
  *********************************************/
-  //reversed magnetic field
   //for inner part the direction is opposite to magnetic field
   double* Start_R=malloc(nrad*sizeof(double));
   double* Start_Z=malloc(nrad*sizeof(double));
@@ -2528,4 +2530,63 @@ void expand_target_EMC3_2Dgrid_default(TwoDimGrid* grid,
   free(Start_R);
   free(Start_Z);
 
+}
+
+void generate_2Dgrid_tracing(TwoDimGrid* grid1, double phi1, 
+                              TwoDimGrid* grid2, double phi2, 
+                              ode_function* func,
+                              ode_solver* solver)
+{
+  
+ /*****************
+ *  Check inputs  *
+ ******************/
+  if(!grid1||!grid2)
+  {
+    fprintf(stderr, "Error: Invalid inputs generatre_2Dgrid_tracingfor.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(grid1->npol!=grid2->npol||grid1->nrad!=grid2->nrad)
+  {
+    fprintf(stderr, "Error: The size from grid1 and grid2 are not identical.\n");
+    exit(EXIT_FAILURE);
+  }
+  int np=grid1->npol;
+  int nr=grid1->nrad;
+ /*******************
+ *  Check magnetic  *
+ ********************/
+  if(func->ndim!=3)
+  {
+    fprintf(stderr, "Error: The 2D grid size is not consistent with 3D grid slice.\n");
+    exit(EXIT_FAILURE);
+  }
+  double pt[3], pt_next[3];
+  //using the point ip=1&ir=1, because of ip=0 ir=0 can be X-poiint
+  pt[0]=get_x_2Dgrid(grid1,1,1);
+  pt[1]=get_y_2Dgrid(grid1,1,1);
+  pt[2]=phi1;
+  double t_tmp=0.0;
+  solver->next_step(solver->step_size, &t_tmp, pt, pt_next, solver->solver_data, func);
+  if ((phi2 - phi1) * (pt_next[2] - pt[2]) < 0)
+  {
+    fprintf(stderr, "Error: direction phi1->phi2 is not same with magnetic field direction.\n");
+    exit(EXIT_FAILURE);
+  }
+  for(int ip=0;ip<np;ip++)
+  {
+    for(int ir=0;ir<nr;ir++)
+    {
+      pt[0]=get_x_2Dgrid(grid1,ip,ir);
+      pt[1]=get_y_2Dgrid(grid1,ip,ir);
+      pt[2]=phi1;
+      if(fabs(pt[0])<EPSILON && fabs(pt[1])<EPSILON)
+      {
+        fprintf(stderr, "WARNING: The point is %.12f %.12f\n", pt[0], pt[1]);
+      }
+      double len_tmp=0.0;
+      fast_3D_line_tracing(pt, pt_next, phi2, &len_tmp, func, solver);
+      set_point_2Dgrid(grid2, ip, ir, pt_next[0],pt_next[1]);
+    }
+  }
 }

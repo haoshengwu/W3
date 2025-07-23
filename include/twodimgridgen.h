@@ -202,6 +202,12 @@ void expand_target_EMC3_2Dgrid_default(TwoDimGrid* grid,
                                        double phim, int nphi, double* phi);
 
 
+// Update grid2 by tracing field lines from the points in grid1.
+// The tracing proceeds from phi1 (the phi plane of grid1) to phi2 (the phi plane of grid2).
+void generate_2Dgrid_tracing(TwoDimGrid* grid1, double phi1, 
+                              TwoDimGrid* grid2, double phi2, 
+                              ode_function* func,
+                              ode_solver* solver);
 
 
 

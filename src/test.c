@@ -920,13 +920,14 @@ void ThreeDimMeshGeneration_test()
   // generate_EMC3_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver, phi[10], 21, phi);
 
   TwoDimGrid* pfr2dgrid=create_2Dgrid_poloidal_major(pfrgz->first_gridpoint_curve->n_point, pfrgz->nr);
-  // generate_EMC3_2Dgrid_default(pfr2dgrid, pfrgz, &ode_func, &brk45_solver, phi[10], 21, phi);
+  generate_EMC3_2Dgrid_default(pfr2dgrid, pfrgz, &ode_func, &brk45_solver, phi[10], 21, phi);
 
   //Becaure full about CORE GRIDZONE
   TwoDimGrid* core2dgrid=create_2Dgrid_poloidal_major(coregz->first_gridpoint_curve->n_point, coregz->nr);
-  // ode_func.ndim=2;
-  // generate_CARRE_2Dgrid_default(core2dgrid, coregz, &ode_func, &brk45_solver);
-  
+  ode_func.ndim=2;
+  generate_CARRE_2Dgrid_default(core2dgrid, coregz, &ode_func, &brk45_solver);
+  ode_func.ndim=3;
+
 //   write_curve("sol_gz_c",solgz->first_bnd_curve);
 //   write_curve("sol_gz_gpc",solgz->first_gridpoint_curve);
 //   write_curve("pfr_gz_c",pfrgz->first_bnd_curve);
@@ -936,23 +937,62 @@ void ThreeDimMeshGeneration_test()
 
   
   
-// /***********************************************
-// *   6. Expand the 2D basegrid
-// ***********************************************/
+/**********************************************
+*   6. Expand the 2D basegrid                 *
+***********************************************/
   TwoDimGrid* sol2dgrid_exptgt=load_2Dgrid_from_file("SOLGRIDZONEINFO_3D_2DBASEGRID");
+  TwoDimGrid* pfr2dgrid_exptgt=load_2Dgrid_from_file("PFRGRIDZONEINFO_3D_2DBASEGRID");
+
 
   expand_target_EMC3_2Dgrid_default(sol2dgrid_exptgt, &ode_func, &brk45_solver, phi[10], 21, phi);
   write_2Dgrid(sol2dgrid_exptgt,"SOLGRIDZONEINFO_3D_2DEXPTGT");
+ 
+  expand_target_EMC3_2Dgrid_default(pfr2dgrid_exptgt, &ode_func, &brk45_solver, phi[10], 21, phi);
+  write_2Dgrid(pfr2dgrid_exptgt,"PFRGRIDZONEINFO_3D_2DEXPTGT");
 
-
-
-  
-
-/***********************************************
-*   6. Free space
+/**********************************************
+*   7. generate EMC3 3D GRID                  *
 ***********************************************/
+  TwoDimGrid* grid_tmp1=create_2Dgrid_poloidal_major(sol2dgrid_exptgt->npol, sol2dgrid_exptgt->nrad);
+  TwoDimGrid* grid_tmp2=create_2Dgrid_poloidal_major(pfr2dgrid_exptgt->npol, pfr2dgrid_exptgt->nrad);
+  TwoDimGrid* grid_tmp3=create_2Dgrid_poloidal_major(core2dgrid->npol, core2dgrid->nrad);
+
+
+  for(int i=0;i<3;i++)
+  {
+    ode_func.rescale[i]=-1.0;
+  }
+  generate_2Dgrid_tracing(sol2dgrid_exptgt, phi[10], grid_tmp1, phi[20], &ode_func, &brk45_solver);
+  write_2Dgrid(grid_tmp1,"SOLGRIDZONEINFO_3D_2DEXPTGT_phi20");
+
+  generate_2Dgrid_tracing(pfr2dgrid_exptgt, phi[10], grid_tmp2, phi[20], &ode_func, &brk45_solver);
+  write_2Dgrid(grid_tmp2,"PFRGRIDZONEINFO_3D_2DEXPTGT_phi20");
+
+  generate_2Dgrid_tracing(core2dgrid, phi[10], grid_tmp3, phi[20], &ode_func, &brk45_solver);
+  write_2Dgrid(grid_tmp3,"COREGRIDZONEINFO_3D_2D_phi20");
+
+  for(int i=0;i<3;i++)
+  {
+    ode_func.rescale[i]=1.0;
+  }
+  generate_2Dgrid_tracing(sol2dgrid_exptgt, phi[10], grid_tmp1, phi[0], &ode_func, &brk45_solver);
+  write_2Dgrid(grid_tmp1,"SOLGRIDZONEINFO_3D_2DEXPTGT_phi0");
+
+  generate_2Dgrid_tracing(pfr2dgrid_exptgt, phi[10], grid_tmp2, phi[0], &ode_func, &brk45_solver);
+  write_2Dgrid(grid_tmp2,"PFRGRIDZONEINFO_3D_2DEXPTGT_phi0");
+
+  generate_2Dgrid_tracing(core2dgrid, phi[10], grid_tmp3, phi[0], &ode_func, &brk45_solver);
+  write_2Dgrid(grid_tmp3,"COREGRIDZONEINFO_3D_2D_phi0");
+
+/**********************************************
+*   8. Free space                             *
+***********************************************/
+  free_2Dgrid(grid_tmp1);
+  free_2Dgrid(grid_tmp2);
+  free_2Dgrid(grid_tmp3);
 
   free_2Dgrid(sol2dgrid_exptgt);
+  free_2Dgrid(pfr2dgrid_exptgt);
 
 
   free_2Dgrid(sol2dgrid);

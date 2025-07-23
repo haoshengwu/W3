@@ -14,9 +14,11 @@
 
 
 /* ========== Numerical Constants ========== */
+#define MAX_NUM_TRACING 40000 
+#define NRELAX 5000
 
 /* ========== Precision Settings ========== */
-#define EPSILON 1.0E-10
+#define EPSILON 1.0E-12
 
 /* ========== 2DGRID and 3DGRID Settings ========== */
 #define DEFAULT_POL_MARGIN 20
