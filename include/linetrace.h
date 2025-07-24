@@ -4,6 +4,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "config.h"
 #include "equilibrium.h"
 #include "calc.h"
 #include "datastructure.h"

@@ -1379,7 +1379,7 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
 
 //phim, nphi and array phi will decided the nfirst and nlast. 
 //nstart indicate the firt nstart+1 number, nend indictae the last nend+1 number, are fixed positions.
-static void calc_nfirst_nlast(double phim, int nphi, double* phi, int* nfirst_ptr, int* nlast_ptr)
+void calc_nfirst_nlast(double phim, int nphi, double* phi, int* nfirst_ptr, int* nlast_ptr)
 {
   int idx_phim=-1;
   for(int i=0;i<nphi;i++)
@@ -1399,7 +1399,7 @@ static void calc_nfirst_nlast(double phim, int nphi, double* phi, int* nfirst_pt
   *nlast_ptr = idx_phim;
 }
 
-static void restore_3D_mag_direction(ode_function* func)
+void restore_3D_mag_direction(ode_function* func)
 {
   if(func->ndim!=3)
   {
@@ -1412,7 +1412,7 @@ static void restore_3D_mag_direction(ode_function* func)
   }
 }
 
-static void reverse_3D_mag_direction(ode_function* func)
+void reverse_3D_mag_direction(ode_function* func)
 {
   if(func->ndim!=3)
   {
@@ -1596,8 +1596,8 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
     exit(EXIT_FAILURE);
   }
 
-  if(polseg->polsegments[0]->n_points-nlast<10  //outer leg
-     ||polseg->polsegments[1]->n_points-nfirst<10) //inner leg
+  if(polseg->polsegments[0]->n_points-nlast<MIN_RESOLTUTION  //outer leg
+     ||polseg->polsegments[1]->n_points-nfirst<MIN_RESOLTUTION) //inner leg
   {
     printf("Warning: The resolution in phi direction is close to PolSegStr resolution.\n");
     printf("Suggest decrasing phi resolution and(or) increase PolSegStr resolution!\n");
@@ -2532,12 +2532,10 @@ void expand_target_EMC3_2Dgrid_default(TwoDimGrid* grid,
 
 }
 
-void generate_2Dgrid_tracing(TwoDimGrid* grid1, double phi1, 
-                              TwoDimGrid* grid2, double phi2, 
-                              ode_function* func,
-                              ode_solver* solver)
+void generate_2Dgrid_tracing(const TwoDimGrid* grid1, double phi1, 
+                             TwoDimGrid* grid2, double phi2, 
+                             ode_function* func, ode_solver* solver)
 {
-  
  /*****************
  *  Check inputs  *
  ******************/
@@ -2589,4 +2587,56 @@ void generate_2Dgrid_tracing(TwoDimGrid* grid1, double phi1,
       set_point_2Dgrid(grid2, ip, ir, pt_next[0],pt_next[1]);
     }
   }
+}
+
+
+void write_2Dgrid_RZCSYS_to_XYZCSYS(const TwoDimGrid* g, double phi, char* filename)
+{
+  if (!filename || !g) 
+  {
+    fprintf(stderr, "Error: NULL input to write_2Dgrid.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  FILE *fp = fopen(filename, "w");
+  if (!fp) 
+  {
+    fprintf(stderr, "Error: cannot open file \"%s\" \n",filename);
+    exit(EXIT_FAILURE);
+  }
+
+  fprintf(fp, "# %d %d %s %.12f\n",g->npol, g->nrad,
+         (g->opt_direction == GRID_OPTIMIZE_FOR_IP) ? "GRID_OPTIMIZE_FOR_IP" : "GRID_OPTIMIZE_FOR_IR",
+          phi);
+  int np=g->npol;
+  int nr=g->nrad;
+  if(g->opt_direction == GRID_OPTIMIZE_FOR_IP)
+  {
+    for(int j=0;j<nr;j++)
+    {
+      for(int i=0;i<np;i++)
+      {
+        double r = get_x_2Dgrid(g, i, j);
+        double x = r * cos(deg2rad(phi));
+        double y = r * sin(deg2rad(phi)); 
+        double z = get_y_2Dgrid(g, i, j);
+        fprintf(fp, "%.12f %.12f %.12f\n", x, y, z);
+      }
+    }
+  }
+  else if (g->opt_direction==GRID_OPTIMIZE_FOR_IR)
+  {
+    for(int i=0;i<np;i++)
+    {
+      for(int j=0;j<nr;j++)
+      {
+        double x = get_x_2Dgrid(g, i, j)* cos(deg2rad(phi));
+        double y = get_x_2Dgrid(g, i, j)* cos(deg2rad(phi));
+        double z = get_y_2Dgrid(g, i, j);
+        fprintf(fp, "%.12f %.12f %.12f\n", x, y, z);
+      }
+    }
+  }
+  printf("Finish writing 2Dgrid_RZCSYS_to_XYZCSYS to %s file.\n",filename);
+  fclose(fp);
 }

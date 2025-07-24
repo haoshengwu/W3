@@ -31,5 +31,6 @@
 #include "polsegminfo.h"
 #include "sepdistribution.h"
 #include "twodimgridgen.h"
+#include "threedimgridgen.h"
 
 #endif

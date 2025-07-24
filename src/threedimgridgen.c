@@ -3,7 +3,6 @@
 #include "threedimgridgen.h"
 
 
-
 ThreeDimGrid* create_3Dgrid_poloidal_major(int npol, int nrad, int ntor) 
 {
     return create_3Dgrid_optimized_for(npol, nrad, ntor, GRID_3D_OPTIMIZE_PRT);
@@ -135,30 +134,30 @@ GridPoint3D* get_point_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it)
     return &g->points[idx_3Dgrid(g, ip, ir, it)];
 }
 
-double get_x_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it)
+double get_r_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it)
 {
-    return g->points[idx_3Dgrid(g, ip, ir, it)].x;
-}
-
-double get_y_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it)
-{
-    return g->points[idx_3Dgrid(g, ip, ir, it)].y;
+    return g->points[idx_3Dgrid(g, ip, ir, it)].r;
 }
 
 double get_z_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it)
 {
-  return g->points[idx_3Dgrid(g, ip, ir, it)].z;
+    return g->points[idx_3Dgrid(g, ip, ir, it)].z;
 }
 
-void set_point_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double x, double y, double z)
+double get_phi_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it)
+{
+  return g->points[idx_3Dgrid(g, ip, ir, it)].phi;
+}
+
+void set_point_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double r, double z, double phi)
 {
     GridPoint3D* p = &g->points[idx_3Dgrid(g, ip, ir, it)];
-    p->x = x;
-    p->y = y;
+    p->r = r;
     p->z = z;
+    p->phi = phi;
 }
 
-void assign_2D_to_3d_tor_slice(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, int it)
+void assign_2D_to_3D_tor_slice(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, int it, double phim)
 {
   //Check 
   if(!grid2d || !grid3d || !grid2d->points || !grid3d->points)
@@ -166,9 +165,9 @@ void assign_2D_to_3d_tor_slice(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, i
     fprintf(stderr, "Error: Invalid inputs for assign_2D_to_3d_tor_slice.\n");
     exit(EXIT_FAILURE);
   }
-  if(it<0 || it>=grid3d->ntor-1)
+  if(it<0 || it>grid3d->ntor-1)
   {
-    fprintf(stderr, "Error: Toroidal index it is out of range.\n");
+    fprintf(stderr, "Error: Toroidal index it is out of range in assign_2D_to_3D_tor_slice.\n");
     exit(EXIT_FAILURE);
   }
   if(grid2d->npol!=grid3d->npol||grid2d->nrad!=grid3d->nrad)
@@ -180,14 +179,204 @@ void assign_2D_to_3d_tor_slice(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, i
   {
     for(int j=0;j<grid3d->nrad;j++)
     {
-      double x = get_x_2Dgrid(grid2d,i,j);
-      double y = get_y_2Dgrid(grid2d,i,j);
-      if(fabs(x)<EPSILON && fabs(y)<EPSILON)
+      double r = get_x_2Dgrid(grid2d,i,j);
+      double z = get_y_2Dgrid(grid2d,i,j);
+      if(fabs(r)<EPSILON && fabs(z)<EPSILON)
       {
-        printf("WARNING: The point is %.12f %.12f\n", x, y);
+        printf("WARNING: The point is %.12f %.12f\n", r, z);
       }
-      double z = get_z_3Dgrid(grid3d, i, j, it);
-      set_point_3Dgrid(grid3d,i,j,it,x,y,z);
+      set_point_3Dgrid(grid3d,i,j,it,r,z,phim);
     }
   }
+}
+
+void generate_EMC3_3Dgrid_from_2Dgrid_tracing(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, 
+                                              double phim, int nphi, double* phi,
+                                              ode_function* func,ode_solver* solver)
+{
+  /*****************
+  *  Check inputs  *
+  ******************/
+  if(!grid2d||!grid3d)
+  {
+    fprintf(stderr, "Error: Invalid inputs generate_EMC3_3Dgrid_from_2Dgrid_tracing.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(grid2d->npol!=grid3d->npol||grid2d->nrad!=grid3d->nrad)
+  {
+    fprintf(stderr, "Error: The poloidal and radial sizes of grid2D and grid3D are not identical.\n");
+    exit(EXIT_FAILURE);
+  }
+  
+  int np=grid2d->npol;
+  int nr=grid2d->nrad;
+  int nt=grid3d->ntor;
+
+  if(nphi!=nt)
+  {
+    fprintf(stderr, "Error: The toroidal size of grid3D is not identical with nphi.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(func->ndim!=3)
+  {
+    fprintf(stderr, "Error: The 3D magnetic field is needed.\n");
+    exit(EXIT_FAILURE);
+  }
+  
+  if(grid3d->opt_direction!=GRID_3D_OPTIMIZE_RPT)
+  {
+    fprintf(stderr, "Error: EMC3 3D GRID MUST BE RAD-POL-TOR ORDER。\n");
+    exit(EXIT_FAILURE);
+  }
+  int nfirst, nlast, idx_phim;
+  calc_nfirst_nlast(phim, nphi, phi, &nfirst, &nlast);
+  idx_phim=nlast;
+
+  /***********************************
+  *  Check magnetic field direction  *
+  ***********************************/
+  restore_3D_mag_direction(func);
+  double pt[3], pt_next[3];
+  //using the point ip=1&ir=1, because of ip=0 ir=0 can be X-poiint
+  pt[0]=get_x_2Dgrid(grid2d,1,1);
+  pt[1]=get_y_2Dgrid(grid2d,1,1);
+  pt[2]=phim;
+  double t_tmp=0.0;
+  solver->next_step(solver->step_size, &t_tmp, pt, pt_next, solver->solver_data, func);
+  if ((phi[0]-phim) * (pt_next[2] - pt[2]) < 0)
+  {
+    fprintf(stderr, "Error: direction phi1->phi2 is not same with magnetic field direction.\n");
+    exit(EXIT_FAILURE);
+  }
+  #ifdef DEBUG
+    printf("The direction of magnetic field is ok.\n");
+  #endif
+  /*****************************************
+  *  assign grid2d to phi[idx_phim] plane  *
+  ******************************************/
+  assign_2D_to_3D_tor_slice(grid2d, grid3d, idx_phim, phim);
+  
+  #ifdef DEBUG
+    printf("Assign grid2d to Toroidal %d (0-base) slice to grid3d\n",idx_phim);
+  #endif
+
+  /***********************************************************
+  *  Generate the grid from phi[idx_phim-1] plane to phi[0]  *
+  ************************************************************/
+  TwoDimGrid* grid2d_tmp=create_2Dgrid_radial_major(np,nr);
+  restore_3D_mag_direction(func);
+  for(int i=idx_phim-1;i>-1;i--) //i is index!
+  {
+    generate_2Dgrid_tracing(grid2d, phim, grid2d_tmp, phi[i], func, solver);
+    assign_2D_to_3D_tor_slice(grid2d_tmp, grid3d, i, phi[i]);
+    #ifdef DEBUG
+      printf("Assign grid2d to Toroidal %d (0-base) slice to grid3d\n",i);
+    #endif
+  }
+
+  #ifdef DEBUG
+    printf("Finish the grid3d from phi[%d] plane to phi[%d]\n",idx_phim-1,0);
+  #endif
+  /*************************************************************
+  *  Generate the grid from phi[idx_phim+1] plane to phi[nt-1] *
+  *************************************************************/
+  reverse_3D_mag_direction(func);
+  for(int i=idx_phim+1;i<nt;i++) //i is index!
+  {
+    generate_2Dgrid_tracing(grid2d, phim, grid2d_tmp, phi[i], func, solver);
+    assign_2D_to_3D_tor_slice(grid2d_tmp, grid3d, i, phi[i]);
+    #ifdef DEBUG
+      printf("Assign grid2d to Toroidal %d (0-base) slice to grid3d\n",i);
+    #endif
+  }
+
+  #ifdef DEBUG
+    printf("Finish the grid3d from phi[%d] plane to phi[%d]\n",idx_phim+1,nt-1);
+  #endif
+
+  free_2Dgrid(grid2d_tmp);
+}
+
+void write_EMC3_3Dgrid_to_XYZ_CSYS(ThreeDimGrid* g, char* filename)
+{
+  if (!filename || !g) 
+  {
+    fprintf(stderr, "Error: NULL input to write_EMC3_3Dgrid_to_XYZ_CSYS.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  FILE *fp = fopen(filename, "w");
+  if (!fp) 
+  {
+    fprintf(stderr, "Error: cannot open file \"%s\" \n",filename);
+    exit(EXIT_FAILURE);
+  }
+  int np=g->npol;
+  int nr=g->nrad;
+  int nt=g->ntor;
+  fprintf(fp, "# %d %d %d %s\n",np, nr, nt,
+         (g->opt_direction == GRID_3D_OPTIMIZE_RPT) ? "GRID_3D_OPTIMIZE_RPT" : "GRID_3D_OPTIMIZE_PRT");
+
+  for(int it=0; it<nt; it++)
+  {
+    double phi=get_phi_3Dgrid(g,0,0,it);
+    fprintf(fp, "# PHI %d %.12f\n",it, phi);
+    for(int ip=0; ip<np; ip++)
+    {
+      for(int ir=0; ir<nr; ir++)
+      {
+        double r=get_r_3Dgrid(g,ip,ir,it);
+        //The Z from RZPHI_CSYS is same with XYZ_CSYS.
+        double z=get_z_3Dgrid(g,ip,ir,it);
+        double x=r * cos(deg2rad(phi));
+        double y=r * sin(deg2rad(phi));
+        fprintf(fp, "%.12f %.12f %.12f\n", x, y, z);
+      }
+    }
+  }
+  fclose(fp);
+}
+
+void write_EMC3_3Dgrid_to_EMC3_format(ThreeDimGrid* g, char* filename)
+{
+  if (!filename || !g) 
+  {
+    fprintf(stderr, "Error: NULL input to write_EMC3_3Dgrid_to_XYZ_CSYS.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  FILE *fp = fopen(filename, "w");
+  if (!fp) 
+  {
+    fprintf(stderr, "Error: cannot open file \"%s\" \n",filename);
+    exit(EXIT_FAILURE);
+  }
+  int np=g->npol;
+  int nr=g->nrad;
+  int nt=g->ntor;
+  fprintf(fp, "%10d%10d%10d\n",nr, np, nt);
+  for(int it=0; it<nt; it++)
+  {
+    double phi=get_phi_3Dgrid(g,0,0,it);
+    fprintf(fp, "%15.8f\n",phi);
+    for(int ip=0; ip<np; ip++)
+    {
+      for(int ir=0; ir<nr; ir++)
+      {
+        double r=get_r_3Dgrid(g,ip,ir,it);
+        fprintf(fp, "%.15e\n", r);
+      }
+    }
+    for(int ip=0; ip<np; ip++)
+    {
+      for(int ir=0; ir<nr; ir++)
+      {
+        double z=get_z_3Dgrid(g,ip,ir,it);
+        fprintf(fp, "%.15e\n", z);
+      }
+    }
+  }
+  fclose(fp);
 }

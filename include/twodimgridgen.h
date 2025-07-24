@@ -1,4 +1,4 @@
-#ifndef TWODIMGRIDdGEN_H
+#ifndef TWODIMGIRDGEN_H
 #define TWODIMGIRDGEN_H
 
 #include "gridzoneinfo.h"
@@ -165,6 +165,10 @@ void generate_CARRE_2Dgrid_default(TwoDimGrid* grid,
 * Following are used for EMC3 2D grid
 */
 
+void calc_nfirst_nlast(double phim, int nphi, double* phi, int* nfirst_ptr, int* nlast_ptr);
+void restore_3D_mag_direction(ode_function* func);
+void reverse_3D_mag_direction(ode_function* func);
+
 /*
 update the SepDist and PolSegmsInfo by phim, nphi and array phi.
 phim is the toroidal position which is the poloidal section of 3D grid.
@@ -176,6 +180,7 @@ These positions are deciced by magnetic field line tracing, can not change in th
 These points are decided by phim and phi array.
 Here we don't assume phi is uniformly distribution, but phim must be in the phi array.
 the unit of phi is degree not radian.
+polseg and sepdist is on the phim PHI-plane.
 */
 void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDistStr* sepdist,
                                                    ode_function* func,ode_solver* solver,
@@ -186,6 +191,7 @@ void update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(PolSegmsInfo *polseg, SepDist
 //phim, nphi and array phi will decided the nfirst and nlast. 
 //the first nfirst+1 and the laast nlast+1 are decided by line tracing and fixed. 
 //!!!We don't check magnetic field direction in this function. (TO DO)
+//grid&gridzone is on the phim PHI-plane.
 void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
                                    GridZone* gridzone,
                                    ode_function* func,
@@ -196,6 +202,7 @@ void generate_EMC3_2Dgrid_default(TwoDimGrid* grid,
 //The EMC3_2DBASEGRID is expand at the inner and outer targets.
 //This is because there are grid points out of inner and outer targets in the 2DBASEGRID.
 //The gridpoints will be used for magnetic field line tracing to the 3DBASEGRID.
+////grid is on the phim PHI-plane.
 void expand_target_EMC3_2Dgrid_default(TwoDimGrid* grid,
                                        ode_function* func,
                                        ode_solver* solver,
@@ -204,12 +211,13 @@ void expand_target_EMC3_2Dgrid_default(TwoDimGrid* grid,
 
 // Update grid2 by tracing field lines from the points in grid1.
 // The tracing proceeds from phi1 (the phi plane of grid1) to phi2 (the phi plane of grid2).
-void generate_2Dgrid_tracing(TwoDimGrid* grid1, double phi1, 
+void generate_2Dgrid_tracing(const TwoDimGrid* grid1, double phi1, 
                               TwoDimGrid* grid2, double phi2, 
                               ode_function* func,
                               ode_solver* solver);
 
 
-
-
+//The unit of phi is degree NOT radian.
+//Given a phi, the 2D grid RZ will be converted to XYZ coordinate system (CSYS).
+void write_2Dgrid_RZCSYS_to_XYZCSYS(const TwoDimGrid* grid, double phi, char* filename);
 #endif

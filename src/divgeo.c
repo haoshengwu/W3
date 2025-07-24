@@ -13,7 +13,7 @@
 
 #define TGUARD1 0.1
 #define TGUARD2 0.1
-#define PASMIN 1.0E-3
+#define PASMIN 4.0E-3
 
 
 

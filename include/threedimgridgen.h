@@ -1,4 +1,4 @@
-#ifndef THREEDIMGRIDdGEN_H
+#ifndef THREEDIMGIRDGEN_H
 #define THREEDIMGIRDGEN_H
 
 #include "gridzoneinfo.h"
@@ -14,8 +14,9 @@
 #include <stdbool.h>
 
 
+//THE GridPoint3D IS BASED ON R-Z-Phi coordinate system
 typedef struct {
-    double x, y, z;  // Physical coordinates of a Grid point
+    double r, z, phi;  // Physical coordinates of a Grid point
 } GridPoint3D;
 
 
@@ -88,24 +89,39 @@ ThreeDimGrid* create_3Dgrid_optimized_for(int npol, int nrad, int ntor, Grid3DOp
  */
 void free_3Dgrid(ThreeDimGrid* grid);
 
-
+//  ip,ir,it are index
 //  Get pointer to grid point
 GridPoint3D* get_point_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it);
 
-//  Get x coordinate
-double get_x_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it);
+//  Get r coordinate
+double get_r_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it);
 
-//  Get y coordinate
-double get_y_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it);
-
-//  Get Z coordinate
+//  Get z coordinate
 double get_z_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it);
 
-//  Set x y and z coordinate
-void set_point_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double x, double y, double z);
+//  Get phi coordinate
+double get_phi_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it);
+
+//  Set r z and phi coordinate
+void set_point_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double r, double z, double phi);
 
 // assign the 2dgrid to the slice of a 3dgrid. it is the toroidal index.
-void assign_2D_to_3d_tor_slice(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, int it);
+void assign_2D_to_3D_tor_slice(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, int it, double phim);
+
+//generate the EMC3 (R-Z-Phi CSYS) 3D GRID based on the 2D GRID through magnetic field line tracing.
+//The grid2d is one the phim PHI-plane.
+//The grid3d is from phi[0] to phi[nphi-1].
+void generate_EMC3_3Dgrid_from_2Dgrid_tracing(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, 
+                                              double phim, int nphi, double* phi,  
+                                              ode_function* func,ode_solver* solver);
+
+
+//Write the EMC3 3D grid to XYZ Coordinate System
+void write_EMC3_3Dgrid_to_XYZ_CSYS(ThreeDimGrid* grid3d, char* filename);
+
+//Write the EMC3 3D grid to EMC3 required format which is Rad-Pol-Tor order.
+//EMC3 3D grid is GRID_3D_OPTIMIZE_RPT rad-pol-tor order (ir fastest, then ip, then it)
+void write_EMC3_3Dgrid_to_EMC3_format(ThreeDimGrid* g, char* filename);
 #endif
 
 

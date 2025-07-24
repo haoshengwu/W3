@@ -15,7 +15,10 @@
 
 /* ========== Numerical Constants ========== */
 #define MAX_NUM_TRACING 40000 
-#define NRELAX 5000
+#define NRELAX 3000
+
+#define PI 3.14159265358979323846
+
 
 /* ========== Precision Settings ========== */
 #define EPSILON 1.0E-12
@@ -24,6 +27,10 @@
 #define DEFAULT_POL_MARGIN 20
 #define DEFAULT_RAD_MARGIN 20
 #define DEFAULT_TOR_MARGIN 0
+
+
+//for the inner and outer lege, the original resolution minus nlast/nfirst should larger than MIN_RESOLTUTION
+#define MIN_RESOLTUTION 5
 
 #define GRID_ALIGNMENT 32
 
