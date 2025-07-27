@@ -14,10 +14,30 @@
 
 
 /* ========== Numerical Constants ========== */
+#define PI 3.14159265358979323846
+
+
+/* ========== 2D GRID GENERATION ========== */
+
+//FROM DIVGEO&CARRE:
+//
+#define TGT_GUARD_HEAD 0.16
+#define TGT_GUARD_TAIL 0.16
+
+#define PASMIN_CORE 1.0E-3
+// #define PASMIN_SOL 1.0E-3 //High resolution
+#define PASMIN_SOL 4.0E-3 //Low resolution
+
+
+//#define PASMIN_SOL 2.0E-3 //High resolution
+#define PASMIN_PFR 1.0E-3//Low resolution
+
+
 #define MAX_NUM_TRACING 40000 
 #define NRELAX 3000
 
-#define PI 3.14159265358979323846
+
+
 
 
 /* ========== Precision Settings ========== */

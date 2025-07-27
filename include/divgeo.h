@@ -1,6 +1,7 @@
 #ifndef DIVGEO_H
 #define DIVGEO_H
 
+#include "config.h"
 #include "gridzoneinfo.h"
 #include "separatrix.h"
 #include "equilibrium.h"

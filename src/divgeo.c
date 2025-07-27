@@ -11,9 +11,7 @@
 #define MAX_ITER_DG 1000
 #define EPSILON_DG 5.0E-7
 
-#define TGUARD1 0.1
-#define TGUARD2 0.1
-#define PASMIN 4.0E-3
+
 
 
 
@@ -1206,6 +1204,7 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
 
   double guard_top;
   double guard_end;
+  double pasmin;
  
   if (strcmp(trg->topo, "SNL") == 0) 
   {
@@ -1214,20 +1213,23 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
     if (index == 0) 
     {
       change_name(&(gridzoneinfo->name), "SOLGRIDZONEINFO");
-      guard_top=TGUARD1;
-      guard_end=TGUARD2;
+      guard_top=TGT_GUARD_HEAD;
+      guard_end=TGT_GUARD_TAIL;
+      pasmin = PASMIN_SOL;
     } 
     else if (index == 1) 
     {
       change_name(&(gridzoneinfo->name), "PFRGRIDZONEINFO");
-      guard_top=TGUARD1;
-      guard_end=TGUARD2;
+      guard_top=TGT_GUARD_HEAD;
+      guard_end=TGT_GUARD_TAIL;
+      pasmin = PASMIN_PFR;
     } 
     else if (index == 2) 
     {
       change_name(&(gridzoneinfo->name), "COREGRIDZONEINFO");
       guard_top=0.0;
       guard_end=0.0;
+      pasmin = PASMIN_CORE;
     } 
     else 
     {
@@ -1253,7 +1255,7 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
   {
     gridzoneinfo->guard_start[i] = guard_top;
     gridzoneinfo->guard_end[i] = guard_end;
-    gridzoneinfo->pasmin[i] = PASMIN;
+    gridzoneinfo->pasmin[i] = pasmin;
   }
 
   // === Setup poloidal segments ===

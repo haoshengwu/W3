@@ -1,5 +1,6 @@
 #include "test.h"
 #include "w3lib.h"
+#include <time.h>
 
 // Test module
 void separatrix_test()
@@ -478,10 +479,10 @@ void divgeo_test()
   int xpt_n = 2;
   double **est_xpt = allocate_2d_array(xpt_n,2);
   est_xpt[0][0] = 1.85;
-  est_xpt[0][1] = -1.16;
+  est_xpt[0][1] = -1.28;
 
-  est_xpt[1][0] = 1.58;
-  est_xpt[1][1] = 1.61;
+  est_xpt[1][0] = 1.43;
+  est_xpt[1][1] = 2.24;
 
   interpl_2D_1f interpl_2D_1f = cubicherm2d1f;
   interpl_2D_2f interpl_2D_2f = cubicherm2d2f;
@@ -559,7 +560,7 @@ void divgeo_test()
   }
 
   write_sn_gridzoneinfo_from_dgtrg(trg, &dtt_example, sep, gradpsilines);
-  
+
 
 
 /***********************************************
@@ -790,10 +791,10 @@ void ThreeDimMeshGeneration_test()
   int xpt_n = 2;
   double **est_xpt = allocate_2d_array(xpt_n,2);
   est_xpt[0][0] = 1.85;
-  est_xpt[0][1] = -1.16;
+  est_xpt[0][1] = -1.28;
 
-  est_xpt[1][0] = 1.58;
-  est_xpt[1][1] = 1.61;
+  est_xpt[1][0] = 1.43;
+  est_xpt[1][1] = 2.24;
 
   interpl_2D_1f interpl_2D_1f = cubicherm2d1f;
   interpl_2D_2f interpl_2D_2f = cubicherm2d2f;
@@ -858,11 +859,33 @@ void ThreeDimMeshGeneration_test()
   generate_gradpsiline_bytracing(gradpsilines, gradpsi, opoint, sep, NULL, &ode_func, &brk45_solver);
 
 /***********************************************
+*   0. Create GridZoneInfo and polseginfo
+***********************************************/
+
+  // char* trgname="example.trg";
+  // DivGeoTrg* trg=create_dgtrg();
+  // int status=load_dgtrg_from_file(trg, trgname);
+
+  // //because the is numeric error of psi in X-point.
+  // //The psi of strike point may not identical with X-point.
+  // //Make them the same
+  // for(int i=0; i<3; i++)
+  // {
+  //   trg->regions[i]->level[0]=xpt_array[1].level;
+  // }
+
+  // write_sn_gridzoneinfo_from_dgtrg(trg, &dtt_example, sep, gradpsilines);
+
+/***********************************************
 *   1. Read input of GridZoneInfo
 ***********************************************/
   GridZoneInfo* solgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_SOL");
   GridZoneInfo* pfrgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_PFR");
   GridZoneInfo* coregzinfo=load_GridZoneInfo_from_input("gridzoneinfo_CORE");
+
+  print_GridZoneInfo(solgzinfo);
+  print_GridZoneInfo(pfrgzinfo);
+  print_GridZoneInfo(coregzinfo);
 
 /***********************************************
 *   2. Read input of polsegminfo
@@ -901,16 +924,19 @@ void ThreeDimMeshGeneration_test()
    Toroidal phi defintion
   ==================================*/
   int nphi=13;
-  double delta=5.0;
+  double delta=5;
   const int idx_mid=nphi/2;
 
 
   double *phi=malloc(nphi*sizeof(double));
-  phi[0]=0.0;
+  phi[0]=10.0;
   for(int i=1;i<nphi;i++)
   {
     phi[i]=phi[i-1]+delta;
   }
+  // phi[4]=30;
+  // phi[5]=32;
+  // phi[6]=34;
 
   update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(polseginfo, sepdist, &ode_func, &brk45_solver,
                                                 phi[idx_mid], nphi, phi);
@@ -927,13 +953,13 @@ void ThreeDimMeshGeneration_test()
   generate_EMC3_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
 
   TwoDimGrid* pfr2dgrid=create_2Dgrid_poloidal_major(pfrgz->first_gridpoint_curve->n_point, pfrgz->nr);
-  // generate_EMC3_2Dgrid_default(pfr2dgrid, pfrgz, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
+  generate_EMC3_2Dgrid_default(pfr2dgrid, pfrgz, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
 
   //Becaure full about CORE GRIDZONE
   TwoDimGrid* core2dgrid=create_2Dgrid_poloidal_major(coregz->first_gridpoint_curve->n_point, coregz->nr);
-  // ode_func.ndim=2;
-  // generate_CARRE_2Dgrid_default(core2dgrid, coregz, &ode_func, &brk45_solver);
-  // ode_func.ndim=3;
+  ode_func.ndim=2;
+  generate_CARRE_2Dgrid_default(core2dgrid, coregz, &ode_func, &brk45_solver);
+  ode_func.ndim=3;
 
 //   write_curve("sol_gz_c",solgz->first_bnd_curve);
 //   write_curve("sol_gz_gpc",solgz->first_gridpoint_curve);
@@ -948,48 +974,65 @@ void ThreeDimMeshGeneration_test()
 *   6. Expand the 2D basegrid                 *
 ***********************************************/
   TwoDimGrid* sol2dgrid_exptgt=load_2Dgrid_from_file("SOLGRIDZONEINFO_3D_2DBASEGRID");
+  TwoDimGrid* pfr2dgrid_exptgt=load_2Dgrid_from_file("PFRGRIDZONEINFO_3D_2DBASEGRID");
 
   expand_target_EMC3_2Dgrid_default(sol2dgrid_exptgt, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
   write_2Dgrid(sol2dgrid_exptgt,"SOLGRIDZONEINFO_3D_2DEXPTGT");
  
+  expand_target_EMC3_2Dgrid_default(pfr2dgrid_exptgt, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
+  write_2Dgrid(pfr2dgrid_exptgt,"PFRGRIDZONEINFO_3D_2DEXPTGT");
 
 /**********************************************
 *   7. generate EMC3 3D GRID                  *
 ***********************************************/
   TwoDimGrid* grid_tmp1=create_2Dgrid_poloidal_major(sol2dgrid_exptgt->npol, sol2dgrid_exptgt->nrad);
-  // TwoDimGrid* grid_tmp2=create_2Dgrid_poloidal_major(pfr2dgrid_exptgt->npol, pfr2dgrid_exptgt->nrad);
-  // TwoDimGrid* grid_tmp3=create_2Dgrid_poloidal_major(core2dgrid->npol, core2dgrid->nrad);
+  TwoDimGrid* grid_tmp2=create_2Dgrid_poloidal_major(pfr2dgrid_exptgt->npol, pfr2dgrid_exptgt->nrad);
+  TwoDimGrid* grid_tmp3=create_2Dgrid_poloidal_major(core2dgrid->npol, core2dgrid->nrad);
+
+
+  // restore_3D_mag_direction(&ode_func);
+  // for(int i=0;i<1;i++)
+  // {
+  //   char name_tmp[32];
+  //   int m = 1+(i+1);
+  //   sprintf(name_tmp,"SOL_3D_%i",m);
+  //   generate_2Dgrid_tracing(sol2dgrid_exptgt, phi[idx_mid], grid_tmp1, phi[m], &ode_func, &brk45_solver);
+  //   write_2Dgrid_RZCSYS_to_XYZCSYS(grid_tmp1, phi[m], name_tmp);
+  // }
+
+  // char name_tmp[32];
+  // sprintf(name_tmp,"SOL_3D_1"); 
+  // write_2Dgrid_RZCSYS_to_XYZCSYS(sol2dgrid_exptgt, phi[idx_mid], name_tmp);
+
+  // restore_3D_mag_direction(&ode_func);
+  // for(int i=0;i<1;i++)
+  // {
+  //   char name_tmp[32];
+  //   int m = 1-(i+1);
+  //   sprintf(name_tmp,"SOL_3D_%i",m);
+  //   generate_2Dgrid_tracing(sol2dgrid_exptgt, phi[idx_mid], grid_tmp1, phi[m], &ode_func, &brk45_solver);
+  //   write_2Dgrid_RZCSYS_to_XYZCSYS(grid_tmp1, phi[m], name_tmp);
+  // }
 
 
   restore_3D_mag_direction(&ode_func);
-  for(int i=0;i<1;i++)
-  {
-    char name_tmp[32];
-    int m = 1+(i+1);
-    sprintf(name_tmp,"SOL_3D_%i",m);
-    generate_2Dgrid_tracing(sol2dgrid_exptgt, phi[idx_mid], grid_tmp1, phi[m], &ode_func, &brk45_solver);
-    write_2Dgrid_RZCSYS_to_XYZCSYS(grid_tmp1, phi[m], name_tmp);
-  }
-
-  char name_tmp[32];
-  sprintf(name_tmp,"SOL_3D_1"); 
-  write_2Dgrid_RZCSYS_to_XYZCSYS(sol2dgrid_exptgt, phi[idx_mid], name_tmp);
-
-  restore_3D_mag_direction(&ode_func);
-  for(int i=0;i<1;i++)
-  {
-    char name_tmp[32];
-    int m = 1-(i+1);
-    sprintf(name_tmp,"SOL_3D_%i",m);
-    generate_2Dgrid_tracing(sol2dgrid_exptgt, phi[idx_mid], grid_tmp1, phi[m], &ode_func, &brk45_solver);
-    write_2Dgrid_RZCSYS_to_XYZCSYS(grid_tmp1, phi[m], name_tmp);
-  }
-  
   ThreeDimGrid* sol3dgrid=create_3Dgrid_radial_major(sol2dgrid_exptgt->npol,sol2dgrid_exptgt->nrad,nphi);
-  
+  ThreeDimGrid* pfr3dgrid=create_3Dgrid_radial_major(pfr2dgrid_exptgt->npol,pfr2dgrid_exptgt->nrad,nphi);
+  ThreeDimGrid* core3dgrid=create_3Dgrid_radial_major(core2dgrid->npol,core2dgrid->nrad,nphi);
+
   generate_EMC3_3Dgrid_from_2Dgrid_tracing(sol2dgrid_exptgt, sol3dgrid, phi[idx_mid], nphi, phi, &ode_func, &brk45_solver);
+  generate_EMC3_3Dgrid_from_2Dgrid_tracing(pfr2dgrid_exptgt, pfr3dgrid, phi[idx_mid], nphi, phi, &ode_func, &brk45_solver);
+  generate_EMC3_3Dgrid_from_2Dgrid_tracing(core2dgrid, core3dgrid, phi[idx_mid], nphi, phi, &ode_func, &brk45_solver);
+
+
   write_EMC3_3Dgrid_to_XYZ_CSYS(sol3dgrid,"EMC3_3DGRID_SOL");
-  write_EMC3_3Dgrid_to_EMC3_format(sol3dgrid,"grid3D.dat");
+  write_EMC3_3Dgrid_to_EMC3_format(sol3dgrid,"grid3D_SOL.dat");
+
+  write_EMC3_3Dgrid_to_XYZ_CSYS(core3dgrid,"EMC3_3DGRID_CORE");
+  write_EMC3_3Dgrid_to_EMC3_format(core3dgrid,"grid3D_CORE.dat");
+
+  write_EMC3_3Dgrid_to_XYZ_CSYS(pfr3dgrid,"EMC3_3DGRID_PFR");
+  write_EMC3_3Dgrid_to_EMC3_format(pfr3dgrid,"grid3D_PFR.dat");
   
 /**********************************************
 *   8. Free space                             *
@@ -997,15 +1040,14 @@ void ThreeDimMeshGeneration_test()
   free(phi);
   free_3Dgrid(sol3dgrid);
   free_2Dgrid(grid_tmp1);
-  // free_2Dgrid(grid_tmp2);
-  // free_2Dgrid(grid_tmp3);
+  free_2Dgrid(grid_tmp2);
+  free_2Dgrid(grid_tmp3);
 
   free_2Dgrid(sol2dgrid_exptgt);
-  // free_2Dgrid(pfr2dgrid_exptgt);
+  free_2Dgrid(pfr2dgrid_exptgt);
 
 
   free_2Dgrid(sol2dgrid);
-  free_2Dgrid(pfr2dgrid);
   free_2Dgrid(core2dgrid);
 
   
@@ -1018,6 +1060,7 @@ void ThreeDimMeshGeneration_test()
   free_GridZoneInfo(&coregzinfo);
 
   free_PolSegmsInfo(polseginfo);
+
 
   free_SepDistStr(sepdist);
   free_gradpsiline_default(gradpsilines);
