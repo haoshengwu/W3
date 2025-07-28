@@ -476,18 +476,16 @@ void divgeo_test()
   print_equilibrium(&dtt_example);
 
 
-  int xpt_n = 2;
+  int xpt_n = 1;
   double **est_xpt = allocate_2d_array(xpt_n,2);
-  est_xpt[0][0] = 1.85;
-  est_xpt[0][1] = -1.28;
+  est_xpt[0][0] = 1.86;
+  est_xpt[0][1] = -1.16;
 
-  est_xpt[1][0] = 1.43;
-  est_xpt[1][1] = 2.24;
 
   interpl_2D_1f interpl_2D_1f = cubicherm2d1f;
   interpl_2D_2f interpl_2D_2f = cubicherm2d2f;
 
-  _XPointInfo xpt_array[2];
+  _XPointInfo xpt_array[1];
 
   find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_2D_1f, interpl_2D_2f, xpt_array);
 
@@ -526,7 +524,7 @@ void divgeo_test()
   brk45_solver.initialize(&brk45_data);
 
   SeparatrixStr* sep=init_separatrix_default();
-  generate_separatrix_bytracing(sep, &xpt_array[1], &dtt_example,&test_magfield, interp,&ode_func, &brk45_solver);
+  generate_separatrix_bytracing(sep, &xpt_array[0], &dtt_example,&test_magfield, interp,&ode_func, &brk45_solver);
   
   GradPsiStr *gradpsi=init_grad_psi();
   calc_grad_psi(&dtt_example, gradpsi, central_diff_2nd_2d);
@@ -542,7 +540,7 @@ void divgeo_test()
   //Create a opoint structure
   OPointStr* opoint = create_opoint();
   opoint->centerX=2.27;
-  opoint->centerY=0.187;
+  opoint->centerY=0.18;
   
   generate_gradpsiline_bytracing(gradpsilines, gradpsi, opoint, sep, NULL, &ode_func, &brk45_solver);
 
@@ -788,18 +786,16 @@ void ThreeDimMeshGeneration_test()
   print_equilibrium(&dtt_example);
 
 
-  int xpt_n = 2;
+  int xpt_n = 1;
   double **est_xpt = allocate_2d_array(xpt_n,2);
-  est_xpt[0][0] = 1.85;
-  est_xpt[0][1] = -1.28;
+  est_xpt[0][0] = 1.86;
+  est_xpt[0][1] = -1.16;
 
-  est_xpt[1][0] = 1.43;
-  est_xpt[1][1] = 2.24;
 
   interpl_2D_1f interpl_2D_1f = cubicherm2d1f;
   interpl_2D_2f interpl_2D_2f = cubicherm2d2f;
 
-  _XPointInfo xpt_array[2];
+  _XPointInfo xpt_array[1];
 
   find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_2D_1f, interpl_2D_2f, xpt_array);
 
@@ -838,7 +834,7 @@ void ThreeDimMeshGeneration_test()
   brk45_solver.initialize(&brk45_data);
 
   SeparatrixStr* sep=init_separatrix_default();
-  generate_separatrix_bytracing(sep, &xpt_array[1], &dtt_example,&test_magfield, interp,&ode_func, &brk45_solver);
+  generate_separatrix_bytracing(sep, &xpt_array[0], &dtt_example,&test_magfield, interp,&ode_func, &brk45_solver);
   
   GradPsiStr *gradpsi=init_grad_psi();
   calc_grad_psi(&dtt_example, gradpsi, central_diff_2nd_2d);
@@ -854,7 +850,7 @@ void ThreeDimMeshGeneration_test()
   //Create a opoint structure
   OPointStr* opoint = create_opoint();
   opoint->centerX=2.27;
-  opoint->centerY=0.187;
+  opoint->centerY=0.18;
   
   generate_gradpsiline_bytracing(gradpsilines, gradpsi, opoint, sep, NULL, &ode_func, &brk45_solver);
 
@@ -923,8 +919,8 @@ void ThreeDimMeshGeneration_test()
   /*=================================
    Toroidal phi defintion
   ==================================*/
-  int nphi=13;
-  double delta=5;
+  int nphi=11;
+  double delta=2;
   const int idx_mid=nphi/2;
 
 
@@ -1073,4 +1069,276 @@ void ThreeDimMeshGeneration_test()
   free_2d_array(est_xpt);
   free_mag_field_torsys(&test_magfield);
   free_equilibrium(&dtt_example);
+}
+
+
+
+void EMC3_3D_grid_generation_test()
+{
+/**************************
+*  Read W3 Configuration  *
+**************************/ 
+  W3Config W3config;
+  load_w3_config("w3.ini",&W3config);
+  print_w3_config(&W3config);
+  // ConfigData raw_config = {0};
+  // parse_config_file("w3.ini",&raw_config);
+  // print_config_data(&raw_config);
+  printf("Press Enter to continue...");
+  getchar();
+  printf("Program continues...\n");
+  
+
+  InputPara w3_input;
+  init_inputpara(&w3_input);
+  print_inputpara(&w3_input);
+  Equilibrium dtt_example;
+  init_equilibrium(&dtt_example);
+  read_equilib_geqdsk(&dtt_example,w3_input.equilibrium_file);
+  correct_direction_lower_divertor(&dtt_example);
+  print_equilibrium(&dtt_example);
+  int xpt_n = W3config.grid2d_config.xpoint_number;
+  double **est_xpt = allocate_2d_array(xpt_n,2);
+  est_xpt[0][0] = W3config.grid2d_config.xpoint_r_est[xpt_n-1];
+  est_xpt[0][1] = W3config.grid2d_config.xpoint_z_est[xpt_n-1];
+
+  interpl_2D_1f interpl_2D_1f = cubicherm2d1f;
+  interpl_2D_2f interpl_2D_2f = cubicherm2d2f;
+
+  _XPointInfo xpt_array[1];
+  find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_2D_1f, interpl_2D_2f, xpt_array);
+
+  MagFieldTorSys test_magfield;
+  init_mag_field_torsys(&test_magfield);
+  char* method = "central_4th";
+  calc_mag_field_torsys(&dtt_example, &test_magfield, method);
+
+
+//build the interpolator; x_tmp,fx_tmp, dfdx_tmp are nothing realted to x or y. 
+
+  Interp1DFunction* interp=create_cubicherm1D_interp(NULL, NULL, NULL, 2);
+
+/************************************************
+*  Build the tracer for generation separatrix   *
+************************************************/ 
+  double direction[3]={1.0,1.0,1.0};
+  RKSolverData brk45_data;
+
+  double stepsize = 0.1;
+
+  ode_function ode_func = {
+    .ndim = 2,
+    .data = &test_magfield,
+    .rescale = direction,
+    .compute_f = ode_f_brz_torsys_cubicherm,
+  };
+  ode_solver brk45_solver =
+  {
+    .step_size = stepsize,
+    .solver_data = &brk45_data,
+    .next_step = brk5_next_step,
+    .initialize = brk5_initialize,
+    .finalize = brk5_finalize
+  };
+  brk45_solver.initialize(&brk45_data);
+
+  SeparatrixStr* sep=init_separatrix_default();
+  generate_separatrix_bytracing(sep, &xpt_array[0], &dtt_example,&test_magfield, interp,&ode_func, &brk45_solver);
+  
+  GradPsiStr *gradpsi=init_grad_psi();
+  calc_grad_psi(&dtt_example, gradpsi, central_diff_2nd_2d);
+  char name[32]="gradpsi";
+  write_grad_psi(gradpsi, name);
+
+// change the odf function for gradpsi line tracing
+  ode_func.compute_f=ode_f_gradpsi_cubicherm;
+  ode_func.data=gradpsi;
+
+  GradPsiLineStr* gradpsilines=init_gradpsiline_default();
+  
+  //Create a opoint structure
+  OPointStr* opoint = create_opoint();
+  opoint->centerX=2.27;
+  opoint->centerY=0.18;
+  
+  generate_gradpsiline_bytracing(gradpsilines, gradpsi, opoint, sep, NULL, &ode_func, &brk45_solver);
+
+
+  char* trgname="example.trg";
+  DivGeoTrg* trg=create_dgtrg();
+  int status=load_dgtrg_from_file(trg, trgname);
+
+/***********************************************
+*   Update trg regions(psi valuse)
+***********************************************/
+  for(int i=0; i<3; i++)
+  {
+    trg->regions[i]->level[0]=xpt_array[1].level;
+  }
+
+  write_sn_gridzoneinfo_from_dgtrg(trg, &dtt_example, sep, gradpsilines);
+
+  write_polsegms_from_dgtrg(trg,"polseginfo");
+
+
+/***********************************************
+*   1. Read input of GridZoneInfo
+***********************************************/
+  GridZoneInfo* solgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_SOL");
+  GridZoneInfo* pfrgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_PFR");
+  GridZoneInfo* coregzinfo=load_GridZoneInfo_from_input("gridzoneinfo_CORE");
+
+  print_GridZoneInfo(solgzinfo);
+  print_GridZoneInfo(pfrgzinfo);
+  print_GridZoneInfo(coregzinfo);
+
+/***********************************************
+*   2. Read input of polsegminfo
+***********************************************/
+  PolSegmsInfo* polseginfo=read_PolSegmsInfo_from_file("polseginfo");
+
+
+
+
+/***********************************************
+*   3. Create separatrix distribution
+***********************************************/
+  SepDistStr* sepdist=create_SepDistStr_from_sep(sep);
+  update_sn_SepDistStr_from_GridZoneInfo(sepdist,solgzinfo);
+  update_sn_SepDistStr_from_PolSegmsInfo(sepdist,polseginfo);
+  update_SepDistStr_gridpoint_curve(sepdist);
+  int idx=sepdist->index[0];
+  write_curve("gridpoint_curve0", sepdist->edges[idx]->gridpoint_curve);
+  idx=sepdist->index[1];
+  write_curve("gridpoint_curve1", sepdist->edges[idx]->gridpoint_curve);
+  idx=sepdist->index[2];
+  write_curve("gridpoint_curve2", sepdist->edges[idx]->gridpoint_curve);
+
+
+
+/***********************************************
+*   4. Update polseparatrix distribution 
+***********************************************/
+  ode_func.compute_f=ode_f_brz_torsys_cubicherm;
+  ode_func.data=&test_magfield;
+  ode_func.ndim=3;
+
+  /*=================================
+   Toroidal phi defintion
+  ==================================*/
+  int nphi=11;
+  double delta=2;
+  const int idx_mid=nphi/2;
+
+
+  double *phi=malloc(nphi*sizeof(double));
+  phi[0]=10.0;
+  for(int i=1;i<nphi;i++)
+  {
+    phi[i]=phi[i-1]+delta;
+  }
+  // phi[4]=30;
+  // phi[5]=32;
+  // phi[6]=34;
+
+  update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(polseginfo, sepdist, &ode_func, &brk45_solver,
+                                                phi[idx_mid], nphi, phi);
+  write_PolSegmsInfo(polseginfo, "polseginfo_3DGRID");
+
+
+/***********************************************
+*   5. Create gridzone and 2D basegrid
+***********************************************/
+  GridZone* solgz=create_sn_CARRE2D_GridZone(solgzinfo, sepdist);
+  GridZone* pfrgz=create_sn_CARRE2D_GridZone(pfrgzinfo, sepdist);
+  GridZone* coregz=create_sn_CARRE2D_GridZone(coregzinfo, sepdist);
+
+  TwoDimGrid* sol2dgrid=create_2Dgrid_poloidal_major(solgz->first_gridpoint_curve->n_point, solgz->nr);
+  generate_EMC3_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
+
+  TwoDimGrid* pfr2dgrid=create_2Dgrid_poloidal_major(pfrgz->first_gridpoint_curve->n_point, pfrgz->nr);
+  generate_EMC3_2Dgrid_default(pfr2dgrid, pfrgz, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
+
+  //Becaure full about CORE GRIDZONE
+  TwoDimGrid* core2dgrid=create_2Dgrid_poloidal_major(coregz->first_gridpoint_curve->n_point, coregz->nr);
+  ode_func.ndim=2;
+  generate_CARRE_2Dgrid_default(core2dgrid, coregz, &ode_func, &brk45_solver);
+  ode_func.ndim=3;
+
+/**********************************************
+*   6. Expand the 2D basegrid                 *
+***********************************************/
+  TwoDimGrid* sol2dgrid_exptgt=load_2Dgrid_from_file("SOLGRIDZONEINFO_3D_2DBASEGRID");
+  TwoDimGrid* pfr2dgrid_exptgt=load_2Dgrid_from_file("PFRGRIDZONEINFO_3D_2DBASEGRID");
+
+  expand_target_EMC3_2Dgrid_default(sol2dgrid_exptgt, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
+  write_2Dgrid(sol2dgrid_exptgt,"SOLGRIDZONEINFO_3D_2DEXPTGT");
+ 
+  expand_target_EMC3_2Dgrid_default(pfr2dgrid_exptgt, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
+  write_2Dgrid(pfr2dgrid_exptgt,"PFRGRIDZONEINFO_3D_2DEXPTGT");
+
+/**********************************************
+*   7. generate EMC3 3D GRID                  *
+***********************************************/
+  TwoDimGrid* grid_tmp1=create_2Dgrid_poloidal_major(sol2dgrid_exptgt->npol, sol2dgrid_exptgt->nrad);
+  TwoDimGrid* grid_tmp2=create_2Dgrid_poloidal_major(pfr2dgrid_exptgt->npol, pfr2dgrid_exptgt->nrad);
+  TwoDimGrid* grid_tmp3=create_2Dgrid_poloidal_major(core2dgrid->npol, core2dgrid->nrad);
+
+  restore_3D_mag_direction(&ode_func);
+  ThreeDimGrid* sol3dgrid=create_3Dgrid_radial_major(sol2dgrid_exptgt->npol,sol2dgrid_exptgt->nrad,nphi);
+  ThreeDimGrid* pfr3dgrid=create_3Dgrid_radial_major(pfr2dgrid_exptgt->npol,pfr2dgrid_exptgt->nrad,nphi);
+  ThreeDimGrid* core3dgrid=create_3Dgrid_radial_major(core2dgrid->npol,core2dgrid->nrad,nphi);
+
+  generate_EMC3_3Dgrid_from_2Dgrid_tracing(sol2dgrid_exptgt, sol3dgrid, phi[idx_mid], nphi, phi, &ode_func, &brk45_solver);
+  generate_EMC3_3Dgrid_from_2Dgrid_tracing(pfr2dgrid_exptgt, pfr3dgrid, phi[idx_mid], nphi, phi, &ode_func, &brk45_solver);
+  generate_EMC3_3Dgrid_from_2Dgrid_tracing(core2dgrid, core3dgrid, phi[idx_mid], nphi, phi, &ode_func, &brk45_solver);
+
+
+  write_EMC3_3Dgrid_to_XYZ_CSYS(sol3dgrid,"EMC3_3DGRID_SOL");
+  write_EMC3_3Dgrid_to_EMC3_format(sol3dgrid,"grid3D_SOL.dat");
+
+  write_EMC3_3Dgrid_to_XYZ_CSYS(core3dgrid,"EMC3_3DGRID_CORE");
+  write_EMC3_3Dgrid_to_EMC3_format(core3dgrid,"grid3D_CORE.dat");
+
+  write_EMC3_3Dgrid_to_XYZ_CSYS(pfr3dgrid,"EMC3_3DGRID_PFR");
+  write_EMC3_3Dgrid_to_EMC3_format(pfr3dgrid,"grid3D_PFR.dat");
+
+
+/**********************************************
+*   8. Free space                             *
+***********************************************/
+  free(phi);
+  free_3Dgrid(sol3dgrid);
+  free_2Dgrid(grid_tmp1);
+  free_2Dgrid(grid_tmp2);
+  free_2Dgrid(grid_tmp3);
+
+  free_2Dgrid(sol2dgrid_exptgt);
+  free_2Dgrid(pfr2dgrid_exptgt);
+
+  free_2Dgrid(sol2dgrid);
+  free_2Dgrid(core2dgrid);
+
+  free_GridZone(solgz);
+  free_GridZone(pfrgz);
+  free_GridZone(coregz);
+
+  free_PolSegmsInfo(polseginfo);
+  free_GridZoneInfo(&solgzinfo);
+  free_GridZoneInfo(&pfrgzinfo);
+  free_GridZoneInfo(&coregzinfo);
+
+  free_dgtrg(trg);
+  free_SepDistStr(sepdist);
+  free_gradpsiline_default(gradpsilines);
+  free_grad_psi(gradpsi);
+  free_separatrix_default(sep);
+
+  free_opoint(opoint);
+  brk5_finalize(&brk45_data);
+  free_interp1d_function(interp);
+  free_2d_array(est_xpt);
+  free_mag_field_torsys(&test_magfield);
+  free_equilibrium(&dtt_example);
+
 }

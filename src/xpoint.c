@@ -51,7 +51,7 @@ void find_xpoint(Equilibrium *equilib, int xpoint_number, double **est_xpoint_po
   xpC = malloc(sizeof(*xpC));
 //  xp = malloc(sizeof(*xp));
 
-  for (s = 1; s < 3; s++)
+  for (s = 2; s < 3; s++)
   {
     for (i = 1; i < equilib->nw - 1 - s; i++)
     {
@@ -390,8 +390,8 @@ static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double 
                     magfield.Brz, &Br, &Bz, NULL, NULL, NULL);
     
     L2norm = sqrt(pow(Br,2.0) + pow(Bz,2.0));
-    printf("x: %.12f y: %.12f L2norm: %.12f\n", x, y, L2norm);
-    printf("Br: %.12f Bz: %.12f\n", Br, Bz);
+    // printf("x: %.12f y: %.12f L2norm: %.12f\n", x, y, L2norm);
+    // printf("Br: %.12f Bz: %.12f\n", Br, Bz);
     if(L2norm < TOLERANCE)
     {
       xpt_array[i].centerX = x_start;
@@ -423,9 +423,9 @@ static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double 
                   magfield.Brz, &Br, &Bz, NULL, NULL, NULL);
     
       L2norm = sqrt(pow(Br,2.0) + pow(Bz,2.0));
-      //printf("iter: %d\n", iter);
-      //printf("x: %.12f y: %.12f L2norm: %.12f\n", x, y, L2norm);
-      //printf("Br: %.12f Bz: %.12f\n", Br, Bz);
+      // printf("iter: %d\n", iter);
+      // printf("x: %.12f y: %.12f L2norm: %.12f\n", x, y, L2norm);
+      // printf("Br: %.12f Bz: %.12f\n", Br, Bz);
 
       //printf("dfdx: %.12f dfdy: %.12f\n", dBrdx, dBrdy);
 

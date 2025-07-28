@@ -42,14 +42,14 @@ typedef struct {
   double sibry;  //poloidal flux at the plasma boundary [Weber/rad].
   double rcenter; //R in meter of vacuum toroidal magnetic field BCENTR
   double bcenter; //Vacuum toroidal magnetic field in Tesla at RCENTR
+  //O-point
+  double rmaxis; //R of magnetic axis in meter
+  double zmaxis; //Z of magnetic axis in meter
   double *r, *z;    //  R and Z coordinates, dynamic arrays [m].
   double **psi;      //  Psi value, dynamic arrays [m].
 
   int Xpoint_num;    //number of X-point, [need to be update]
   double Xpoint_pos[2];
-
-  int Opoint_num;    //number of X-point, [need to be update]
-  double Opoint_pos[2];
 
   double minVal;
   double maxVal;

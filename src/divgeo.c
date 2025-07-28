@@ -9,7 +9,9 @@
 #include "polsegminfo.h"
 
 #define MAX_ITER_DG 1000
-#define EPSILON_DG 5.0E-7
+#define EPSILON_DG 1.0E-6
+
+#define DELTA_PSI 5.0E-5
 
 
 
@@ -549,8 +551,8 @@ static void cal_points_from_psi(double *psi,double *r, double *z, int n,
   interp2d1f(end->r,end->z, equ->nw, equ->r, equ->nh, equ->z, equ->psi, &psi_tail, NULL, NULL, NULL);
   printf("DEBUG psi_head %.15f psi_tail %.15f\n", psi_head, psi_tail);
 
-  if((psi[0]>psi_head-1.0E-6&&psi[0]<psi_tail+1.0E-6) 
-      ||(psi[0]<psi_head+1.0E-6&&psi[0]>psi_tail-1.0E-6))
+  if((psi[0]>psi_head-DELTA_PSI&&psi[0]<psi_tail+DELTA_PSI) 
+      ||(psi[0]<psi_head+DELTA_PSI&&psi[0]>psi_tail-DELTA_PSI))
   {
     printf("psi[0] %.15fis in the range psi_head %.15f psi_tail %.15f with delta %.15f\n", psi[0], psi_head, psi_tail ,EPSILON_DG);
   }
@@ -560,8 +562,8 @@ static void cal_points_from_psi(double *psi,double *r, double *z, int n,
     exit(EXIT_FAILURE);
   }
 
-  if((psi[n-1]>psi_head-1.0E-6&&psi[n-1]<psi_tail+1.0E-6) 
-      ||(psi[n-1]<psi_head+1.0E-6&&psi[n-1]>psi_tail-1.0E-6))
+  if((psi[n-1]>psi_head-DELTA_PSI&&psi[n-1]<psi_tail+DELTA_PSI) 
+      ||(psi[n-1]<psi_head+DELTA_PSI&&psi[n-1]>psi_tail-DELTA_PSI))
   {
     printf("psi[n-1] %.15f is in the range psi_head %.15f psi_tail %.15f with delta %.15f\n", psi[n-1], psi_head, psi_tail,EPSILON_DG);
   }

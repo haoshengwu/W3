@@ -36,10 +36,6 @@
 #define MAX_NUM_TRACING 40000 
 #define NRELAX 3000
 
-
-
-
-
 /* ========== Precision Settings ========== */
 #define EPSILON 1.0E-12
 

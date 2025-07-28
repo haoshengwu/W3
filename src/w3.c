@@ -13,10 +13,13 @@ Contact: haosheng.wu@polito.it
 
 int main(){
   
-  printf("Welcome to W3!\n");
-  
-  printf("If there is problem, please conatact haosheng.wu@polito.it\n");
-  
+  printf("---------------------------------------------------\n");
+  printf("-             W3 Mesh Generator v1.0              -\n");
+  printf("---------------------------------------------------\n");
+  printf("-      Copyright (c) 2025 Haosheng Wu             -\n");
+  printf("-           All rights reserved.                  -\n");
+  printf("-      Contact: haosheng.wu@polito.it             -\n");
+  printf("---------------------------------------------------\n\n");
 
 //**********Test one line of the separatrix tracing**********************/
   // DLListNode* line_list=NULL;
@@ -197,7 +200,7 @@ test magnetic field line calculation
 /*****************************************************
 *  Verify divgeo
 ******************************************************/
-  divgeo_test();
+  // divgeo_test();
 
 /*****************************************************
 *  Verify 2D carre grid generation 
@@ -207,7 +210,13 @@ test magnetic field line calculation
 /*****************************************************
 *  Verify 3D carre grid generation 
 ******************************************************/
-  ThreeDimMeshGeneration_test();
+  // ThreeDimMeshGeneration_test();
   
+
+/*****************************************************
+*  Generation EMC3 3D GRID FROM SCRATCH
+******************************************************/
+  EMC3_3D_grid_generation_test();
+
   return 0;
 }

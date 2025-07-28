@@ -46,6 +46,8 @@ void init_equilibrium(Equilibrium *equilib)
   equilib->sibry = 0;
   equilib->rcenter = 0;
   equilib->bcenter = 0;
+  equilib->rmaxis = 0;
+  equilib->zmaxis = 0;
   equilib->r = NULL;
   equilib->z = NULL;
   equilib->psi = NULL;
@@ -53,9 +55,6 @@ void init_equilibrium(Equilibrium *equilib)
   equilib->Xpoint_num = 0;
   equilib->Xpoint_pos[0] = 0;
   equilib->Xpoint_pos[1] = 0;
-  equilib->Opoint_num = 0;
-  equilib->Opoint_pos[0] = 0;
-  equilib->Opoint_pos[1] = 0;
 
   equilib->minVal = 0;
   equilib->maxVal = 0;
@@ -67,7 +66,7 @@ void print_equilibrium(const Equilibrium *equilib)
   printf("nw: %i, nh: %i\n", equilib->nw, equilib->nh);
   printf("poloidal flux at magnetic axis is %.8lf Weber/rad\n", equilib->simag);
   printf("poloidal flux at the plasma boundary is %.8lf Weber/rad\n", equilib->sibry);
-
+  printf("O-Point is the magnetic axis R Z: %.12f %.12f\n",equilib->rmaxis, equilib->zmaxis);
   // print part of equilibrirum value to check
   // for (int i = 0; i < 5; i++)
   // {
@@ -112,6 +111,8 @@ void read_equilib_geqdsk(Equilibrium *equilib, const char *geqdsk_file)
   equilib->sibry = sibry;
   equilib->bcenter = bcentr;
   equilib->rcenter = rcentr;
+  equilib->rmaxis = rmaxis;
+  equilib->zmaxis = zmaxis;
 
   // skip fpol, pres, ffprim, pprime, total number is 4 * nw, will be updated.
   for (int i = 0; i < 4 * nw; i++)
