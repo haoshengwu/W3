@@ -1,6 +1,7 @@
 #ifndef DIVGEO_H
 #define DIVGEO_H
 
+#include "input.h"
 #include "config.h"
 #include "gridzoneinfo.h"
 #include "separatrix.h"
@@ -84,12 +85,12 @@ TargetDLListCurve* create_target_curve_from_dgtrg(DivGeoTrg* trg, int n);
 //From here it is already related with topology
 //TOPOLOGY NEED TO BE CONSIDERED
 void write_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep);
-void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradspsilines);
+void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradspsilines, Grid2DConfig* g2d_config);
 
 void free_dgtrg(DivGeoTrg* trg);
 
 //update an exist GridZoneInfo by DivGeoTrg, index means the regions/zons in DivGeoTrg
-void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, int index);
+void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, int index, Grid2DConfig* g2d_config);
 
 //update the start points in an exist GridZoneInfo by DivGeoTrg with r and z
 void update_GridZoneInfo_start_points(GridZoneInfo* gridzoneinfo, double* r, double* z, int n_point);

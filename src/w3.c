@@ -14,7 +14,7 @@ Contact: haosheng.wu@polito.it
 int main(){
   
   printf("---------------------------------------------------\n");
-  printf("-             W3 Mesh Generator v1.0              -\n");
+  printf("-             W3 Mesh Generator v0.1              -\n");
   printf("---------------------------------------------------\n");
   printf("-      Copyright (c) 2025 Haosheng Wu             -\n");
   printf("-           All rights reserved.                  -\n");

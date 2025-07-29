@@ -866,7 +866,7 @@ static void change_name(char **name, const char *str)
 //     return new_head;
 // }
 
-void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradpsilines)
+void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, SeparatrixStr* sep, GradPsiLineStr* gradpsilines, Grid2DConfig* g2d_config)
 {
   
   printf("Begion to create inputfils from DivGeo trg file.\n");
@@ -890,9 +890,9 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
   GridZoneInfo* pfrgzinfo=allocate_GridZoneInfo();
   GridZoneInfo* coregzinfo=allocate_GridZoneInfo();
 
-  update_GridZoneInfo_from_dgtrg(solgzinfo, trg, 0);
-  update_GridZoneInfo_from_dgtrg(pfrgzinfo, trg, 1);
-  update_GridZoneInfo_from_dgtrg(coregzinfo, trg, 2);
+  update_GridZoneInfo_from_dgtrg(solgzinfo, trg, 0, g2d_config);
+  update_GridZoneInfo_from_dgtrg(pfrgzinfo, trg, 1, g2d_config);
+  update_GridZoneInfo_from_dgtrg(coregzinfo, trg, 2, g2d_config);
 
 /***********************************************
 *    STEP1 create TargetDLListCurve
@@ -1194,7 +1194,7 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
 }
 
 
-void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, int index)
+void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, int index, Grid2DConfig* g2d_config)
 {
   if (!gridzoneinfo || !trg) 
   {
@@ -1204,9 +1204,9 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
 
   change_name(&(gridzoneinfo->topo), trg->topo);
 
-  double guard_top;
-  double guard_end;
-  double pasmin;
+  double guard_start=g2d_config->guard_len_head[index];
+  double guard_end=g2d_config->guard_len_tail[index];
+  double pasmin=g2d_config->pasmin[index];
  
   if (strcmp(trg->topo, "SNL") == 0) 
   {
@@ -1215,23 +1215,14 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
     if (index == 0) 
     {
       change_name(&(gridzoneinfo->name), "SOLGRIDZONEINFO");
-      guard_top=TGT_GUARD_HEAD;
-      guard_end=TGT_GUARD_TAIL;
-      pasmin = PASMIN_SOL;
     } 
     else if (index == 1) 
     {
       change_name(&(gridzoneinfo->name), "PFRGRIDZONEINFO");
-      guard_top=TGT_GUARD_HEAD;
-      guard_end=TGT_GUARD_TAIL;
-      pasmin = PASMIN_PFR;
     } 
     else if (index == 2) 
     {
       change_name(&(gridzoneinfo->name), "COREGRIDZONEINFO");
-      guard_top=0.0;
-      guard_end=0.0;
-      pasmin = PASMIN_CORE;
     } 
     else 
     {
@@ -1255,7 +1246,7 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
 
   for (int i = 0; i < nr; i++) 
   {
-    gridzoneinfo->guard_start[i] = guard_top;
+    gridzoneinfo->guard_start[i] = guard_start;
     gridzoneinfo->guard_end[i] = guard_end;
     gridzoneinfo->pasmin[i] = pasmin;
   }
@@ -1299,7 +1290,6 @@ void update_GridZoneInfo_from_dgtrg(GridZoneInfo* gridzoneinfo, DivGeoTrg* trg, 
       gridzoneinfo->segmidx1[1]=0;
       gridzoneinfo->reverse_segm1[0]=1;
       gridzoneinfo->reverse_segm1[1]=0;
-
     }
     else if (index == 2) 
     {  // CORE

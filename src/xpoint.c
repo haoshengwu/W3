@@ -15,7 +15,7 @@
 #endif
 
 #ifndef TOLERANCE
-#define TOLERANCE 1.0E-3
+#define TOLERANCE 1.0E-5
 #endif
 
 
@@ -35,7 +35,8 @@ static int check_xpt_est_range(const Equilibrium *equilib, int xpoint_number, do
 static int check_xpt_levels(const Equilibrium *equilib,int cx1,int cy1,int cx2,int cy2,int x0,int y0,int bMinMax);
 static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos,
                                 interpl_2D_1f interpl_2D_1f, interpl_2D_2f interpl_2D_2f, _XPointInfo *xpt_array);
-
+static void calculate_xpt_level_test(Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos,
+                                     interpl_2D_1f interpl_2D_1f, interpl_2D_2f interpl_2D_2f, _XPointInfo *xpt_array);
 
 void find_xpoint(Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos, 
                  interpl_2D_1f interpl_2D_1f, interpl_2D_2f interpl_2D_2f, _XPointInfo *xpt_array)
@@ -112,7 +113,8 @@ void find_xpoint(Equilibrium *equilib, int xpoint_number, double **est_xpoint_po
     printf("Less xpionts are found. Please check the equilibriun/estimated xpoints positions\n");
     exit(1);
   }
-  calculate_xpt_level(equilib, xpoint_number, est_xpoint_pos, interpl_2D_1f, interpl_2D_2f, xpt_array);
+  calculate_xpt_level_test(equilib, xpoint_number, est_xpoint_pos, interpl_2D_1f, interpl_2D_2f, xpt_array);
+  // calculate_xpt_level(equilib, xpoint_number, est_xpoint_pos, interpl_2D_1f, interpl_2D_2f, xpt_array);
   printf("Finish find the X-points.\n");
   free(xpC);
   return;
@@ -472,3 +474,175 @@ static void calculate_xpt_level(Equilibrium *equilib, int xpoint_number, double 
   free_mag_field_torsys(&magfield);
 }
 
+static void calculate_xpt_level_test(Equilibrium *equilib, int xpoint_number, double **est_xpoint_pos,
+                                     interpl_2D_1f interpl_2D_1f, interpl_2D_2f interpl_2D_2f, _XPointInfo *xpt_array)
+{
+  MagFieldTorSys magfield;
+  init_mag_field_torsys(&magfield);
+  char* method = "central_4th";
+  calc_mag_field_torsys(equilib, &magfield, method);
+
+  for(int i = 0; i < xpoint_number; i++)
+  {
+    int cx1 = xpt_array[i].cx1;
+    int cy1 = xpt_array[i].cy1;
+    int cx2 = xpt_array[i].cx2;
+    int cy2 = xpt_array[i].cy2;
+    
+    double x_min = equilib->r[cx1];
+    double x_max = equilib->r[cx2];
+    double y_min = equilib->z[cy1];
+    double y_max = equilib->z[cy2];
+    double region_size = fmin(x_max - x_min, y_max - y_min);
+    #ifdef DEBUG
+      printf("Searching X-point %d in region: [%.12f,%.12f] x [%.12f,%.12f]\n", 
+           i, x_min, x_max, y_min, y_max);
+    #endif
+    
+    // ============================
+    // Step 1: Dense grid search to find minimum magnetic field point
+    // ============================
+    double best_x = x_min, best_y = y_min;
+    double min_B = 10.0;  // Reasonable initial value, 10 Tesla
+    
+    int nx = 30, ny = 30;  // 900 sampling points
+    for(int ix = 0; ix < nx; ix++) {
+      for(int iy = 0; iy < ny; iy++) {
+        double x = x_min + ix * (x_max - x_min) / (nx - 1);
+        double y = y_min + iy * (y_max - y_min) / (ny - 1);
+        
+        double Br, Bz;
+        interpl_2D_2f(x, y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+                      magfield.Brz, &Br, &Bz, NULL, NULL, NULL);
+        
+        double B_mag = sqrt(Br*Br + Bz*Bz);
+        if(B_mag < min_B) {
+          min_B = B_mag;
+          best_x = x;
+          best_y = y;
+        }
+      }
+    }
+    
+    printf("Grid search completed, minimum B point: (%.8f, %.8f), |B|=%.6e\n", 
+           best_x, best_y, min_B);
+    
+    // ============================  
+    // Step 2: Conservative gradient descent refinement
+    // ============================
+    double x = best_x, y = best_y;
+    double current_B = min_B;
+    
+    for(int iter = 0; iter < 50; iter++) {
+      // Calculate current magnetic field
+      double Br, Bz;
+      interpl_2D_2f(x, y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+                    magfield.Brz, &Br, &Bz, NULL, NULL, NULL);
+      
+      current_B = sqrt(Br*Br + Bz*Bz);
+      
+      // Check convergence
+      if(current_B < TOLERANCE) {
+        printf("Gradient descent converged in %d iterations, residual=%.6e\n", iter, current_B);
+        break;
+      }
+      
+      // Calculate gradient
+      double dBrdx, dBzdx, dBrdy, dBzdy;
+      interpl_2D_2f(x, y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+                    magfield.dBrzdx, &dBrdx, &dBzdx, NULL, NULL, NULL);
+      interpl_2D_2f(x, y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+                    magfield.dBrzdy, &dBrdy, &dBzdy, NULL, NULL, NULL);
+      
+      double grad_x = dBrdx + dBzdx;
+      double grad_y = dBrdy + dBzdy;
+      double grad_norm = sqrt(grad_x*grad_x + grad_y*grad_y);
+      
+      if(grad_norm < 1e-12) {
+        printf("Gradient is zero, stopping iteration\n");
+        break;
+      }
+      
+      // Conservative step size: 0.1% of region size
+      double step = 0.001 * region_size;
+      
+      // Calculate candidate new position
+      double new_x = x - step * grad_x / grad_norm;
+      double new_y = y - step * grad_y / grad_norm;
+      
+      // Boundary constraints
+      new_x = fmax(x_min, fmin(x_max, new_x));
+      new_y = fmax(y_min, fmin(y_max, new_y));
+      
+      // Verify if this step is effective (magnetic field decreases)
+      double new_Br, new_Bz;
+      interpl_2D_2f(new_x, new_y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+                    magfield.Brz, &new_Br, &new_Bz, NULL, NULL, NULL);
+      double new_B = sqrt(new_Br*new_Br + new_Bz*new_Bz);
+
+      if(iter % 5 == 0) 
+      {
+        printf("  iter %d: (%.12f, %.12f), |B|=%.12f\n", iter, x, y, new_B);
+      }
+
+      if(new_B < current_B) {
+        // Magnetic field decreased, accept this step
+        x = new_x;
+        y = new_y;
+      } else {
+        // Magnetic field increased, may be near convergence or step too large
+        step *= 0.5;
+        if(step < 1e-8 * region_size) {
+          printf("Step size too small, stopping iteration\n");
+          break;
+        }
+        continue;  // Retry with smaller step size
+      }
+    }
+    
+    // ============================
+    // Step 3: Validation and save results  
+    // ============================
+    
+    // Final verification
+    double final_Br, final_Bz;
+    interpl_2D_2f(x, y, equilib->nw, equilib->r, equilib->nh, equilib->z,
+                  magfield.Brz, &final_Br, &final_Bz, NULL, NULL, NULL);
+    double final_B = sqrt(final_Br*final_Br + final_Bz*final_Bz);
+    
+    if(final_B < TOLERANCE) {
+      printf("X-point search successful!\n");
+    } else {
+      printf("Not fully converged, but this is the best result\n");
+    }
+    
+    // Boundary check
+    if(x >= x_min && x <= x_max && y >= y_min && y <= y_max) {
+      printf("X-point is within specified range\n");
+    } else {
+      printf("Warning: X-point exceeds range\n");
+    }
+    
+    // Save results
+    xpt_array[i].centerX = x;
+    xpt_array[i].centerY = y;
+    
+    printf("X-point %d: (%.12f, %.12f), |B|=%.3e\n", 
+           i, x, y, final_B);
+    printf("--------------------------------------\n");
+  }
+  
+  // ============================
+  // Calculate psi level for each X-point
+  // ============================
+  for(int i = 0; i < xpoint_number; i++)
+  {
+    interpl_2D_1f(xpt_array[i].centerX, xpt_array[i].centerY, 
+                  equilib->nw, equilib->r, equilib->nh, equilib->z, equilib->psi,
+                  &(xpt_array[i].level), NULL, NULL, NULL);
+    
+    printf("X-point %d psi level = %.10f\n", i, xpt_array[i].level);
+  }
+
+  free_mag_field_torsys(&magfield);
+}

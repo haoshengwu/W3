@@ -466,20 +466,20 @@ void grad_psi_test()
 
 void divgeo_test()
 {
-
-  InputPara w3_input;
-  init_inputpara(&w3_input);
-  print_inputpara(&w3_input);
+  W3Config w3config;
+  load_w3_config("w3.ini",&w3config);
+  print_w3_config(&w3config);
+  
   Equilibrium dtt_example;
   init_equilibrium(&dtt_example);
-  read_equilib_geqdsk(&dtt_example,w3_input.equilibrium_file);
+  read_equilib_geqdsk(&dtt_example,w3config.file_config.geqdsk_file);
   print_equilibrium(&dtt_example);
 
 
-  int xpt_n = 1;
+  int xpt_n = w3config.grid2d_config.xpoint_number;
   double **est_xpt = allocate_2d_array(xpt_n,2);
-  est_xpt[0][0] = 1.86;
-  est_xpt[0][1] = -1.16;
+  est_xpt[0][0] = w3config.grid2d_config.xpoint_r_est[xpt_n-1];
+  est_xpt[0][1] = w3config.grid2d_config.xpoint_z_est[xpt_n-1];
 
 
   interpl_2D_1f interpl_2D_1f = cubicherm2d1f;
@@ -545,7 +545,7 @@ void divgeo_test()
   generate_gradpsiline_bytracing(gradpsilines, gradpsi, opoint, sep, NULL, &ode_func, &brk45_solver);
 
 
-  char* trgname="example.trg";
+  char* trgname=w3config.file_config.divgeo_trg_file;
   DivGeoTrg* trg=create_dgtrg();
   int status=load_dgtrg_from_file(trg, trgname);
 
@@ -557,7 +557,7 @@ void divgeo_test()
     trg->regions[i]->level[0]=xpt_array[1].level;
   }
 
-  write_sn_gridzoneinfo_from_dgtrg(trg, &dtt_example, sep, gradpsilines);
+  write_sn_gridzoneinfo_from_dgtrg(trg, &dtt_example, sep, gradpsilines, &w3config.grid2d_config);
 
 
 
@@ -1078,9 +1078,9 @@ void EMC3_3D_grid_generation_test()
 /**************************
 *  Read W3 Configuration  *
 **************************/ 
-  W3Config W3config;
-  load_w3_config("w3.ini",&W3config);
-  print_w3_config(&W3config);
+  W3Config w3config;
+  load_w3_config("w3.ini",&w3config);
+  print_w3_config(&w3config);
   // ConfigData raw_config = {0};
   // parse_config_file("w3.ini",&raw_config);
   // print_config_data(&raw_config);
@@ -1088,19 +1088,15 @@ void EMC3_3D_grid_generation_test()
   getchar();
   printf("Program continues...\n");
   
-
-  InputPara w3_input;
-  init_inputpara(&w3_input);
-  print_inputpara(&w3_input);
   Equilibrium dtt_example;
   init_equilibrium(&dtt_example);
-  read_equilib_geqdsk(&dtt_example,w3_input.equilibrium_file);
+  read_equilib_geqdsk(&dtt_example,w3config.file_config.geqdsk_file);
   correct_direction_lower_divertor(&dtt_example);
   print_equilibrium(&dtt_example);
-  int xpt_n = W3config.grid2d_config.xpoint_number;
+  int xpt_n = w3config.grid2d_config.xpoint_number;
   double **est_xpt = allocate_2d_array(xpt_n,2);
-  est_xpt[0][0] = W3config.grid2d_config.xpoint_r_est[xpt_n-1];
-  est_xpt[0][1] = W3config.grid2d_config.xpoint_z_est[xpt_n-1];
+  est_xpt[0][0] = w3config.grid2d_config.xpoint_r_est[xpt_n-1];
+  est_xpt[0][1] = w3config.grid2d_config.xpoint_z_est[xpt_n-1];
 
   interpl_2D_1f interpl_2D_1f = cubicherm2d1f;
   interpl_2D_2f interpl_2D_2f = cubicherm2d2f;
@@ -1108,6 +1104,11 @@ void EMC3_3D_grid_generation_test()
   _XPointInfo xpt_array[1];
   find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_2D_1f, interpl_2D_2f, xpt_array);
 
+  printf("Press Enter to continue...");
+  getchar();
+  printf("Program continues...\n");
+
+  
   MagFieldTorSys test_magfield;
   init_mag_field_torsys(&test_magfield);
   char* method = "central_4th";
@@ -1164,7 +1165,7 @@ void EMC3_3D_grid_generation_test()
   generate_gradpsiline_bytracing(gradpsilines, gradpsi, opoint, sep, NULL, &ode_func, &brk45_solver);
 
 
-  char* trgname="example.trg";
+  char* trgname=w3config.file_config.divgeo_trg_file;
   DivGeoTrg* trg=create_dgtrg();
   int status=load_dgtrg_from_file(trg, trgname);
 
@@ -1176,7 +1177,7 @@ void EMC3_3D_grid_generation_test()
     trg->regions[i]->level[0]=xpt_array[1].level;
   }
 
-  write_sn_gridzoneinfo_from_dgtrg(trg, &dtt_example, sep, gradpsilines);
+  write_sn_gridzoneinfo_from_dgtrg(trg, &dtt_example, sep, gradpsilines, &w3config.grid2d_config);
 
   write_polsegms_from_dgtrg(trg,"polseginfo");
 
