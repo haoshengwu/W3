@@ -107,6 +107,9 @@ TwoDimGrid* create_2Dgrid_radial_major(int npol, int nrad);
 //This version allocates the grid points array with 32-byte alignment.
 TwoDimGrid* create_2Dgrid_optimized_for(int npol, int nrad, GridOptimization opt);
 
+//Only used for core 2d grid that connect the first and last points in the poloidal direction
+void close_pol_first_last_2Dgrid(TwoDimGrid* grid);
+
 void free_2Dgrid(TwoDimGrid* grid);
 
 

@@ -373,6 +373,29 @@ TwoDimGrid* create_2Dgrid_optimized_for(int npol, int nrad, GridOptimization opt
     return grid;
 }
 
+void close_pol_first_last_2Dgrid(TwoDimGrid* grid)
+{
+  if (grid||grid->npol||grid->nrad) {
+    fprintf(stderr, "Error: Null inputs for connect_pol_2Dgrid.\n");
+    exit(EXIT_FAILURE);
+  }
+  int nr=grid->nrad;
+  int np=grid->npol;
+  for(int i=0; i<nr;i++)
+  {
+    double first_x=get_x_2Dgrid(grid,0,i);
+    double first_y=get_y_2Dgrid(grid,0,i);
+    double last_x=get_x_2Dgrid(grid,np-1,i);
+    double last_y=get_y_2Dgrid(grid,np-1,i);
+    if(fabs(first_x-last_x)>1.0E-3||
+       fabs(first_y-last_y)>1.0E-3)
+    {
+      printf("WARNING: the difference between the first and last points is larger than tolarence 1.0E-3\n");
+    }
+    set_point_2Dgrid(grid, np-1, i, first_x, last_y);
+  }
+}
+
 void free_2Dgrid(TwoDimGrid* grid)
 {
     if (!grid) return;

@@ -1264,6 +1264,7 @@ void EMC3_3D_grid_generation_test()
   TwoDimGrid* core2dgrid=create_2Dgrid_poloidal_major(coregz->first_gridpoint_curve->n_point, coregz->nr);
   ode_func.ndim=2;
   generate_CARRE_2Dgrid_default(core2dgrid, coregz, &ode_func, &brk45_solver);
+  close_pol_first_last_2Dgrid(core2dgrid);
   ode_func.ndim=3;
 
 /**********************************************
