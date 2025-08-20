@@ -38,6 +38,15 @@ typedef struct {
 // Create a new curve with initial capacity (default to 128 if zero)
 Curve* create_curve(size_t init_capacity);
 
+//get the X coordinate with the index idx. idx is 0-base
+double get_curve_x(Curve* c, size_t idx);
+
+//get the Y coordinate with the index idx. idx is 0-base
+double get_curve_y(Curve* c, size_t idx);
+
+//get the total number of points in the curve
+size_t get_curve_npt(Curve* c);
+
 // expand an exist curve with more size. The point position is NaN.
 void expand_curve_size_with_NaN(Curve* c, size_t size);
 
@@ -59,6 +68,9 @@ void print_curve(const Curve *c);
 
 Curve* copy_curve(Curve* c);
 
+//Convert a double linked list to a curve from head to tail
+Curve* convert_ddl_to_curve(DLListNode* head);
+
 //Deterime whether there is a intersection betwee segement1 (x1,y1----x2,y2) segement2 (x3,y3-----x4,y4)
 //Return 0 means has intersection, othwise 1.
 int has_intersection(double x1, double y1, double x2, double y2,
@@ -78,11 +90,12 @@ int get_intersection_point(double x1, double y1, double x2, double y2,
 //total length of the curve
 double total_length_curve(const Curve *c);
 
-//calcule the length until the i-th points of a curve.
+//calcule the length until the i-th points of a curve 1-based.
 //Coresponding to 'long_CARRE'
 double length_curve(Curve *c, size_t ith);
 
 //Coresponding to 'indcrb_CARRE'
+//use point and d to find the corespoding index of the curve
 int indcrb_curve(Curve* curve, CurvePoint* point, double d);
 
 //Coresponding to 'ruban_CARRE'

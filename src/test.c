@@ -1344,3 +1344,350 @@ void EMC3_3D_grid_generation_test()
   free_equilibrium(&dtt_example);
 
 }
+
+void Expanded_2D_grid_generation_test()
+{
+/**************************
+*  Read W3 Configuration  *
+**************************/ 
+  W3Config w3config;
+  load_w3_config("w3.ini",&w3config);
+  print_w3_config(&w3config);
+  // ConfigData raw_config = {0};
+  // parse_config_file("w3.ini",&raw_config);
+  // print_config_data(&raw_config);
+  printf("Press Enter to continue...");
+  getchar();
+  printf("Program continues...\n");
+  
+  Equilibrium dtt_example;
+  init_equilibrium(&dtt_example);
+  read_equilib_geqdsk(&dtt_example,w3config.file_config.geqdsk_file);
+  correct_direction_lower_divertor(&dtt_example);
+  print_equilibrium(&dtt_example);
+  int xpt_n = w3config.grid2d_config.xpoint_number;
+  double **est_xpt = allocate_2d_array(xpt_n,2);
+  est_xpt[0][0] = w3config.grid2d_config.xpoint_r_est[xpt_n-1];
+  est_xpt[0][1] = w3config.grid2d_config.xpoint_z_est[xpt_n-1];
+
+  interpl_2D_1f interpl_2D_1f = cubicherm2d1f;
+  interpl_2D_2f interpl_2D_2f = cubicherm2d2f;
+
+  _XPointInfo xpt_array[1];
+  find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_2D_1f, interpl_2D_2f, xpt_array);
+
+  printf("Press Enter to continue...");
+  getchar();
+  printf("Program continues...\n");
+
+  
+  MagFieldTorSys test_magfield;
+  init_mag_field_torsys(&test_magfield);
+  char* method = "central_4th";
+  calc_mag_field_torsys(&dtt_example, &test_magfield, method);
+
+
+//build the interpolator; x_tmp,fx_tmp, dfdx_tmp are nothing realted to x or y. 
+
+  Interp1DFunction* interp=create_cubicherm1D_interp(NULL, NULL, NULL, 2);
+
+/************************************************
+*  Build the tracer for generation separatrix   *
+************************************************/ 
+  double direction[3]={1.0,1.0,1.0};
+  RKSolverData brk45_data;
+
+  double stepsize = 0.1;
+
+  ode_function ode_func = {
+    .ndim = 2,
+    .data = &test_magfield,
+    .rescale = direction,
+    .compute_f = ode_f_brz_torsys_cubicherm,
+  };
+  ode_solver brk45_solver =
+  {
+    .step_size = stepsize,
+    .solver_data = &brk45_data,
+    .next_step = brk5_next_step,
+    .initialize = brk5_initialize,
+    .finalize = brk5_finalize
+  };
+  brk45_solver.initialize(&brk45_data);
+
+  SeparatrixStr* sep=init_separatrix_default();
+  generate_separatrix_bytracing(sep, &xpt_array[0], &dtt_example,&test_magfield, interp,&ode_func, &brk45_solver);
+  
+  GradPsiStr *gradpsi=init_grad_psi();
+  calc_grad_psi(&dtt_example, gradpsi, central_diff_2nd_2d);
+  char name[32]="gradpsi";
+  write_grad_psi(gradpsi, name);
+
+// change the odf function for gradpsi line tracing
+  ode_func.compute_f=ode_f_gradpsi_cubicherm;
+  ode_func.data=gradpsi;
+
+  GradPsiLineStr* gradpsilines=init_gradpsiline_default();
+  
+  //Create a opoint structure
+  OPointStr* opoint = create_opoint();
+  opoint->centerX=2.27;
+  opoint->centerY=0.18;
+  
+  generate_gradpsiline_bytracing(gradpsilines, gradpsi, opoint, sep, NULL, &ode_func, &brk45_solver);
+
+
+  char* trgname=w3config.file_config.divgeo_trg_file;
+  DivGeoTrg* trg=create_dgtrg();
+  int status=load_dgtrg_from_file(trg, trgname);
+
+/***********************************************
+*   Update trg regions(psi valuse)
+***********************************************/
+  for(int i=0; i<3; i++)
+  {
+    trg->regions[i]->level[0]=xpt_array[1].level;
+  }
+
+  write_sn_gridzoneinfo_from_dgtrg(trg, &dtt_example, sep, gradpsilines, &w3config.grid2d_config);
+
+  write_polsegms_from_dgtrg(trg,"polseginfo");
+
+
+/***********************************************
+*   1. Read input of GridZoneInfo
+***********************************************/
+  GridZoneInfo* solgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_SOL");
+  GridZoneInfo* pfrgzinfo=load_GridZoneInfo_from_input("gridzoneinfo_PFR");
+  GridZoneInfo* coregzinfo=load_GridZoneInfo_from_input("gridzoneinfo_CORE");
+
+  print_GridZoneInfo(solgzinfo);
+  print_GridZoneInfo(pfrgzinfo);
+  print_GridZoneInfo(coregzinfo);
+
+/***********************************************
+*   2. Read input of polsegminfo
+***********************************************/
+  PolSegmsInfo* polseginfo=read_PolSegmsInfo_from_file("polseginfo");
+
+/***********************************************
+*   3. Create separatrix distribution
+***********************************************/
+  SepDistStr* sepdist=create_SepDistStr_from_sep(sep);
+  update_sn_SepDistStr_from_GridZoneInfo(sepdist,solgzinfo);
+  update_sn_SepDistStr_from_PolSegmsInfo(sepdist,polseginfo);
+  update_SepDistStr_gridpoint_curve(sepdist);
+  int idx=sepdist->index[0];
+  write_curve("gridpoint_curve0", sepdist->edges[idx]->gridpoint_curve);
+  idx=sepdist->index[1];
+  write_curve("gridpoint_curve1", sepdist->edges[idx]->gridpoint_curve);
+  idx=sepdist->index[2];
+  write_curve("gridpoint_curve2", sepdist->edges[idx]->gridpoint_curve);
+
+
+
+/***********************************************
+*   4. Update polseparatrix distribution 
+***********************************************/
+  ode_func.compute_f=ode_f_brz_torsys_cubicherm;
+  ode_func.data=&test_magfield;
+  ode_func.ndim=3;
+
+  /*=================================
+   Toroidal phi defintion
+  ==================================*/
+  int nphi=11;
+  double delta=2;
+  const int idx_mid=nphi/2;
+
+
+  double *phi=malloc(nphi*sizeof(double));
+  phi[0]=10.0;
+  for(int i=1;i<nphi;i++)
+  {
+    phi[i]=phi[i-1]+delta;
+  }
+  // phi[4]=30;
+  // phi[5]=32;
+  // phi[6]=34;
+
+  update_sn_SepDistStr_PolSegmsInfo_EMC3_2Dgrid(polseginfo, sepdist, &ode_func, &brk45_solver,
+                                                phi[idx_mid], nphi, phi);
+  write_PolSegmsInfo(polseginfo, "polseginfo_3DGRID");
+
+
+/***********************************************
+*   5. Create gridzone and 2D basegrid
+***********************************************/
+  GridZone* solgz=create_sn_CARRE2D_GridZone(solgzinfo, sepdist);
+  GridZone* pfrgz=create_sn_CARRE2D_GridZone(pfrgzinfo, sepdist);
+
+  TwoDimGrid* sol2dgrid=create_2Dgrid_poloidal_major(solgz->first_gridpoint_curve->n_point, solgz->nr);
+  generate_EMC3_2Dgrid_default(sol2dgrid, solgz, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
+
+  TwoDimGrid* pfr2dgrid=create_2Dgrid_poloidal_major(pfrgz->first_gridpoint_curve->n_point, pfrgz->nr);
+  generate_EMC3_2Dgrid_default(pfr2dgrid, pfrgz, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
+
+
+/***********************************************
+*   6. Expand the SOL and PFR for neutral part
+***********************************************/
+
+  //6.1 build the four boundaries
+  DLListNode* sol_neu_top_ddl = load_DLList_from_file("SOL_neu_bnd");
+  
+  double r_tmp = get_x_2Dgrid(sol2dgrid, 0, sol2dgrid->nrad-1);
+  double z_tmp = get_y_2Dgrid(sol2dgrid, 0, sol2dgrid->nrad-1);
+  DLListNode* sol_neu_bottom_ddl = create_DLListNode(r_tmp, z_tmp);
+  DLListNode* tail_tmp = sol_neu_bottom_ddl;
+
+  for(int i = 1; i<sol2dgrid->npol;i++)
+  {
+    double r_tmp = get_x_2Dgrid(sol2dgrid, i, sol2dgrid->nrad-1);
+    double z_tmp = get_y_2Dgrid(sol2dgrid, i, sol2dgrid->nrad-1);
+    add_DLListnode_at_tail(&tail_tmp, r_tmp, z_tmp);
+  }
+
+  DLListNode* sol_neu_left_ddl = load_DLList_from_file("inner_targetcurve");
+  DLListNode* sol_neu_right_ddl = load_DLList_from_file("outer_targetcurve");
+
+  r_tmp = get_x_2Dgrid(sol2dgrid,  sol2dgrid->npol-1,sol2dgrid->nrad-1);
+  z_tmp = get_y_2Dgrid(sol2dgrid,  sol2dgrid->npol-1,sol2dgrid->nrad-1);
+
+  if(insert_point_for_DLList(sol_neu_right_ddl, r_tmp, z_tmp))
+  {
+    fprintf(stderr, "Unexpected error: the point is not in the outer target.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(cut_DLList_before_point(&sol_neu_right_ddl, r_tmp, z_tmp)==0)
+  {
+    fprintf(stderr, "Unexpected error: cannot cut the point in the outer target.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  r_tmp = get_x_2Dgrid(sol2dgrid, 0, sol2dgrid->nrad-1);
+  z_tmp = get_y_2Dgrid(sol2dgrid, 0, sol2dgrid->nrad-1);
+
+  if(insert_point_for_DLList(sol_neu_left_ddl, r_tmp, z_tmp))
+  {
+    fprintf(stderr, "Unexpected error: the point is not in the inner target.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(cut_DLList_before_point(&sol_neu_left_ddl, r_tmp, z_tmp)==0)
+  {
+    fprintf(stderr, "Unexpected error: cannot cut the point in the inner target.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  // write_DLList(sol_neu_top_ddl, "SOL_NEU_TOP_DDL");
+  // write_DLList(sol_neu_bottom_ddl, "SOL_NEU_BOTTOM_DDL");
+  // write_DLList(sol_neu_left_ddl, "SOL_NEU_LEFT_DDL");
+  // write_DLList(sol_neu_right_ddl, "SOL_NEU_RIGHT_DDL");
+
+  Curve* sol_neu_top_curve=convert_ddl_to_curve(sol_neu_top_ddl);
+  Curve* sol_neu_bottom_curve=convert_ddl_to_curve(sol_neu_bottom_ddl);
+  Curve* sol_neu_left_curve=convert_ddl_to_curve(sol_neu_left_ddl);
+  Curve* sol_neu_right_curve=convert_ddl_to_curve(sol_neu_right_ddl);
+
+  //6.2 build the normal distribution
+  int nbottom = 301;
+  int nleft=7;
+  
+  double* distrb_b=malloc((nbottom)*sizeof(double));
+  double* distrb_l=malloc((nleft)*sizeof(double));
+
+
+  for(int i=0; i<nbottom; i++)
+  {
+    distrb_b[i]=i*(1.0/(nbottom-1));
+  }
+
+  for(int i=0; i<nleft; i++)
+  {
+    distrb_l[i]=i*(1.0/(nleft-1));
+  }
+
+  distrb_b[0]=0.0;
+  distrb_l[0]=0.0;
+  distrb_b[nbottom-1]=1.0;
+  distrb_l[nleft-1]=1.0;
+  
+  write_array(distrb_b, nbottom, "distrb_b");
+  write_array(distrb_l, nleft, "distrb_l");
+  //6.3 build the sol_neu 2d grid
+
+  TwoDimGrid* sol_neu_2dgrid=create_2Dgrid_poloidal_major(nbottom, nleft);
+
+  generate_2Dgrid_default_TFI(sol_neu_2dgrid,
+                              sol_neu_bottom_curve, sol_neu_top_curve, sol_neu_left_curve, sol_neu_right_curve,
+                              distrb_b, nbottom,
+                              distrb_b, nbottom,
+                              distrb_l, nleft,
+                              distrb_l, nleft);
+
+  
+
+  write_2Dgrid(sol_neu_2dgrid, "SOL_NEU_2DBASE");
+
+  optimized_neu_2Dgrid(sol_neu_2dgrid);
+
+  write_2Dgrid(sol_neu_2dgrid, "SOL_NEU_2DBASE_OPT");
+  
+  //6.4 free memmory
+  free(distrb_b);
+  free(distrb_l);
+
+  free_DLList(sol_neu_top_ddl);
+  free_DLList(sol_neu_bottom_ddl);
+  free_DLList(sol_neu_left_ddl);
+  free_DLList(sol_neu_right_ddl);
+  
+  free_curve(sol_neu_top_curve);
+  free_curve(sol_neu_bottom_curve);
+  free_curve(sol_neu_left_curve);
+  free_curve(sol_neu_right_curve);
+
+  free_2Dgrid(sol_neu_2dgrid);
+
+/**********************************************
+*   8. Free space                             *
+***********************************************/
+  free(phi);
+  // free_3Dgrid(sol3dgrid);
+  // free_2Dgrid(grid_tmp1);
+  // free_2Dgrid(grid_tmp2);
+  // free_2Dgrid(grid_tmp3);
+
+  // free_2Dgrid(sol2dgrid_exptgt);
+  // free_2Dgrid(pfr2dgrid_exptgt);
+
+  free_2Dgrid(sol2dgrid);
+  free_2Dgrid(pfr2dgrid);
+
+  // free_2Dgrid(core2dgrid);
+
+  free_GridZone(solgz);
+  free_GridZone(pfrgz);
+  // free_GridZone(coregz);
+
+  free_PolSegmsInfo(polseginfo);
+  free_GridZoneInfo(&solgzinfo);
+  free_GridZoneInfo(&pfrgzinfo);
+  free_GridZoneInfo(&coregzinfo);
+
+  free_dgtrg(trg);
+  free_SepDistStr(sepdist);
+  free_gradpsiline_default(gradpsilines);
+  free_grad_psi(gradpsi);
+  free_separatrix_default(sep);
+
+  free_opoint(opoint);
+  brk5_finalize(&brk45_data);
+  free_interp1d_function(interp);
+  free_2d_array(est_xpt);
+  free_mag_field_torsys(&test_magfield);
+  free_equilibrium(&dtt_example);
+
+}

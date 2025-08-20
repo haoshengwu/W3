@@ -2601,7 +2601,7 @@ void generate_2Dgrid_tracing(const TwoDimGrid* grid1, double phi1,
       pt[0]=get_x_2Dgrid(grid1,ip,ir);
       pt[1]=get_y_2Dgrid(grid1,ip,ir);
       pt[2]=phi1;
-      if(fabs(pt[0])<EPSILON && fabs(pt[1])<EPSILON)
+      if(fabs(pt[0])<EPSILON_12 && fabs(pt[1])<EPSILON_12)
       {
         fprintf(stderr, "WARNING: The point is %.12f %.12f\n", pt[0], pt[1]);
       }

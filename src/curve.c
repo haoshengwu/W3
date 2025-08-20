@@ -74,6 +74,21 @@ Curve* create_curve(size_t init_capacity)
     return c;
 }
 
+double get_curve_x(Curve* c, size_t idx)
+{
+  return c->points[idx].x;
+}
+
+double get_curve_y(Curve* c, size_t idx)
+{
+  return c->points[idx].y;
+}
+
+size_t get_curve_npt(Curve* c)
+{
+  return c->n_point;
+}
+
 void expand_curve_size_with_NaN(Curve* c, size_t size)
 {
   if(!c||!size)
@@ -225,6 +240,33 @@ Curve* copy_curve(Curve* c)
     new_c->n_point = c->n_point;
   }
   return new_c;
+}
+
+
+Curve* convert_ddl_to_curve(DLListNode* head)
+{
+  if(!head)
+  {
+    fprintf(stderr, "Empty inputs for convert_ddl_to_curve.\n");
+    exit(EXIT_FAILURE);
+  }
+  Curve* curve = create_curve(0);
+  DLListNode* cur_node = head;
+  while(cur_node)
+  {
+    if(add_last_point_curve(curve, cur_node->r, cur_node->z)!=0)
+    {
+      fprintf(stderr, "Unexpected error: cannot add point to the curve in convert_ddl_to_curve\n");
+      exit(EXIT_FAILURE);
+    }
+    cur_node=cur_node->next;
+  }
+  if(curve->n_point<2)
+  {
+    fprintf(stderr, "The curve only has %zu point(s) in convert_ddl_to_curve\n", curve->n_point);
+    exit(EXIT_FAILURE);
+  }
+  return curve;
 }
 
 /* 2D cross product: (B - A) × (C - A) */

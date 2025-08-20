@@ -19,6 +19,10 @@ DLListNode;
 
 DLListNode* create_DLListNode(double r, double z);
 
+//get the DLList from the file
+DLListNode* load_DLList_from_file(const char* filename);
+
+
 // head is the head node of the double linked list
 void add_DLListnode_at_head(DLListNode** head_ref, double r, double z);
 
@@ -73,6 +77,7 @@ double total_length_DLList(DLListNode* head);
 
 // return 0: sucessfully insert the point
 // else return 1;
+//only work for the situation that the point is confirmed in the ddl line
 int insert_point_for_DLList(DLListNode* head, double r, double z);
 
 

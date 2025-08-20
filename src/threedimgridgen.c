@@ -181,7 +181,7 @@ void assign_2D_to_3D_tor_slice(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, i
     {
       double r = get_x_2Dgrid(grid2d,i,j);
       double z = get_y_2Dgrid(grid2d,i,j);
-      if(fabs(r)<EPSILON && fabs(z)<EPSILON)
+      if(fabs(r)<EPSILON_12 && fabs(z)<EPSILON_12)
       {
         printf("WARNING: The point is %.12f %.12f\n", r, z);
       }

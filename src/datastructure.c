@@ -7,7 +7,6 @@
 //************** Double linked list related ******************//
 DLListNode* create_DLListNode(double r, double z)
 {
-  
   DLListNode* new_node = malloc(sizeof(DLListNode));
   if (new_node == NULL){
     fprintf(stderr, "Cannot allocate DLListNode: Out of memory.\n");
@@ -20,6 +19,47 @@ DLListNode* create_DLListNode(double r, double z)
   new_node->next = NULL;
   return new_node;
 };
+
+DLListNode* load_DLList_from_file(const char* filename)
+{
+  FILE* fp=fopen(filename, "r");
+  if(!fp)
+  {
+    fprintf(stderr, "Cannot open the %s in load_DLList_from_file.\n", filename);
+    exit(EXIT_FAILURE);
+  }
+  double x,y;
+
+  //read first point
+  if (fscanf(fp, "%lf %lf", &x, &y) != 2) 
+  {
+    fprintf(stderr, "Empty file or invalid format in %s.\n", filename);
+    fclose(fp);
+    exit(EXIT_FAILURE);
+  }
+
+  DLListNode* head=create_DLListNode(x,y);
+  DLListNode* tail = head;
+
+  while (fscanf(fp, "%lf %lf", &x, &y) == 2) 
+  {
+    add_DLListnode_at_tail(&tail, x, y);
+  }
+  
+  if (!feof(fp)) 
+  {
+    fprintf(stderr, "Unexpected format in %s.\n", filename);
+    fclose(fp);
+    free_DLList(head);
+    exit(EXIT_FAILURE);
+  }
+  fclose(fp);
+  fprintf(stderr, "Successfully load DLList from %s.\n", filename);
+  
+  return head;
+}
+
+
 
 // head is the head of the double linked list
 void add_DLListnode_at_head(DLListNode** head_ref, double r, double z)
