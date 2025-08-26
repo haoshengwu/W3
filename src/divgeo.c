@@ -912,6 +912,16 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
 ***********************************************/
   sort_sep_gradpsiline_by_targetcurve(inner_tgt_curve, sep, gradpsilines);
 
+  //MANULLY CORRECT THE INDEX, ONLY TEMPERORY USE FOR SPARC SXD.
+  sep->index[0]=3;
+  sep->index[1]=0;
+  sep->index[2]=1;
+  sep->index[3]=2;
+
+  gradpsilines->index[0]=3;
+  gradpsilines->index[1]=0;
+  gradpsilines->index[2]=1;
+  gradpsilines->index[3]=2;
 /*************************************************
 *    STEP3 Create the target curve for SOL PFR and CORE
 *************************************************/
@@ -964,6 +974,13 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
   change_name_target_curve(sol_tgt_curve, "SOL");
 
   //create the core curve based on gradpsilines. 2 is the index[2]. The third line!
+  //The index of gridpsiline is bound to the index of separatrix
+  //DEBUG
+  printf("DEBUG sep->index[0] %d.\n",sep->index[0]);
+  printf("DEBUG sep->index[1] %d.\n",sep->index[1]);
+  printf("DEBUG sep->index[2] %d.\n",sep->index[2]);
+  printf("DEBUG sep->index[3] %d.\n",sep->index[3]);
+
   TargetDLListCurve* core_curve=create_core_curve_from_gradpsilines(gradpsilines, 2);
   change_name_target_curve(core_curve, "CORE");
 
@@ -988,40 +1005,64 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
   }
   if(check_curve_monotonic_psi(inner_tgt_curve->head, equ, cubicherm2d1f))
   {
-    fprintf(stderr, "Target Curve in not monotonic psi.\n");
+    fprintf(stderr, "Inner target Curve in not monotonic psi.\n");
     exit(EXIT_FAILURE);
   }
 
-  double *r_tmp=malloc(trg->regions[0]->n_level*sizeof(double));
-  double *z_tmp=malloc(trg->regions[0]->n_level*sizeof(double));
+  // SOL
+  double *r_tmp0=malloc(trg->regions[0]->n_level*sizeof(double));
+  double *z_tmp0=malloc(trg->regions[0]->n_level*sizeof(double));
 
-  r_tmp[0]=itsct_r_inner;
-  z_tmp[0]=itsct_z_inner;
+  r_tmp0[0]=itsct_r_inner;
+  z_tmp0[0]=itsct_z_inner;
 
-  cal_points_from_psi(trg->regions[0]->level, r_tmp, z_tmp, trg->regions[0]->n_level,
+  cal_points_from_psi(trg->regions[0]->level, r_tmp0, z_tmp0, trg->regions[0]->n_level,
                       sol_tgt_curve->head, equ, cubicherm2d1f, 1,0);
-  write_array2f(r_tmp,z_tmp,  trg->regions[0]->n_level, "SOL_start_point");
-  update_GridZoneInfo_start_points(solgzinfo, r_tmp, z_tmp, solgzinfo->nr);
+  write_array2f(r_tmp0,z_tmp0,  trg->regions[0]->n_level, "SOL_start_point");
+  update_GridZoneInfo_start_points(solgzinfo, r_tmp0, z_tmp0, solgzinfo->nr);
   write_array2f(solgzinfo->start_point_R, solgzinfo->start_point_Z, 
                        solgzinfo->nr,"SOLGR_RZ");
 
+  free(r_tmp0);
+  free(z_tmp0);
 
-  cal_points_from_psi(trg->regions[1]->level, r_tmp, z_tmp, trg->regions[1]->n_level,
+  // PFR
+  double *r_tmp1=malloc(trg->regions[1]->n_level*sizeof(double));
+  double *z_tmp1=malloc(trg->regions[1]->n_level*sizeof(double));
+
+  r_tmp1[0]=itsct_r_inner;
+  z_tmp1[0]=itsct_z_inner;
+
+  cal_points_from_psi(trg->regions[1]->level, r_tmp1, z_tmp1, trg->regions[1]->n_level,
                       inner_tgt_curve->head, equ, cubicherm2d1f, 1,0);
-  write_array2f(r_tmp,z_tmp,  trg->regions[0]->n_level, "PFR_start_point");
-  update_GridZoneInfo_start_points(pfrgzinfo, r_tmp, z_tmp, pfrgzinfo->nr);
+  write_array2f(r_tmp1,z_tmp1,  trg->regions[1]->n_level, "PFR_start_point");
+  update_GridZoneInfo_start_points(pfrgzinfo, r_tmp1, z_tmp1, pfrgzinfo->nr);
   write_array2f(pfrgzinfo->start_point_R, pfrgzinfo->start_point_Z, 
                        pfrgzinfo->nr,"PFRGR_RZ");
 
+  free(r_tmp1);
+  free(z_tmp1);
 
-  r_tmp[0]=gradpsilines->line_list[0]->r;
-  z_tmp[0]=gradpsilines->line_list[0]->z;
-  cal_points_from_psi(trg->regions[2]->level, r_tmp, z_tmp, trg->regions[2]->n_level,
+
+  // CORE 
+  double *r_tmp2=malloc(trg->regions[2]->n_level*sizeof(double));
+  double *z_tmp2=malloc(trg->regions[2]->n_level*sizeof(double));
+
+  //DEBUG
+  write_array(trg->regions[2]->level, trg->regions[2]->n_level, "DEBUG_CORE_PSI_ARRAY");
+
+  r_tmp2[0]=gradpsilines->line_list[gradpsilines->index[2]]->r;
+  z_tmp2[0]=gradpsilines->line_list[gradpsilines->index[2]]->z;
+  cal_points_from_psi(trg->regions[2]->level, r_tmp2, z_tmp2, trg->regions[2]->n_level,
                       core_curve->head, equ, cubicherm2d1f, 1,0);
-  write_array2f(r_tmp,z_tmp,  trg->regions[0]->n_level, "CORE_start_point");
-  update_GridZoneInfo_start_points(coregzinfo, r_tmp, z_tmp, coregzinfo->nr);
+
+  write_array2f(r_tmp2,z_tmp2,  trg->regions[2]->n_level, "CORE_start_point");
+  update_GridZoneInfo_start_points(coregzinfo, r_tmp2, z_tmp2, coregzinfo->nr);
   write_array2f(coregzinfo->start_point_R, coregzinfo->start_point_Z, 
                        coregzinfo->nr,"COREGR_RZ");
+
+  free(r_tmp2);
+  free(z_tmp2);
 
   //Use start points to update coregzinfo end curve;
   update_COREGridZoneInfo_start_curve(coregzinfo);
@@ -1162,8 +1203,7 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
 /*************************************************
 *    Free Memory 
 *************************************************/
-  free(r_tmp);
-  free(z_tmp);
+
   free_target_curve(inner_tgt_curve);
   free_target_curve(outer_tgt_curve);
 

@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
+#include "config.h"
 #include "carrefunction.h"
 #include "calc.h"
 
@@ -599,6 +600,29 @@ void free_equilibrium(Equilibrium *equilib)
   equilib->nh = 0;
 }
 
+void correct_psi_based_on_sibry(Equilibrium *equilib)
+{
+  if(!equilib)
+  {
+    fprintf(stderr,"Empty inputs for correct_psi_from_sibry.\n");
+    exit(EXIT_FAILURE);
+  }
+  if(fabs(equilib->sibry)<EPSILON_12)
+  {
+    printf("The psi at the boundary sibry = %.12f, psi is not need to be corrected.\n",equilib->sibry);
+  }
+  else
+  {
+    printf("The psi at the boundary sibry = %.12f, psi is corrected by the sibry\n",equilib->sibry);
+    for(int i=0;i<equilib->nw;i++)
+    {
+      for(int j=0;j<equilib->nh;j++)
+      {
+        equilib->psi[i][j]=equilib->psi[i][j]-equilib->sibry;
+      }
+    }
+  }
+}
 // void find_Xpoint_from_DG(const Equilibrium* equilib, const double estimate[2], double accurate[2]){
 //
 // };

@@ -75,6 +75,9 @@ double EqCorrCell(const Equilibrium *equilib,int cx,int cy,double level);
 
 double get_psi_from_rz(const Equilibrium *equilib, double x, double y);
 
+//In DivGeo and Carre, the psi value is psi[i][j]-sibry. And also the *.trg input
+//Thus, this function correct the psi values similar to DivGeo and CARRE
+void correct_psi_based_on_sibry(Equilibrium *equilib);
 //void find_X_point(const Equilibrium* equilib, const double estimate[2], double accurate[2]); 
 
 //This is to correct the magnetic direction to make sure the magnect field direction is consistent 

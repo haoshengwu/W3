@@ -18,7 +18,7 @@ static int points_equal(double x1, double y1, double x2, double y2)
   }
 }
 
-void check_tfi_boundary(Curve* cur_l, Curve* cur_r, Curve* cur_b, Curve* cur_t)
+void check_tfi_boundary(Curve* cur_b, Curve* cur_t, Curve* cur_l, Curve* cur_r)
 {
   size_t nL = get_curve_npt(cur_l);
   size_t nR = get_curve_npt(cur_r);
@@ -110,7 +110,7 @@ void generate_2Dgrid_default_TFI(TwoDimGrid* grid,
     exit(EXIT_FAILURE);
   }
 
-  check_tfi_boundary(cur_l, cur_r, cur_b, cur_t);
+  check_tfi_boundary(cur_b, cur_t, cur_l, cur_r);
   
   #ifdef DEBUG
     printf("The inputs for generate_2Dgrid_default_TFI are ready.\n");
@@ -166,6 +166,7 @@ void generate_2Dgrid_default_TFI(TwoDimGrid* grid,
     CurvePoint point;
     coordnates_in_curve(cur_b, len, &point);
     set_point_2Dgrid(grid, i, 0, point.x, point.y);
+    // printf("DEBUG distb len point.x point.y %lf %lf %lf %lf.\n", distb_cur_b[i], len, point.x, point.y);
   }
 
   tot_len=total_length_curve(cur_t);
@@ -236,11 +237,6 @@ void generate_2Dgrid_default_TFI(TwoDimGrid* grid,
   free_2Dgrid(norm_grid);
 }
 
-// void fix_out_of_bounds_2Dgrid(TwoDimGrid* grid)
-// {
-
-
-// }
 
 static int is_point_on_edge(double x, double y, CurvePoint p1, CurvePoint p2) 
 {
@@ -351,9 +347,6 @@ int try_neighbor_averaging(TwoDimGrid* grid, Curve** boundary, int n_boundary, i
   return count_points_inside(grid, boundary, n_boundary);
 }
 
-
-
-
 void optimized_neu_2Dgrid(TwoDimGrid* grid)
 {
   Curve* boundary[4];
@@ -386,6 +379,13 @@ void optimized_neu_2Dgrid(TwoDimGrid* grid)
     write_curve("neu_2D_boudnar_2",boundary[2]);
     write_curve("neu_2D_boudnar_3",boundary[3]);
   #endif
+  //first try Laplace...
+
+  #ifdef DEBUG
+    printf("Tentatively try Laplace smoothing.\n");
+  #endif
+  LaplaceSmoothing(grid, 1.2, 1.0E-4);
+  
   if(count_points_inside(grid,boundary,4)==0)
   {
     printf("All the points are inside the boundaries and no need to optimized.\n");

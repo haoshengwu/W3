@@ -29,13 +29,17 @@ DLListNode* load_DLList_from_file(const char* filename)
     exit(EXIT_FAILURE);
   }
   double x,y;
-
+  int n=0;
   //read first point
   if (fscanf(fp, "%lf %lf", &x, &y) != 2) 
   {
     fprintf(stderr, "Empty file or invalid format in %s.\n", filename);
     fclose(fp);
     exit(EXIT_FAILURE);
+  }
+  else
+  {
+    n++;
   }
 
   DLListNode* head=create_DLListNode(x,y);
@@ -44,8 +48,14 @@ DLListNode* load_DLList_from_file(const char* filename)
   while (fscanf(fp, "%lf %lf", &x, &y) == 2) 
   {
     add_DLListnode_at_tail(&tail, x, y);
+    n++;
   }
-  
+
+  if(n<2)
+  {
+    printf("WARNING: in read %d point in the %s.\n", n, filename);
+  }
+
   if (!feof(fp)) 
   {
     fprintf(stderr, "Unexpected format in %s.\n", filename);

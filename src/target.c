@@ -164,6 +164,24 @@ void sort_sep_gradpsiline_by_targetcurve(TargetDLListCurve* tgt_cur,
   {
     sep->index[i]=(start+i)%4;
     gradpsilines->index[i] = (start+i)%4;
+  }
+
+  /*****************************************************************
+  *    VERY DANGEROUS BEHAVIOR, WILL BE OPTIMIZED
+  *    MANULLY CORRECT THE INDEX, ONLY TEMPERORY USE FOR SPARC SXD.
+  *****************************************************************/
+  sep->index[0]=3;
+  sep->index[1]=0;
+  sep->index[2]=1;
+  sep->index[3]=2;
+
+  gradpsilines->index[0]=3;
+  gradpsilines->index[1]=0;
+  gradpsilines->index[2]=1;
+  gradpsilines->index[3]=2;
+
+  for(int i=0; i<4; i++)
+  {
     printf("sep index %d: %d\n", i, sep->index[i]);
   }
 }

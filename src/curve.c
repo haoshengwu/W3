@@ -4,7 +4,7 @@
 
 
 #define TOL_CURVE 1.0E-10 // Tolerance for in-segment comparison
-#define EPS_CURVE 1.0E-12 // Tolerance for in-segment comparison
+#define EPS_CURVE 1.0E-10 // Tolerance for in-segment comparison
 
 OldCurve* create_oldcurve(size_t n_point)
 {   
@@ -557,7 +557,7 @@ void coordnates_in_curve(Curve *curve, double d, CurvePoint *point) {
                 point->y = curve->points[i].y;
             } else if (fabs(remain - seg_len) <= TOL_CURVE) {
                 point->x = curve->points[i + 1].x;  // Near segment end
-                point->x = curve->points[i + 1].y;  // Near segment end
+                point->y = curve->points[i + 1].y;  // Near segment end
             } else {
                 double ratio = remain / seg_len;
                 point->x = x0 + ratio * dx;

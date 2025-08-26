@@ -33,7 +33,7 @@
 #define PASMIN_PFR 1.0E-3//Low resolution
 
 
-#define MAX_NUM_TRACING 40000 
+#define MAX_NUM_TRACING 100000
 #define NRELAX 3000
 
 /* ========== Precision Settings ========== */

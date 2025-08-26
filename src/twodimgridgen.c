@@ -375,7 +375,7 @@ TwoDimGrid* create_2Dgrid_optimized_for(int npol, int nrad, GridOptimization opt
 
 void close_pol_first_last_2Dgrid(TwoDimGrid* grid)
 {
-  if (grid||grid->npol||grid->nrad) {
+  if (!grid||!grid->npol||!grid->nrad) {
     fprintf(stderr, "Error: Null inputs for connect_pol_2Dgrid.\n");
     exit(EXIT_FAILURE);
   }

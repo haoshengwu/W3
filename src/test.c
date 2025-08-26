@@ -1172,10 +1172,14 @@ void EMC3_3D_grid_generation_test()
 /***********************************************
 *   Update trg regions(psi valuse)
 ***********************************************/
+// ensure the first point is exact same with X-point.
   for(int i=0; i<3; i++)
   {
     trg->regions[i]->level[0]=xpt_array[1].level;
   }
+
+// !! Correct psi values according to the sibry
+  correct_psi_based_on_sibry(&dtt_example);
 
   write_sn_gridzoneinfo_from_dgtrg(trg, &dtt_example, sep, gradpsilines, &w3config.grid2d_config);
 
@@ -1397,7 +1401,7 @@ void Expanded_2D_grid_generation_test()
   double direction[3]={1.0,1.0,1.0};
   RKSolverData brk45_data;
 
-  double stepsize = 0.1;
+  double stepsize = 0.5;
 
   ode_function ode_func = {
     .ndim = 2,
@@ -1528,9 +1532,8 @@ void Expanded_2D_grid_generation_test()
   TwoDimGrid* pfr2dgrid=create_2Dgrid_poloidal_major(pfrgz->first_gridpoint_curve->n_point, pfrgz->nr);
   generate_EMC3_2Dgrid_default(pfr2dgrid, pfrgz, &ode_func, &brk45_solver, phi[idx_mid], nphi, phi);
 
-
 /***********************************************
-*   6. Expand the SOL and PFR for neutral part
+*   6. Expand the SOL neutral grid
 ***********************************************/
 
   //6.1 build the four boundaries
@@ -1592,16 +1595,17 @@ void Expanded_2D_grid_generation_test()
   Curve* sol_neu_right_curve=convert_ddl_to_curve(sol_neu_right_ddl);
 
   //6.2 build the normal distribution
-  int nbottom = 301;
+  int nbottom = sol_neu_bottom_curve->n_point;
   int nleft=7;
   
   double* distrb_b=malloc((nbottom)*sizeof(double));
   double* distrb_l=malloc((nleft)*sizeof(double));
 
+  double len_tmp = total_length_curve(sol_neu_bottom_curve);
 
   for(int i=0; i<nbottom; i++)
   {
-    distrb_b[i]=i*(1.0/(nbottom-1));
+    distrb_b[i]=length_curve(sol_neu_bottom_curve, i+1)/len_tmp;
   }
 
   for(int i=0; i<nleft; i++)
@@ -1627,8 +1631,6 @@ void Expanded_2D_grid_generation_test()
                               distrb_l, nleft,
                               distrb_l, nleft);
 
-  
-
   write_2Dgrid(sol_neu_2dgrid, "SOL_NEU_2DBASE");
 
   optimized_neu_2Dgrid(sol_neu_2dgrid);
@@ -1650,6 +1652,132 @@ void Expanded_2D_grid_generation_test()
   free_curve(sol_neu_right_curve);
 
   free_2Dgrid(sol_neu_2dgrid);
+
+
+/***********************************************
+*   7. Expand the PFR neutral grid
+***********************************************/
+  //7.1 build the four boundaries
+  DLListNode* pfr_neu_top_ddl = load_DLList_from_file("PFR_neu_bnd");
+  
+  r_tmp = get_x_2Dgrid(pfr2dgrid, 0, pfr2dgrid->nrad-1);
+  z_tmp = get_y_2Dgrid(pfr2dgrid, 0, pfr2dgrid->nrad-1);
+  DLListNode* pfr_neu_bottom_ddl = create_DLListNode(r_tmp, z_tmp);
+  tail_tmp = pfr_neu_bottom_ddl;
+
+  for(int i = 1; i<pfr2dgrid->npol;i++)
+  {
+    double r_tmp = get_x_2Dgrid(pfr2dgrid, i, pfr2dgrid->nrad-1);
+    double z_tmp = get_y_2Dgrid(pfr2dgrid, i, pfr2dgrid->nrad-1);
+    add_DLListnode_at_tail(&tail_tmp, r_tmp, z_tmp);
+  }
+
+  DLListNode* pfr_neu_left_ddl = load_DLList_from_file("inner_targetcurve");
+  DLListNode* pfr_neu_right_ddl = load_DLList_from_file("outer_targetcurve");
+
+  r_tmp = get_x_2Dgrid(pfr2dgrid,  pfr2dgrid->npol-1,pfr2dgrid->nrad-1);
+  z_tmp = get_y_2Dgrid(pfr2dgrid,  pfr2dgrid->npol-1,pfr2dgrid->nrad-1);
+
+  if(insert_point_for_DLList(pfr_neu_right_ddl, r_tmp, z_tmp))
+  {
+    fprintf(stderr, "Unexpected error: the point is not in the outer target.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(cut_DLList_after_point(pfr_neu_right_ddl, r_tmp, z_tmp)==0)
+  {
+    fprintf(stderr, "Unexpected error: cannot cut the point in the outer target.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  r_tmp = get_x_2Dgrid(pfr2dgrid, 0, pfr2dgrid->nrad-1);
+  z_tmp = get_y_2Dgrid(pfr2dgrid, 0, pfr2dgrid->nrad-1);
+
+  if(insert_point_for_DLList(pfr_neu_left_ddl, r_tmp, z_tmp))
+  {
+    fprintf(stderr, "Unexpected error: the point is not in the inner target.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(cut_DLList_after_point(pfr_neu_left_ddl, r_tmp, z_tmp)==0)
+  {
+    fprintf(stderr, "Unexpected error: cannot cut the point in the inner target.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  reverse_DLList(&pfr_neu_left_ddl);
+  reverse_DLList(&pfr_neu_right_ddl);
+  
+  write_DLList(pfr_neu_top_ddl, "PFR_NEU_TOP_DDL");
+  write_DLList(pfr_neu_bottom_ddl, "PFR_NEU_BOTTOM_DDL");
+  write_DLList(pfr_neu_left_ddl, "PFR_NEU_LEFT_DDL");
+  write_DLList(pfr_neu_right_ddl, "PFR_NEU_RIGHT_DDL");
+
+  
+  Curve* pfr_neu_top_curve=convert_ddl_to_curve(pfr_neu_top_ddl);
+  Curve* pfr_neu_bottom_curve=convert_ddl_to_curve(pfr_neu_bottom_ddl);
+  Curve* pfr_neu_left_curve=convert_ddl_to_curve(pfr_neu_left_ddl);
+  Curve* pfr_neu_right_curve=convert_ddl_to_curve(pfr_neu_right_ddl);
+
+  //7.2 build the normal distribution
+  nbottom = pfr_neu_bottom_curve->n_point;
+  nleft=7;
+  
+  double* distrb_b_pfr=malloc((nbottom)*sizeof(double));
+  double* distrb_l_pfr=malloc((nleft)*sizeof(double));
+
+  len_tmp = total_length_curve(pfr_neu_bottom_curve);
+
+  for(int i=0; i<nbottom; i++)
+  {
+    distrb_b_pfr[i]=length_curve(pfr_neu_bottom_curve, i+1)/len_tmp;
+  }
+
+  for(int i=0; i<nleft; i++)
+  {
+    distrb_l_pfr[i]=i*(1.0/(nleft-1));
+  }
+
+  distrb_b_pfr[0]=0.0;
+  distrb_l_pfr[0]=0.0;
+  distrb_b_pfr[nbottom-1]=1.0;
+  distrb_l_pfr[nleft-1]=1.0;
+  
+  write_array(distrb_b, nbottom, "distrb_b_pfr");
+  write_array(distrb_l, nleft, "distrb_l_pfr");
+
+  //7.3 build the sol_neu 2d grid
+
+  TwoDimGrid* pfr_neu_2dgrid=create_2Dgrid_poloidal_major(nbottom, nleft);
+
+  generate_2Dgrid_default_TFI(pfr_neu_2dgrid,
+                              pfr_neu_bottom_curve,pfr_neu_top_curve,pfr_neu_left_curve, pfr_neu_right_curve,
+                              distrb_b_pfr, nbottom,
+                              distrb_b_pfr, nbottom,
+                              distrb_l_pfr, nleft,
+                              distrb_l_pfr, nleft);
+
+  write_2Dgrid(pfr_neu_2dgrid, "PFR_NEU_2DBASE");
+
+  optimized_neu_2Dgrid(pfr_neu_2dgrid);
+
+  write_2Dgrid(pfr_neu_2dgrid, "PFR_NEU_2DBASE_OPT");
+
+  //7.4 free memmory
+  free(distrb_b_pfr);
+  free(distrb_l_pfr);
+
+  free_DLList(pfr_neu_top_ddl);
+  free_DLList(pfr_neu_bottom_ddl);
+  free_DLList(pfr_neu_left_ddl);
+  free_DLList(pfr_neu_right_ddl);
+  
+  free_curve(pfr_neu_top_curve);
+  free_curve(pfr_neu_bottom_curve);
+  free_curve(pfr_neu_left_curve);
+  free_curve(pfr_neu_right_curve);
+
+  free_2Dgrid(pfr_neu_2dgrid);
 
 /**********************************************
 *   8. Free space                             *
