@@ -48,7 +48,9 @@ void printf_target_curve(TargetDLListCurve* tgt_cur);
 //                  /   :   \
 //                 /    :    \ sep line
 
-void sort_sep_gradpsiline_by_targetcurve(TargetDLListCurve* tgt_cur, SeparatrixStr* sep, GradPsiLineStr* gradpsilines);
+void sort_sep_gradpsiline_by_targetcurve(TargetDLListCurve* inner_tgt_cur,
+                                         TargetDLListCurve* outer_tgt_cur,
+                                         SeparatrixStr* sep, GradPsiLineStr* gradpsilines);
 
 
 TargetDLListCurve* create_core_curve_from_gradpsilines(GradPsiLineStr* gradpsilines, int index);

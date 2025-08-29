@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
+
 // similar to DG ngroups, there are some simple data structure are defined here.
 
 // a double-linked list, in each node, there is the coordinate of a point (r,z)
@@ -50,8 +51,14 @@ void write_DLList(DLListNode* head, const char* title);
 //insert a node between a and b, we assume b=a.next.
 void insert_between(DLListNode* a, DLListNode* b, double r, double z);  
 // check whether two DLList are intersected or not.
-// intersec return 1 else 0
+// intersec return 0 else 1
 int has_intersection_DLList(DLListNode* head1, DLListNode* head2);
+
+// check whether two DLList are intersected or not.
+// intersec return 0 else 1
+// idx1 and idx2 are the indexs in head1 and head2 to indicate the no. of segments.
+// if no intersection, idx1 and idx2 are reset to -1
+int has_intersection_DLList_indexs(DLListNode* head1, DLListNode* head2, int* idx1, int* idx2);
 
 //assunme only 1 intersection point
 // r and z are the intersection point

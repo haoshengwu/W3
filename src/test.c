@@ -1315,6 +1315,10 @@ void EMC3_3D_grid_generation_test()
 ***********************************************/
   free(phi);
   free_3Dgrid(sol3dgrid);
+  free_3Dgrid(pfr3dgrid);
+  free_3Dgrid(core3dgrid);
+
+
   free_2Dgrid(grid_tmp1);
   free_2Dgrid(grid_tmp2);
   free_2Dgrid(grid_tmp3);
@@ -1323,6 +1327,7 @@ void EMC3_3D_grid_generation_test()
   free_2Dgrid(pfr2dgrid_exptgt);
 
   free_2Dgrid(sol2dgrid);
+  free_2Dgrid(pfr2dgrid);
   free_2Dgrid(core2dgrid);
 
   free_GridZone(solgz);
@@ -1817,5 +1822,130 @@ void Expanded_2D_grid_generation_test()
   free_2d_array(est_xpt);
   free_mag_field_torsys(&test_magfield);
   free_equilibrium(&dtt_example);
+
+}
+
+void EMC3_neu_3D_grid_generation_test()
+{
+  
+/****************************
+*  Read Necessary Inputs    *
+*****************************/ 
+  //inputs
+  W3Config w3config;
+  load_w3_config("w3.ini",&w3config);
+  print_w3_config(&w3config);
+ 
+  //Equilibirum
+  Equilibrium dtt_example;
+  init_equilibrium(&dtt_example);
+  read_equilib_geqdsk(&dtt_example,w3config.file_config.geqdsk_file);
+  correct_direction_lower_divertor(&dtt_example);
+  print_equilibrium(&dtt_example);
+  
+  //Magnetic
+  MagFieldTorSys test_magfield;
+  init_mag_field_torsys(&test_magfield);
+  char* method = "central_4th";
+  calc_mag_field_torsys(&dtt_example, &test_magfield, method);
+
+
+/************************************************
+*  Build the 3D tracer                          *
+************************************************/ 
+  double direction[3]={1.0,1.0,1.0};
+  RKSolverData brk45_data;
+
+  double stepsize = 0.1;
+
+  ode_function ode_func = {
+    .ndim = 3,
+    .data = &test_magfield,
+    .rescale = direction,
+    .compute_f = ode_f_brz_torsys_cubicherm,
+  };
+
+  ode_solver brk45_solver =
+  {
+    .step_size = stepsize,
+    .solver_data = &brk45_data,
+    .next_step = brk5_next_step,
+    .initialize = brk5_initialize,
+    .finalize = brk5_finalize
+  };
+  brk45_solver.initialize(&brk45_data);
+
+/*****************
+*  Read inputs   *
+******************/ 
+
+  //load SOL plasma 3D grid
+  ThreeDimGrid* grid3d_plasma_SOL=load_EMC3_format_3Dgrid_from_file("grid3D_SOL.dat");
+  ThreeDimGrid* grid3d_plasma_PFR=load_EMC3_format_3Dgrid_from_file("grid3D_PFR.dat");
+
+  //load inner target
+  DLListNode* sol_neu_left_ddl = load_DLList_from_file("inner_targetcurve");
+
+  //load inner target
+  DLListNode* sol_neu_right_ddl = load_DLList_from_file("outer_targetcurve");
+
+  //load neutral boundary for SOL region
+  DLListNode* sol_neu_top_ddl = load_DLList_from_file("SOL_neu_bnd");
+
+  //load neutral boundary for PFR region
+  DLListNode* pfr_neu_top_ddl = load_DLList_from_file("PFR_neu_bnd");
+
+  //left bnd of neutral 3d grid. also the radial size
+  int nleft=5;
+  double* distrb_l=malloc((nleft)*sizeof(double));
+
+  for(int i=0; i<nleft; i++)
+  {
+    distrb_l[i]=i*(1.0/(nleft-1));
+  }
+
+  distrb_l[0]=0.0;
+  distrb_l[nleft-1]=1.0;
+  
+  //For SOL neutral 3D GRID
+  ThreeDimGrid* grid3d_neu_SOL = create_3Dgrid_radial_major(grid3d_plasma_SOL->npol, nleft, grid3d_plasma_SOL->ntor);
+
+  generate_EMC3_neutral_3Dgrid_TFI(grid3d_neu_SOL, grid3d_plasma_SOL,
+                                   sol_neu_left_ddl, sol_neu_right_ddl, sol_neu_top_ddl,
+                                   nleft, distrb_l, &ode_func, &brk45_solver);
+
+  write_EMC3_3Dgrid_to_EMC3_format(grid3d_neu_SOL, "grid3D_NEU_SOL.dat");
+
+
+  //For PFR neutral 3D GRID
+  ThreeDimGrid* grid3d_neu_PFR = create_3Dgrid_radial_major(grid3d_plasma_PFR->npol, nleft, grid3d_plasma_PFR->ntor);
+
+  // generate_EMC3_neutral_3Dgrid_TFI(grid3d_neu_PFR, grid3d_plasma_PFR,
+  //                                  sol_neu_left_ddl, sol_neu_right_ddl, pfr_neu_top_ddl,
+  //                                  nleft, distrb_l, &ode_func, &brk45_solver);
+  
+  // write_EMC3_3Dgrid_to_EMC3_format(grid3d_neu_PFR, "grid3D_NEU_PFR.dat");
+
+
+/**************************
+* Free parameters         *
+**************************/ 
+
+  free(distrb_l);
+  
+  free_3Dgrid(grid3d_plasma_SOL);
+  free_3Dgrid(grid3d_neu_SOL);
+
+  free_3Dgrid(grid3d_plasma_PFR);
+  free_3Dgrid(grid3d_neu_PFR);
+
+  free_DLList(sol_neu_left_ddl);
+  free_DLList(sol_neu_right_ddl);
+  free_DLList(sol_neu_top_ddl);
+  free_DLList(pfr_neu_top_ddl);
+
+  free_equilibrium(&dtt_example);
+  free_mag_field_torsys(&test_magfield);
+  brk5_finalize(&brk45_data);
 
 }

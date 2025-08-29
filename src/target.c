@@ -134,26 +134,50 @@ void printf_target_curve(TargetDLListCurve* tgt_cur)
   }
 }
 
-void sort_sep_gradpsiline_by_targetcurve(TargetDLListCurve* tgt_cur,
+void sort_sep_gradpsiline_by_targetcurve(TargetDLListCurve* inner_tgt_cur,
+                                         TargetDLListCurve* outer_tgt_cur,
                                          SeparatrixStr* sep,
                                          GradPsiLineStr* gradpsilines)
 {
-  if(!tgt_cur->head)
+  if(!inner_tgt_cur->head || !outer_tgt_cur->head)
   {
     fprintf(stderr,"Target Curve is NULL!\n");
     exit(EXIT_FAILURE);
   }
-  DLListNode* tgt_cur_head = tgt_cur->head;
+
+  DLListNode* inner_head = inner_tgt_cur->head;
+  DLListNode* outer_head = outer_tgt_cur->head;
+
   int start=-1;
   for(int i=0; i<4; i++)
   {
-    if(has_intersection_DLList(tgt_cur_head, sep->line_list[i])==0)
+    int sep_idx1=-1;
+    int sep_idx2=-1;
+    int tmp1=-1;
+    int tmp2=-1;
+    
+    has_intersection_DLList_indexs(sep->line_list[i], inner_head, &sep_idx1, &tmp1);
+    has_intersection_DLList_indexs(sep->line_list[i], outer_head, &sep_idx2, &tmp2);
+
+    // printf("DEBUG i sep_idx1 sep_idx2 %d %d %d\n", i, sep_idx1, sep_idx2);
+
+    if(sep_idx1>=0 && tmp1>=0) // There is intersection between the sep line and inner target
     {
-      printf("DEBUG intersection line: %d\n", i);
-      start = i;
-      break;
+      if(sep_idx2==-1 && tmp2==-1) //The sep line do not intersect with outer target
+      {
+        start=i;
+      }
+      else if(sep_idx2>=0 && tmp2 >=0) //The sep line also intersect with outer target
+      {
+        if(sep_idx1<sep_idx2)
+        {
+          start=i;
+          break;
+        }
+      }
     }
   }
+
   if(start==-1)
   {
     fprintf(stderr, "No intersection between target curve and separatrix line!\n");
@@ -166,24 +190,18 @@ void sort_sep_gradpsiline_by_targetcurve(TargetDLListCurve* tgt_cur,
     gradpsilines->index[i] = (start+i)%4;
   }
 
-  /*****************************************************************
-  *    VERY DANGEROUS BEHAVIOR, WILL BE OPTIMIZED
-  *    MANULLY CORRECT THE INDEX, ONLY TEMPERORY USE FOR SPARC SXD.
-  *****************************************************************/
-  sep->index[0]=3;
-  sep->index[1]=0;
-  sep->index[2]=1;
-  sep->index[3]=2;
-
-  gradpsilines->index[0]=3;
-  gradpsilines->index[1]=0;
-  gradpsilines->index[2]=1;
-  gradpsilines->index[3]=2;
+#ifdef DEBUG
+  for(int i=0; i<4; i++)
+  {
+    printf("Separatrix Line %d, Index: %d\n", i, sep->index[i]);
+  }
 
   for(int i=0; i<4; i++)
   {
-    printf("sep index %d: %d\n", i, sep->index[i]);
+    printf("Grad PSI Line %d, Index: %d\n", i, gradpsilines->index[i]);
   }
+#endif
+
 }
 
 TargetDLListCurve* create_core_curve_from_gradpsilines(GradPsiLineStr* gradpsilines, int idx)

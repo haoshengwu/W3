@@ -157,6 +157,24 @@ void set_point_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double r, double 
     p->phi = phi;
 }
 
+void set_r_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double r)
+{
+  GridPoint3D* p = &g->points[idx_3Dgrid(g, ip, ir, it)];
+  p->r = r;
+}
+
+void set_z_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double z)
+{
+  GridPoint3D* p = &g->points[idx_3Dgrid(g, ip, ir, it)];
+  p->z = z;
+}
+
+void set_phi_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double phi)
+{
+  GridPoint3D* p = &g->points[idx_3Dgrid(g, ip, ir, it)];
+  p->phi = phi;
+}
+
 void assign_2D_to_3D_tor_slice(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, int it, double phim)
 {
   //Check 
@@ -343,7 +361,7 @@ void write_EMC3_3Dgrid_to_EMC3_format(ThreeDimGrid* g, char* filename)
 {
   if (!filename || !g) 
   {
-    fprintf(stderr, "Error: NULL input to write_EMC3_3Dgrid_to_XYZ_CSYS.\n");
+    fprintf(stderr, "Error: NULL input to write_EMC3_3Dgrid_to_EMC3_format.\n");
     exit(EXIT_FAILURE);
   }
 
@@ -379,4 +397,81 @@ void write_EMC3_3Dgrid_to_EMC3_format(ThreeDimGrid* g, char* filename)
     }
   }
   fclose(fp);
+  #ifdef DEBUG
+  printf("Successfully write EMC3 format 3D GIRD: %s.\n",filename);
+  #endif
+}
+
+ThreeDimGrid* load_EMC3_format_3Dgrid_from_file(char* filename)
+{
+  if (!filename) 
+  {
+    fprintf(stderr, "Error: NULL input to load_EMC3_format_3Dgrid_from_file.\n");
+    exit(EXIT_FAILURE);
+  }
+ 
+  
+  FILE *fp = fopen(filename, "r");
+  if (!fp) 
+  {
+    fprintf(stderr, "Error: cannot open file \"%s\" \n",filename);
+    exit(EXIT_FAILURE);
+  }
+  
+
+  int np;
+  int nr;
+  int nt;
+
+  if(fscanf(fp, "%10d%10d%10d", &nr,&np,&nt)!=3)
+  {
+    fprintf(stderr, "Error: Cannot read the size of the 3D grid in %s.\n",filename);
+    fclose(fp);
+    exit(EXIT_FAILURE);
+  }
+  else
+  {
+    printf("Begin to read the 3D grid from %s.\n",filename);
+    printf("The size of 3D grid is nr np nt %6d %6d %6d.\n", nr, np, nt);
+  }
+
+  ThreeDimGrid* grid3d=create_3Dgrid_radial_major(np,nr,nt);
+
+  double phi;
+  for(int it=0;it<nt;it++)
+  {
+    fscanf(fp, "%lf", &phi);
+    #ifdef DEBUG
+    printf("Read the toroidal index %6d at phi %12f\n",it,phi);
+    #endif
+    double r;
+    double z;
+    for(int ip=0; ip<np; ip++)
+    {
+      for(int ir=0; ir<nr; ir++)
+      {
+        fscanf(fp, "%lf", &r);
+        set_r_3Dgrid(grid3d, ip,ir,it, r);
+        set_phi_3Dgrid(grid3d, ip,ir,it, phi);
+      }
+    }
+    for(int ip=0; ip<np; ip++)
+    {
+      for(int ir=0; ir<nr; ir++)
+      {
+        fscanf(fp, "%lf", &z);
+        set_z_3Dgrid(grid3d, ip,ir,it, z);
+      }
+    }
+  }
+  if (fscanf(fp, " %lf", &phi) != EOF) 
+  {
+    fprintf(stderr, "Unexpected extra data in file %s.\n", filename);
+    fclose(fp);
+    free_3Dgrid(grid3d);
+    exit(EXIT_FAILURE);
+  }
+  fclose(fp);
+  printf("Successfully read 3d grid from %s.\n", filename);
+  return grid3d;
 }

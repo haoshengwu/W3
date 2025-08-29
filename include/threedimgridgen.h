@@ -105,6 +105,12 @@ double get_phi_3Dgrid(const ThreeDimGrid* g, int ip, int ir, int it);
 //  Set r z and phi coordinate
 void set_point_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double r, double z, double phi);
 
+void set_r_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double r);
+
+void set_z_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double z);
+
+void set_phi_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double phi);
+
 // assign the 2dgrid to the slice of a 3dgrid. it is the toroidal index.
 void assign_2D_to_3D_tor_slice(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, int it, double phim);
 
@@ -122,6 +128,12 @@ void write_EMC3_3Dgrid_to_XYZ_CSYS(ThreeDimGrid* grid3d, char* filename);
 //Write the EMC3 3D grid to EMC3 required format which is Rad-Pol-Tor order.
 //EMC3 3D grid is GRID_3D_OPTIMIZE_RPT rad-pol-tor order (ir fastest, then ip, then it)
 void write_EMC3_3Dgrid_to_EMC3_format(ThreeDimGrid* g, char* filename);
+
+
+//load the EMC3 3D grid (EMC3 format) from the file
+//EMC3 3D grid is GRID_3D_OPTIMIZE_RPT rad-pol-tor order (ir fastest, then ip, then it)
+ThreeDimGrid* load_EMC3_format_3Dgrid_from_file(char* filename);
+
 #endif
 
 

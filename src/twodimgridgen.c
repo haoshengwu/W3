@@ -373,6 +373,32 @@ TwoDimGrid* create_2Dgrid_optimized_for(int npol, int nrad, GridOptimization opt
     return grid;
 }
 
+void reset_2Dgrid(TwoDimGrid* grid)
+{
+  if (grid == NULL || grid->points == NULL) 
+  {
+    printf("WARNING: Empty inputs for reset_2Dgrid.\n");
+    return;
+  }
+  int margin_pol = DEFAULT_POL_MARGIN;
+  int margin_rad = DEFAULT_RAD_MARGIN;
+
+  size_t total = (size_t)grid->cap_npol * grid->cap_nrad;
+  size_t alloc_size = total * sizeof(GridPoint);
+  size_t aligned_size = ((alloc_size + GRID_ALIGNMENT - 1) / GRID_ALIGNMENT) * GRID_ALIGNMENT;
+  memset(grid->points, 0, aligned_size);
+
+  grid->offset_pol = margin_pol;
+  grid->offset_rad = margin_rad;
+
+  grid->npol = grid->cap_npol - 2 * margin_pol;
+  grid->nrad = grid->cap_nrad - 2 * margin_rad;
+
+  #ifdef DEBUG
+  printf("Reset the 2D grid.\n");
+  #endif
+}
+
 void close_pol_first_last_2Dgrid(TwoDimGrid* grid)
 {
   if (!grid||!grid->npol||!grid->nrad) {

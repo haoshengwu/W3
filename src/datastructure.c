@@ -310,6 +310,41 @@ int has_intersection_DLList(DLListNode* head1, DLListNode* head2)
     return 1; // no intersection
 }
 
+int has_intersection_DLList_indexs(DLListNode* head1, DLListNode* head2, int* idx1, int* idx2) 
+{
+  if (!head1 || !head2) 
+  {
+    printf("WARNING: Empty inputs for has_intersection_DLList_indexs.\n");
+    *idx1 = -1;
+    *idx2 = -1;
+    return 1;
+  }
+
+  //used store the index in head1 and head2 for the intersection
+  int i1=0; 
+  for (DLListNode* a = head1; a && a->next; a = a->next) 
+  {
+    i1++;
+    int i2=0;
+    for (DLListNode* b = head2; b && b->next; b = b->next)
+    {
+      i2++;
+      if (has_intersection_segment(
+                    a->r, a->z, a->next->r, a->next->z,
+                    b->r, b->z, b->next->r, b->next->z)==0) 
+      {
+        *idx1=i1;
+        *idx2=i2;
+        return 0;  // Found
+      }
+    }
+  }
+  // no intersection, reset to -1
+  *idx1=-1;
+  *idx2=-1;
+  return 1; // no intersection
+}
+
 // Compute intersection point of two segments (if any)
 // Only works if the intersection is a single point (not overlapping segments)
 // intersect return 0, otherwise return 1
@@ -430,7 +465,9 @@ int insert_intersections_DLList(DLListNode* head1, DLListNode* head2, double* r_
           if( (fabs(a->r-*r_ptr)<EPS_DATASTR && fabs(a->z-*z_ptr)<EPS_DATASTR)||
               (fabs(a->next->r-*r_ptr)<EPS_DATASTR && fabs(a->next->z-*z_ptr)<EPS_DATASTR))
           {
-            printf("DEBUG: %.12f %.12f already in the DLList1, not need to insert\n",*r_ptr, *z_ptr);
+            #ifdef DEBUG
+              printf("DEBUG: %.12f %.12f already in the DLList1, not need to insert\n",*r_ptr, *z_ptr);
+            #endif
           }
           else
           {
@@ -439,7 +476,9 @@ int insert_intersections_DLList(DLListNode* head1, DLListNode* head2, double* r_
           if( (fabs(b->r-*r_ptr)<EPS_DATASTR && fabs(b->z-*z_ptr)<EPS_DATASTR)||
               (fabs(b->next->r-*r_ptr)<EPS_DATASTR && fabs(b->next->z-*z_ptr)<EPS_DATASTR))
           {
-            printf("DEBUG: %.12f %.12f already in the DLList2, not need to insert\n",*r_ptr, *z_ptr);
+            #ifdef DEBUG
+              printf("DEBUG: %.12f %.12f already in the DLList2, not need to insert\n",*r_ptr, *z_ptr);
+            #endif
           }
           else
           {

@@ -33,6 +33,7 @@
 #include "twodimgridgen.h"
 #include "threedimgridgen.h"
 #include "tfi2Dgridgen.h"
+#include "tfi3Dgridgen.h"
 #include "utils.h"
 
 #endif

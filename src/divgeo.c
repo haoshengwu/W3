@@ -910,18 +910,8 @@ void write_sn_gridzoneinfo_from_dgtrg(DivGeoTrg* trg, Equilibrium* equ, Separatr
 /***********************************************
 *    STEP2 Sort index for sep and gradpsi lines
 ***********************************************/
-  sort_sep_gradpsiline_by_targetcurve(inner_tgt_curve, sep, gradpsilines);
+  sort_sep_gradpsiline_by_targetcurve(inner_tgt_curve, outer_tgt_curve, sep, gradpsilines);
 
-  //MANULLY CORRECT THE INDEX, ONLY TEMPERORY USE FOR SPARC SXD.
-  sep->index[0]=3;
-  sep->index[1]=0;
-  sep->index[2]=1;
-  sep->index[3]=2;
-
-  gradpsilines->index[0]=3;
-  gradpsilines->index[1]=0;
-  gradpsilines->index[2]=1;
-  gradpsilines->index[3]=2;
 /*************************************************
 *    STEP3 Create the target curve for SOL PFR and CORE
 *************************************************/

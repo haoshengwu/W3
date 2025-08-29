@@ -8,7 +8,7 @@
  */
 static int points_equal(double x1, double y1, double x2, double y2)
 {
-  if (fabs(x1 - x2) < 1.0e-15 && fabs(y1 - y2) < 1.0e-15) 
+  if (fabs(x1 - x2) < 1.0e-12 && fabs(y1 - y2) < 1.0e-12) 
   {
     return 1;
   } 
@@ -33,7 +33,7 @@ void check_tfi_boundary(Curve* cur_b, Curve* cur_t, Curve* cur_l, Curve* cur_r)
 
   /* Left first vs Bottom first */
   if (!points_equal(get_curve_x(cur_l, 0), get_curve_y(cur_l, 0),
-               get_curve_x(cur_b, 0), get_curve_y(cur_b, 0))) 
+                    get_curve_x(cur_b, 0), get_curve_y(cur_b, 0))) 
   {
     fprintf(stderr, "The first point of Left boundary is not identical with the first of Bottom boundary.\n");
     exit(EXIT_FAILURE);
@@ -41,7 +41,7 @@ void check_tfi_boundary(Curve* cur_b, Curve* cur_t, Curve* cur_l, Curve* cur_r)
 
   /* Bottom last vs Right first */
   if (!points_equal(get_curve_x(cur_b, nB - 1), get_curve_y(cur_b, nB - 1),
-                 get_curve_x(cur_r, 0),      get_curve_y(cur_r, 0))) 
+                    get_curve_x(cur_r, 0),      get_curve_y(cur_r, 0))) 
   {
     fprintf(stderr, "The last point of Bottom boundary is not identical with the first of Right boundary.\n");
     exit(EXIT_FAILURE);
@@ -49,7 +49,7 @@ void check_tfi_boundary(Curve* cur_b, Curve* cur_t, Curve* cur_l, Curve* cur_r)
 
   /* Left last vs Top first */
   if (!points_equal(get_curve_x(cur_l, nL - 1), get_curve_y(cur_l, nL - 1),
-               get_curve_x(cur_t, 0),      get_curve_y(cur_t, 0))) 
+                    get_curve_x(cur_t, 0),      get_curve_y(cur_t, 0))) 
   {
     fprintf(stderr, "The last point of Left boundary is not identical with the first of Top boundary.\n");
     exit(EXIT_FAILURE);
@@ -57,7 +57,7 @@ void check_tfi_boundary(Curve* cur_b, Curve* cur_t, Curve* cur_l, Curve* cur_r)
 
   /* Top last vs Right last */
   if (!points_equal(get_curve_x(cur_t, nT - 1), get_curve_y(cur_t, nT - 1),
-               get_curve_x(cur_r, nR - 1), get_curve_y(cur_r, nR - 1))) 
+                    get_curve_x(cur_r, nR - 1), get_curve_y(cur_r, nR - 1))) 
   {
     fprintf(stderr, "The last point of Top boundary is not identical with the last of Right boundary.\n");
     exit(EXIT_FAILURE);

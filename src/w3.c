@@ -216,12 +216,18 @@ test magnetic field line calculation
 /*****************************************************
 *  Generation EMC3 3D GRID FROM SCRATCH
 ******************************************************/
-  EMC3_3D_grid_generation_test();
+  // EMC3_3D_grid_generation_test();
 
 /*****************************************************
 *  Generation neutral 2d grid for SOL and PFR
 ******************************************************/
   // Expanded_2D_grid_generation_test();
+
+/*****************************************************
+*  Generation neutral 3d grid based on plasma 3d grid
+******************************************************/
+
+  EMC3_neu_3D_grid_generation_test();
 
   return 0;
 }

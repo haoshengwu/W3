@@ -24,4 +24,6 @@ void ThreeDimMeshGeneration_test();
 void EMC3_3D_grid_generation_test();
 
 void Expanded_2D_grid_generation_test();
+
+void EMC3_neu_3D_grid_generation_test();
 #endif
