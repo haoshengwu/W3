@@ -240,13 +240,15 @@ void generate_separatrix_bytracing(
 
     t=t+step_size;
     int boundary=10; //not reach the real boundary but [10:nx-10][10:ny-10]
-    while(1)
+
+    int tracing_counter=0;
+    while(tracing_counter<MAX_NUM_TRACING)
     {
       start_p[0]=next_p[0];
       start_p[1]=next_p[1];
       t=t+step_size;
       solver->next_step(step_size, &t, start_p, next_p, solver->solver_data, func);
-      
+      tracing_counter+=1;
       if (next_p[0] < equ->r[boundary] || next_p[0] > equ->r[equ->nw - boundary] ||
           next_p[1] < equ->z[boundary] || next_p[1] > equ->z[equ->nh - boundary])
       {
@@ -266,7 +268,9 @@ void generate_separatrix_bytracing(
       add_DLListnode_at_tail(&endnode, next_p[0], next_p[1]);
       fprintf(fp, "%.15f %.15f\n", next_p[0], next_p[1]);
     }
-    
+    printf("Arrive the Maxium Tracing numbr: %d.\n", tracing_counter);
+    printf("WARNING: Please DOUBLE CHECK the file %s.\n", filename);
+
     //add the X-point again to make sure the sep lines for LCFS is closed.
 
     fclose(fp);

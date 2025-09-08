@@ -3,8 +3,8 @@
 #include <math.h>
 
 
-#define TOL_CURVE 1.0E-10 // Tolerance for in-segment comparison
-#define EPS_CURVE 1.0E-10 // Tolerance for in-segment comparison
+#define TOL_CURVE 1.0E-8 // Tolerance for in-segment comparison
+#define EPS_CURVE 1.0E-8 // Tolerance for in-segment comparison
 
 OldCurve* create_oldcurve(size_t n_point)
 {   

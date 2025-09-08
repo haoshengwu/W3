@@ -588,10 +588,19 @@ int load_w3_config(const char* filename, W3Config* config) {
     
     char* pasmin_str = get_config_string(&raw_config, "2DGRID_CONTROL", "PASMIN", "1.0E-3,1.0E-3,1.0E-3");
     parse_comma_separated_doubles(pasmin_str, config->grid2d_config.pasmin, MAX_ZONES);
+
+    char* neu_expand_number = get_config_string(&raw_config, "2DGRID_CONTROL", "NEU_EXPAND_NUMBER", "2,2");
+    parse_comma_separated_ints(neu_expand_number, config->grid2d_config.neu_expand_number, MAX_ZONES);
     
     // ==================== Load 3DGRID_CONTROL section ====================
     strcpy(config->grid3d_config.toroidal_file,
            get_config_string(&raw_config, "3DGRID_CONTROL", "TOROIDAL_FILE", ""));
+    
+    config->grid3d_config.toroidal_cell_number = 
+        get_config_int(&raw_config, "3DGRID_CONTROL", "TOROIDAL_CELL_NUMBER", 10);
+
+    config->grid3d_config.toroidal_delta = 
+        get_config_double(&raw_config, "3DGRID_CONTROL", "TOROIDAL_DELTA", 1.0);
     
     return 0;
 }
@@ -624,10 +633,10 @@ void print_w3_config(const W3Config* config) {
     
     // Print 2DGRID_CONTROL section
     printf("[2DGRID_CONTROL]\n");
-    printf("  TOPOLOGY        : %s\n", config->grid2d_config.topology);
-    printf("  ZONE_NUMBER     : %d\n", config->grid2d_config.zone_number);
+    printf("  TOPOLOGY           : %s\n", config->grid2d_config.topology);
+    printf("  ZONE_NUMBER        : %d\n", config->grid2d_config.zone_number);
     
-    printf("  ZONE_NAMES      : ");
+    printf("  ZONE_NAMES         : ");
     for (int i = 0; i < config->grid2d_config.zone_number; i++) {
         printf("%s", config->grid2d_config.zone_names[i]);
         if (i < config->grid2d_config.zone_number - 1) printf(", ");
@@ -635,48 +644,60 @@ void print_w3_config(const W3Config* config) {
     printf("\n");
     
     // Print X-point information
-    printf("  XPOINT_NUMBER   : %d\n", config->grid2d_config.xpoint_number);
-    printf("  XPOINT_R_EST    : ");
+    printf("  XPOINT_NUMBER      : %d\n", config->grid2d_config.xpoint_number);
+    printf("  XPOINT_R_EST       : ");
     for (int i = 0; i < config->grid2d_config.xpoint_number; i++) {
         printf("%.3f", config->grid2d_config.xpoint_r_est[i]);
         if (i < config->grid2d_config.xpoint_number - 1) printf(", ");
     }
     printf("\n");
     
-    printf("  XPOINT_Z_EST    : ");
+    printf("  XPOINT_Z_EST       : ");
     for (int i = 0; i < config->grid2d_config.xpoint_number; i++) {
         printf("%.3f", config->grid2d_config.xpoint_z_est[i]);
         if (i < config->grid2d_config.xpoint_number - 1) printf(", ");
     }
     printf("\n");
     
-    printf("  XPOINT_DELTA    : %.6f\n", config->grid2d_config.xpoint_delta);
+    printf("  XPOINT_DELTA       : %.6f\n", config->grid2d_config.xpoint_delta);
     
     // Print array parameters
-    printf("  GUARD_LEN_HEAD  : ");
+    printf("  GUARD_LEN_HEAD     : ");
     for (int i = 0; i < config->grid2d_config.zone_number; i++) {
         printf("%.3f", config->grid2d_config.guard_len_head[i]);
         if (i < config->grid2d_config.zone_number - 1) printf(", ");
     }
     printf("\n");
     
-    printf("  GUARD_LEN_TAIL  : ");
+    printf("  GUARD_LEN_TAIL     : ");
     for (int i = 0; i < config->grid2d_config.zone_number; i++) {
         printf("%.3f", config->grid2d_config.guard_len_tail[i]);
         if (i < config->grid2d_config.zone_number - 1) printf(", ");
     }
     printf("\n");
     
-    printf("  PASMIN          : ");
+    printf("  PASMIN             : ");
     for (int i = 0; i < config->grid2d_config.zone_number; i++) {
         printf("%.3e", config->grid2d_config.pasmin[i]);
         if (i < config->grid2d_config.zone_number - 1) printf(", ");
     }
+    printf("\n");
+
+    printf("  NEU_EXPAND_NUMBER  : ");
+    
+    for (int i = 0; i < config->grid2d_config.zone_number; i++) {
+        printf("%d", config->grid2d_config.neu_expand_number[i]);
+        if (i < config->grid2d_config.zone_number - 1) printf(", ");
+    }
+    
     printf("\n\n");
     
     // Print 3DGRID_CONTROL section
     printf("[3DGRID_CONTROL]\n");
-    printf("  TOROIDAL_FILE   : %s\n", config->grid3d_config.toroidal_file);
+    printf("  TOROIDAL_FILE          : %s\n", config->grid3d_config.toroidal_file);
+    printf("  TOROIDAL_CELL_NUMBER   : %d\n", config->grid3d_config.toroidal_cell_number);
+    printf("  TOROIDAL_DELTA         : %.2f\n", config->grid3d_config.toroidal_delta);
+
     printf("\n");
 }
 

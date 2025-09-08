@@ -1231,8 +1231,9 @@ void EMC3_3D_grid_generation_test()
   /*=================================
    Toroidal phi defintion
   ==================================*/
-  int nphi=11;
-  double delta=1;
+  //points number = cells number + 1
+  int nphi=w3config.grid3d_config.toroidal_cell_number+1;
+  double delta=w3config.grid3d_config.toroidal_delta;
   const int idx_mid=nphi/2;
 
 
@@ -1601,10 +1602,10 @@ void Expanded_2D_grid_generation_test()
 
   //6.2 build the normal distribution
   int nbottom = sol_neu_bottom_curve->n_point;
-  int nleft=7;
+  int nleft_sol=7;
   
   double* distrb_b=malloc((nbottom)*sizeof(double));
-  double* distrb_l=malloc((nleft)*sizeof(double));
+  double* distrb_l=malloc((nleft_sol)*sizeof(double));
 
   double len_tmp = total_length_curve(sol_neu_bottom_curve);
 
@@ -1613,28 +1614,28 @@ void Expanded_2D_grid_generation_test()
     distrb_b[i]=length_curve(sol_neu_bottom_curve, i+1)/len_tmp;
   }
 
-  for(int i=0; i<nleft; i++)
+  for(int i=0; i<nleft_sol; i++)
   {
-    distrb_l[i]=i*(1.0/(nleft-1));
+    distrb_l[i]=i*(1.0/(nleft_sol-1));
   }
 
   distrb_b[0]=0.0;
   distrb_l[0]=0.0;
   distrb_b[nbottom-1]=1.0;
-  distrb_l[nleft-1]=1.0;
+  distrb_l[nleft_sol-1]=1.0;
   
   write_array(distrb_b, nbottom, "distrb_b");
-  write_array(distrb_l, nleft, "distrb_l");
+  write_array(distrb_l, nleft_sol, "distrb_l");
   //6.3 build the sol_neu 2d grid
 
-  TwoDimGrid* sol_neu_2dgrid=create_2Dgrid_poloidal_major(nbottom, nleft);
+  TwoDimGrid* sol_neu_2dgrid=create_2Dgrid_poloidal_major(nbottom, nleft_sol);
 
   generate_2Dgrid_default_TFI(sol_neu_2dgrid,
                               sol_neu_bottom_curve, sol_neu_top_curve, sol_neu_left_curve, sol_neu_right_curve,
                               distrb_b, nbottom,
                               distrb_b, nbottom,
-                              distrb_l, nleft,
-                              distrb_l, nleft);
+                              distrb_l, nleft_sol,
+                              distrb_l, nleft_sol);
 
   write_2Dgrid(sol_neu_2dgrid, "SOL_NEU_2DBASE");
 
@@ -1726,10 +1727,10 @@ void Expanded_2D_grid_generation_test()
 
   //7.2 build the normal distribution
   nbottom = pfr_neu_bottom_curve->n_point;
-  nleft=7;
+  nleft_sol=7;
   
   double* distrb_b_pfr=malloc((nbottom)*sizeof(double));
-  double* distrb_l_pfr=malloc((nleft)*sizeof(double));
+  double* distrb_l_pfr=malloc((nleft_sol)*sizeof(double));
 
   len_tmp = total_length_curve(pfr_neu_bottom_curve);
 
@@ -1738,29 +1739,29 @@ void Expanded_2D_grid_generation_test()
     distrb_b_pfr[i]=length_curve(pfr_neu_bottom_curve, i+1)/len_tmp;
   }
 
-  for(int i=0; i<nleft; i++)
+  for(int i=0; i<nleft_sol; i++)
   {
-    distrb_l_pfr[i]=i*(1.0/(nleft-1));
+    distrb_l_pfr[i]=i*(1.0/(nleft_sol-1));
   }
 
   distrb_b_pfr[0]=0.0;
   distrb_l_pfr[0]=0.0;
   distrb_b_pfr[nbottom-1]=1.0;
-  distrb_l_pfr[nleft-1]=1.0;
+  distrb_l_pfr[nleft_sol-1]=1.0;
   
   write_array(distrb_b, nbottom, "distrb_b_pfr");
-  write_array(distrb_l, nleft, "distrb_l_pfr");
+  write_array(distrb_l, nleft_sol, "distrb_l_pfr");
 
   //7.3 build the sol_neu 2d grid
 
-  TwoDimGrid* pfr_neu_2dgrid=create_2Dgrid_poloidal_major(nbottom, nleft);
+  TwoDimGrid* pfr_neu_2dgrid=create_2Dgrid_poloidal_major(nbottom, nleft_sol);
 
   generate_2Dgrid_default_TFI(pfr_neu_2dgrid,
                               pfr_neu_bottom_curve,pfr_neu_top_curve,pfr_neu_left_curve, pfr_neu_right_curve,
                               distrb_b_pfr, nbottom,
                               distrb_b_pfr, nbottom,
-                              distrb_l_pfr, nleft,
-                              distrb_l_pfr, nleft);
+                              distrb_l_pfr, nleft_sol,
+                              distrb_l_pfr, nleft_sol);
 
   write_2Dgrid(pfr_neu_2dgrid, "PFR_NEU_2DBASE");
 
@@ -1849,6 +1850,11 @@ void EMC3_neu_3D_grid_generation_test()
   char* method = "central_4th";
   calc_mag_field_torsys(&dtt_example, &test_magfield, method);
 
+  //DivGeo trg
+
+  char* trgname=w3config.file_config.divgeo_trg_file;
+  DivGeoTrg* trg=create_dgtrg();
+  int status=load_dgtrg_from_file(trg, trgname);
 
 /************************************************
 *  Build the 3D tracer                          *
@@ -1856,7 +1862,7 @@ void EMC3_neu_3D_grid_generation_test()
   double direction[3]={1.0,1.0,1.0};
   RKSolverData brk45_data;
 
-  double stepsize = 0.05;
+  double stepsize = 0.1;
 
   ode_function ode_func = {
     .ndim = 3,
@@ -1896,33 +1902,48 @@ void EMC3_neu_3D_grid_generation_test()
   DLListNode* pfr_neu_top_ddl = load_DLList_from_file("PFR_neu_bnd");
 
   //left bnd of neutral 3d grid. also the radial size
-  int nleft=3;
-  double* distrb_l=malloc((nleft)*sizeof(double));
+  //points number = cells number + 1
+  int nleft_sol=w3config.grid2d_config.neu_expand_number[0]+1;
+  double* distrb_l_sol=malloc((nleft_sol)*sizeof(double));
 
-  for(int i=0; i<nleft; i++)
+  for(int i=0; i<nleft_sol; i++)
   {
-    distrb_l[i]=i*(1.0/(nleft-1));
+    distrb_l_sol[i]=i*(1.0/(nleft_sol-1));
   }
 
-  distrb_l[0]=0.0;
-  distrb_l[nleft-1]=1.0;
+  distrb_l_sol[0]=0.0;
+  distrb_l_sol[nleft_sol-1]=1.0;
+
+
+  //points number = cells number + 1
+  int nleft_pfr=w3config.grid2d_config.neu_expand_number[1]+1;
+  double* distrb_l_pfr=malloc((nleft_pfr)*sizeof(double));
+
+  for(int i=0; i<nleft_pfr; i++)
+  {
+    distrb_l_pfr[i]=i*(1.0/(nleft_pfr-1));
+  }
+
+  distrb_l_pfr[0]=0.0;
+  distrb_l_pfr[nleft_pfr-1]=1.0;
+
   
   //For SOL neutral 3D GRID
-  ThreeDimGrid* grid3d_neu_SOL = create_3Dgrid_radial_major(grid3d_plasma_SOL->npol, nleft, grid3d_plasma_SOL->ntor);
+  ThreeDimGrid* grid3d_neu_SOL = create_3Dgrid_radial_major(grid3d_plasma_SOL->npol, nleft_sol, grid3d_plasma_SOL->ntor);
 
   generate_EMC3_neutral_3Dgrid_TFI(grid3d_neu_SOL, grid3d_plasma_SOL,
                                   sol_neu_left_ddl, sol_neu_right_ddl, sol_neu_top_ddl,
-                                  nleft, distrb_l, &ode_func, &brk45_solver);
+                                  nleft_sol, distrb_l_sol, &ode_func, &brk45_solver);
 
   write_EMC3_3Dgrid_to_EMC3_format(grid3d_neu_SOL, "grid3D_NEU_SOL.dat",false,false);
 
 
   //For PFR neutral 3D GRID
-  ThreeDimGrid* grid3d_neu_PFR = create_3Dgrid_radial_major(grid3d_plasma_PFR->npol, nleft, grid3d_plasma_PFR->ntor);
+  ThreeDimGrid* grid3d_neu_PFR = create_3Dgrid_radial_major(grid3d_plasma_PFR->npol, nleft_sol, grid3d_plasma_PFR->ntor);
 
   generate_EMC3_neutral_3Dgrid_TFI(grid3d_neu_PFR, grid3d_plasma_PFR,
                                    sol_neu_left_ddl, sol_neu_right_ddl, pfr_neu_top_ddl,
-                                   nleft, distrb_l, &ode_func, &brk45_solver);
+                                   nleft_pfr, distrb_l_pfr, &ode_func, &brk45_solver);
    
   write_EMC3_3Dgrid_to_EMC3_format(grid3d_neu_PFR, "grid3D_NEU_PFR.dat",false,false);
 
@@ -1947,8 +1968,8 @@ void EMC3_neu_3D_grid_generation_test()
   // /**************************
   // *   Write PLATE_MAG file  *
   // ***************************/
-  //   write_PLATE_MAG_file_test(grid3d_all_SOL, nleft-1, 0, 1, "plate_SOL");
-  //   write_PLATE_MAG_file_test(grid3d_all_PFR, nleft-1, 0, 1, "plate_PFR");
+  //   write_PLATE_MAG_file_test(grid3d_all_SOL, nleft_sol-1, 0, 1, "plate_SOL");
+  //   write_PLATE_MAG_file_test(grid3d_all_PFR, nleft_sol-1, 0, 1, "plate_PFR");
 
 
 
@@ -1958,8 +1979,7 @@ void EMC3_neu_3D_grid_generation_test()
 
   ThreeDimGrid* grid3d_plasma_core=load_EMC3_format_3Dgrid_from_file("grid3D_CORE.dat");
 
-  int pol_inner=40;
-  int pol_outer=40;
+  int pol_inner=trg->nptseg[1]-1; //inner leg cell number, not point number
   int ntor=grid3d_plasma_core->ntor;
 
   int p1_s=0;
@@ -2014,8 +2034,8 @@ void EMC3_neu_3D_grid_generation_test()
   ThreeDimGrid* grid3d_plasma_core_order=load_EMC3_format_3Dgrid_from_file("grid3D_plasma_CORE_order.dat");
 
 
-  write_PLATE_MAG_file_test(grid3d_all_SOL_order, nleft-1, 1, 1, "plate_SOL_order");
-  write_PLATE_MAG_file_test(grid3d_all_PFR_order, nleft-1, 1, 2, "plate_PFR_order");
+  write_PLATE_MAG_file_test(grid3d_all_SOL_order, nleft_sol-1, 1, 1, "plate_SOL_order");
+  write_PLATE_MAG_file_test(grid3d_all_PFR_order, nleft_sol-1, 1, 2, "plate_PFR_order");
 
   write_BFIELD_file_default(grid3d_all_SOL_order,&test_magfield,"BFIELD_SOL_order");
   write_BFIELD_file_default(grid3d_all_PFR_order,&test_magfield,"BFIELD_PFR_order");
@@ -2031,12 +2051,15 @@ void EMC3_neu_3D_grid_generation_test()
 /**************************
 * Free parameters         *
 **************************/ 
+  free_dgtrg(trg);
+
   free_3Dgrid(grid3d_all_SOL_order);
   free_3Dgrid(grid3d_all_PFR_order);
   free_3Dgrid(grid3d_plasma_core_order);
 
-  free(distrb_l);
-  
+  free(distrb_l_sol);
+  free(distrb_l_pfr);
+
   free_3Dgrid(grid3d_all_SOL);
   free_3Dgrid(grid3d_all_PFR);
   free_3Dgrid(grid3d_plasma_core);

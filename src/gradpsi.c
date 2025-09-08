@@ -287,8 +287,8 @@ void generate_gradpsiline_bytracing(
     t=t+step_size;
     int boundary=10; //psi range for stopping tracing.
     double opoint_delta=0.1; //opoint range for stopping tracing.
-
-    while(1)
+    int tracing_counter=0;
+    while(tracing_counter<MAX_NUM_TRACING)
     {
       start_p[0]=next_p[0];
       start_p[1]=next_p[1];
@@ -322,6 +322,9 @@ void generate_gradpsiline_bytracing(
       add_DLListnode_at_tail(&endnode, next_p[0], next_p[1]);
       fprintf(fp, "%.15f %.15f\n", next_p[0], next_p[1]);
     }
+    printf("WARNING: Arrive the Maxium Tracing numbr: %d.\n", tracing_counter);
+    printf("WARNING: Please DOUBLE CHECK the file %s.\n", filename);
+
     printf("Finish tracing of gradpsi line %d \n", i);
     fclose(fp);
   }
