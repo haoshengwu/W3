@@ -193,6 +193,8 @@ void generate_EMC3_neutral_3Dgrid_TFI(ThreeDimGrid* grid3d_neu,
     if(neu_bottom_curve->n_point!=grid2d_tmp->npol)
     {
       fprintf(stderr, "Unexpected Error: The poloidal size of grid2d tmp is not same size of bottom boundary.\n");
+      fprintf(stderr, "The points in curve:%6zu, grid2d npol:%6d.\n",
+                      neu_bottom_curve->n_point, grid2d_tmp->npol);
       exit(EXIT_FAILURE);
     }
 
@@ -220,7 +222,15 @@ void generate_EMC3_neutral_3Dgrid_TFI(ThreeDimGrid* grid3d_neu,
     optimized_neu_2Dgrid(grid2d_tmp);
 
     #ifdef DEBUG
-    sprintf(name,"NEU_GIRD2D_BASE%d",k);
+    if(is_SOL && (!is_PFR))
+    {
+      sprintf(name,"NEU_SOL_GIRD2D_BASE%d",k);
+    }
+    else if (is_PFR && (!is_SOL))
+    {
+      sprintf(name,"NEU_PFR_GIRD2D_BASE%d",k);
+    }
+
     write_2Dgrid(grid2d_tmp,name);
     #endif
 
@@ -234,8 +244,16 @@ void generate_EMC3_neutral_3Dgrid_TFI(ThreeDimGrid* grid3d_neu,
   */
 
     expand_target_EMC3_2Dgrid_default(grid2d_tmp, func, solver, phi_tmp, nphi, phi);
+    
     #ifdef DEBUG
-    sprintf(name,"NEU_GIRD2D_EXPTGT%d",k);
+    if(is_SOL && (!is_PFR))
+    {
+      sprintf(name,"NEU_SOL_GIRD2D_BASE%d",k);
+    }
+    else if (is_PFR && (!is_SOL))
+    {
+      sprintf(name,"NEU_PFR_GIRD2D_BASE%d",k);
+    }
     write_2Dgrid(grid2d_tmp,name);
     #endif
 

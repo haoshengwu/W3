@@ -64,7 +64,7 @@ DLListNode* load_DLList_from_file(const char* filename)
     exit(EXIT_FAILURE);
   }
   fclose(fp);
-  fprintf(stderr, "Successfully load DLList from %s.\n", filename);
+  printf("Successfully load DLList from %s.\n", filename);
   
   return head;
 }

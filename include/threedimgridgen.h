@@ -111,8 +111,23 @@ void set_z_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double z);
 
 void set_phi_3Dgrid(ThreeDimGrid* g, int ip, int ir, int it, double phi);
 
+void expand_3Dgrid(ThreeDimGrid* g,
+                   int add_pol_head, int add_pol_tail,
+                   int add_rad_head, int add_rad_tail,
+                   int add_tor_head, int add_tor_tail);
+
+
 // assign the 2dgrid to the slice of a 3dgrid. it is the toroidal index.
 void assign_2D_to_3D_tor_slice(const TwoDimGrid* grid2d, ThreeDimGrid* grid3d, int it, double phim);
+
+
+// Create a new 3D grid by merging two 3D grids in the radial direction.
+// The radial sequence of the new grid is:
+//   grid1[:, 0:end-1, :] followed by grid2[:, 0:end-1, :].
+// If the first radial slice of grid2 equals the last radial slice of grid1,
+// they are merged (overlap removed).
+// The caller is responsible for freeing the returned ThreeDimGrid.
+ThreeDimGrid* merge_3Dgrids_radial(const ThreeDimGrid* grid1, const ThreeDimGrid* grid2);
 
 //generate the EMC3 (R-Z-Phi CSYS) 3D GRID based on the 2D GRID through magnetic field line tracing.
 //The grid2d is one the phim PHI-plane.
@@ -127,12 +142,36 @@ void write_EMC3_3Dgrid_to_XYZ_CSYS(ThreeDimGrid* grid3d, char* filename);
 
 //Write the EMC3 3D grid to EMC3 required format which is Rad-Pol-Tor order.
 //EMC3 3D grid is GRID_3D_OPTIMIZE_RPT rad-pol-tor order (ir fastest, then ip, then it)
-void write_EMC3_3Dgrid_to_EMC3_format(ThreeDimGrid* g, char* filename);
 
+/*
+*  UNIT IN EMC3 IS *CM* NOT *M*, TRANSFORMATION IS INSIDE
+*  In order to have flexibilty and to match EMC3, it can reverse the poloidal and/or radial direction
+*/
+void write_EMC3_3Dgrid_to_EMC3_format(ThreeDimGrid* g, char* filename, bool reverse_pol, bool reverse_rad);
 
 //load the EMC3 3D grid (EMC3 format) from the file
 //EMC3 3D grid is GRID_3D_OPTIMIZE_RPT rad-pol-tor order (ir fastest, then ip, then it)
+/*
+*  UNIT IN EMC3 IS *CM* NOT *M*, TRANSFORMATION IS INSIDE
+*/
 ThreeDimGrid* load_EMC3_format_3Dgrid_from_file(char* filename);
+
+
+
+//TEST function, check whether the radial surface at idx_r1 of g1 is exactly smame with idx_r2 of g2.
+//Here is assume that the poloidal order are the same of g1 and g2, e.g. both from inner to outer or vice versa
+void radial_mapping_check_test(ThreeDimGrid* g1, int idx_r1, int idx_p1_s, int idx_p1_e,
+                               ThreeDimGrid* g2, int idx_r2, int idx_p2_s, int idx_p2_e);
+
+
+//Externd the 3D grid in the poloidal direction at the 'inner' and 'outer' part.
+//It is used for toroidal mapping in EMC3.
+//nstep indicate extend how many steps of from 2D line tracing.
+//It assumed that the grid in the W3 order, and magnetic are correct.
+//this function is test function.
+void poloidal_extend_for_toroidal_mapping_test(ThreeDimGrid* grid, int nstep,
+                                               ode_function* func,ode_solver* solver);
+
 
 #endif
 

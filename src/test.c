@@ -1022,13 +1022,13 @@ void ThreeDimMeshGeneration_test()
 
 
   write_EMC3_3Dgrid_to_XYZ_CSYS(sol3dgrid,"EMC3_3DGRID_SOL");
-  write_EMC3_3Dgrid_to_EMC3_format(sol3dgrid,"grid3D_SOL.dat");
+  write_EMC3_3Dgrid_to_EMC3_format(sol3dgrid,"grid3D_SOL.dat",false,false);
 
   write_EMC3_3Dgrid_to_XYZ_CSYS(core3dgrid,"EMC3_3DGRID_CORE");
-  write_EMC3_3Dgrid_to_EMC3_format(core3dgrid,"grid3D_CORE.dat");
+  write_EMC3_3Dgrid_to_EMC3_format(core3dgrid,"grid3D_CORE.dat",false,false);
 
   write_EMC3_3Dgrid_to_XYZ_CSYS(pfr3dgrid,"EMC3_3DGRID_PFR");
-  write_EMC3_3Dgrid_to_EMC3_format(pfr3dgrid,"grid3D_PFR.dat");
+  write_EMC3_3Dgrid_to_EMC3_format(pfr3dgrid,"grid3D_PFR.dat",false,false);
   
 /**********************************************
 *   8. Free space                             *
@@ -1104,16 +1104,16 @@ void EMC3_3D_grid_generation_test()
   _XPointInfo xpt_array[1];
   find_xpoint(&dtt_example, xpt_n, est_xpt, interpl_2D_1f, interpl_2D_2f, xpt_array);
 
-  printf("Press Enter to continue...");
-  getchar();
-  printf("Program continues...\n");
-
   
   MagFieldTorSys test_magfield;
   init_mag_field_torsys(&test_magfield);
   char* method = "central_4th";
   calc_mag_field_torsys(&dtt_example, &test_magfield, method);
+  write_mag_field_torsys(&test_magfield);
 
+  printf("Press Enter to continue...");
+  getchar();
+  printf("Program continues...\n");
 
 //build the interpolator; x_tmp,fx_tmp, dfdx_tmp are nothing realted to x or y. 
 
@@ -1125,7 +1125,7 @@ void EMC3_3D_grid_generation_test()
   double direction[3]={1.0,1.0,1.0};
   RKSolverData brk45_data;
 
-  double stepsize = 0.1;
+  double stepsize = 0.05;
 
   ode_function ode_func = {
     .ndim = 2,
@@ -1232,12 +1232,12 @@ void EMC3_3D_grid_generation_test()
    Toroidal phi defintion
   ==================================*/
   int nphi=11;
-  double delta=2;
+  double delta=1;
   const int idx_mid=nphi/2;
 
 
   double *phi=malloc(nphi*sizeof(double));
-  phi[0]=10.0;
+  phi[0]=0.0;
   for(int i=1;i<nphi;i++)
   {
     phi[i]=phi[i-1]+delta;
@@ -1297,17 +1297,17 @@ void EMC3_3D_grid_generation_test()
 
   generate_EMC3_3Dgrid_from_2Dgrid_tracing(sol2dgrid_exptgt, sol3dgrid, phi[idx_mid], nphi, phi, &ode_func, &brk45_solver);
   generate_EMC3_3Dgrid_from_2Dgrid_tracing(pfr2dgrid_exptgt, pfr3dgrid, phi[idx_mid], nphi, phi, &ode_func, &brk45_solver);
-  generate_EMC3_3Dgrid_from_2Dgrid_tracing(core2dgrid, core3dgrid, phi[idx_mid], nphi, phi, &ode_func, &brk45_solver);
+  generate_EMC3_3Dgrid_from_2Dgrid_tracing(core2dgrid,      core3dgrid, phi[idx_mid], nphi, phi, &ode_func, &brk45_solver);
 
 
-  write_EMC3_3Dgrid_to_XYZ_CSYS(sol3dgrid,"EMC3_3DGRID_SOL");
-  write_EMC3_3Dgrid_to_EMC3_format(sol3dgrid,"grid3D_SOL.dat");
+  write_EMC3_3Dgrid_to_XYZ_CSYS(sol3dgrid,"XYZ_3DGRID_SOL");
+  write_EMC3_3Dgrid_to_EMC3_format(sol3dgrid,"grid3D_SOL.dat",false,false);
 
-  write_EMC3_3Dgrid_to_XYZ_CSYS(core3dgrid,"EMC3_3DGRID_CORE");
-  write_EMC3_3Dgrid_to_EMC3_format(core3dgrid,"grid3D_CORE.dat");
+  write_EMC3_3Dgrid_to_XYZ_CSYS(core3dgrid,"XYZ_3DGRID_CORE");
+  write_EMC3_3Dgrid_to_EMC3_format(core3dgrid,"grid3D_CORE.dat",false,false);
 
-  write_EMC3_3Dgrid_to_XYZ_CSYS(pfr3dgrid,"EMC3_3DGRID_PFR");
-  write_EMC3_3Dgrid_to_EMC3_format(pfr3dgrid,"grid3D_PFR.dat");
+  write_EMC3_3Dgrid_to_XYZ_CSYS(pfr3dgrid,"XYZ_3DGRID_PFR");
+  write_EMC3_3Dgrid_to_EMC3_format(pfr3dgrid,"grid3D_PFR.dat",false,false);
 
 
 /**********************************************
@@ -1856,7 +1856,7 @@ void EMC3_neu_3D_grid_generation_test()
   double direction[3]={1.0,1.0,1.0};
   RKSolverData brk45_data;
 
-  double stepsize = 0.1;
+  double stepsize = 0.05;
 
   ode_function ode_func = {
     .ndim = 3,
@@ -1896,7 +1896,7 @@ void EMC3_neu_3D_grid_generation_test()
   DLListNode* pfr_neu_top_ddl = load_DLList_from_file("PFR_neu_bnd");
 
   //left bnd of neutral 3d grid. also the radial size
-  int nleft=5;
+  int nleft=3;
   double* distrb_l=malloc((nleft)*sizeof(double));
 
   for(int i=0; i<nleft; i++)
@@ -1911,28 +1911,136 @@ void EMC3_neu_3D_grid_generation_test()
   ThreeDimGrid* grid3d_neu_SOL = create_3Dgrid_radial_major(grid3d_plasma_SOL->npol, nleft, grid3d_plasma_SOL->ntor);
 
   generate_EMC3_neutral_3Dgrid_TFI(grid3d_neu_SOL, grid3d_plasma_SOL,
-                                   sol_neu_left_ddl, sol_neu_right_ddl, sol_neu_top_ddl,
-                                   nleft, distrb_l, &ode_func, &brk45_solver);
+                                  sol_neu_left_ddl, sol_neu_right_ddl, sol_neu_top_ddl,
+                                  nleft, distrb_l, &ode_func, &brk45_solver);
 
-  write_EMC3_3Dgrid_to_EMC3_format(grid3d_neu_SOL, "grid3D_NEU_SOL.dat");
+  write_EMC3_3Dgrid_to_EMC3_format(grid3d_neu_SOL, "grid3D_NEU_SOL.dat",false,false);
 
 
   //For PFR neutral 3D GRID
   ThreeDimGrid* grid3d_neu_PFR = create_3Dgrid_radial_major(grid3d_plasma_PFR->npol, nleft, grid3d_plasma_PFR->ntor);
 
-  // generate_EMC3_neutral_3Dgrid_TFI(grid3d_neu_PFR, grid3d_plasma_PFR,
-  //                                  sol_neu_left_ddl, sol_neu_right_ddl, pfr_neu_top_ddl,
-  //                                  nleft, distrb_l, &ode_func, &brk45_solver);
-  
-  // write_EMC3_3Dgrid_to_EMC3_format(grid3d_neu_PFR, "grid3D_NEU_PFR.dat");
+  generate_EMC3_neutral_3Dgrid_TFI(grid3d_neu_PFR, grid3d_plasma_PFR,
+                                   sol_neu_left_ddl, sol_neu_right_ddl, pfr_neu_top_ddl,
+                                   nleft, distrb_l, &ode_func, &brk45_solver);
+   
+  write_EMC3_3Dgrid_to_EMC3_format(grid3d_neu_PFR, "grid3D_NEU_PFR.dat",false,false);
 
+
+  /***************************************
+  *   Merge plasma and neutral 3D grids  *
+  ****************************************/ 
+  ThreeDimGrid* grid3d_all_SOL=merge_3Dgrids_radial(grid3d_plasma_SOL,grid3d_neu_SOL);
+  write_EMC3_3Dgrid_to_EMC3_format(grid3d_all_SOL, "grid3D_all_SOL.dat",false,false);
+
+  ThreeDimGrid* grid3d_all_PFR=merge_3Dgrids_radial(grid3d_plasma_PFR,grid3d_neu_PFR);
+  write_EMC3_3Dgrid_to_EMC3_format(grid3d_all_PFR, "grid3D_all_PFR.dat",false,false);
+
+
+  // /***********************
+  // *   Write BFIELD file  *
+  // ************************/
+  //   write_BFIELD_file_default(grid3d_all_SOL,&test_magfield,"BFIELD_SOL");
+  //   write_BFIELD_file_default(grid3d_all_PFR,&test_magfield,"BFIELD_PFR");
+  //   write_BFIELD_file_default(grid3d_plasma_core,&test_magfield,"BFIELD_CORE");
+
+  // /**************************
+  // *   Write PLATE_MAG file  *
+  // ***************************/
+  //   write_PLATE_MAG_file_test(grid3d_all_SOL, nleft-1, 0, 1, "plate_SOL");
+  //   write_PLATE_MAG_file_test(grid3d_all_PFR, nleft-1, 0, 1, "plate_PFR");
+
+
+
+  /****************************************
+  *   Radial Mapping Check and Correction
+  *****************************************/
+
+  ThreeDimGrid* grid3d_plasma_core=load_EMC3_format_3Dgrid_from_file("grid3D_CORE.dat");
+
+  int pol_inner=40;
+  int pol_outer=40;
+  int ntor=grid3d_plasma_core->ntor;
+
+  int p1_s=0;
+  int p1_e=grid3d_plasma_core->npol-1;
+  int idx_r1=0;
+
+  int p2_s=pol_inner+ntor/2;
+  int p2_e=p2_s+p1_e-p1_s;
+  int idx_r2=0;
+  radial_mapping_check_test(grid3d_plasma_core,idx_r1,p1_s,p1_e,
+                            grid3d_all_SOL,    idx_r2,p2_s,p2_e);
+   
+  p1_s=0;
+  p1_e=pol_inner+ntor/2;
+  p2_s=0;
+  p2_e=pol_inner+ntor/2;
+  idx_r1=0;
+  idx_r1=0;
+  radial_mapping_check_test(grid3d_all_SOL, idx_r1, p1_s, p1_e,
+                            grid3d_all_PFR, idx_r2, p2_s, p2_e);
+
+  p1_s=p1_e+grid3d_plasma_core->npol-1+1;
+  p1_e=grid3d_all_SOL->npol-1;
+    
+  p2_s=p2_e+1;
+  p2_e=grid3d_all_PFR->npol-1;
+  radial_mapping_check_test(grid3d_all_SOL, idx_r1, p1_s, p1_e,
+                            grid3d_all_PFR, idx_r2, p2_s, p2_e);
+
+  /***************************************************
+  *  Poloidal Expansion at inner and outer portions
+  ****************************************************/
+  int nsteps=10;
+  poloidal_extend_for_toroidal_mapping_test(grid3d_all_SOL, nsteps, &ode_func, &brk45_solver);
+  poloidal_extend_for_toroidal_mapping_test(grid3d_all_PFR, nsteps, &ode_func, &brk45_solver);
+
+
+  write_EMC3_3Dgrid_to_EMC3_format(grid3d_all_SOL, "grid3D_all_SOL_polext.dat",false,false);
+  write_EMC3_3Dgrid_to_EMC3_format(grid3d_all_PFR, "grid3D_all_PFR_polext.dat",false,false);
+
+
+  /***********************************
+  *   FOR T.LUNT EMC3 ORDER
+  ***********************************/
+
+  write_EMC3_3Dgrid_to_EMC3_format(grid3d_all_SOL, "grid3D_all_SOL_order.dat",true,false);
+  write_EMC3_3Dgrid_to_EMC3_format(grid3d_all_PFR, "grid3D_all_PFR_order.dat",true,false);
+  write_EMC3_3Dgrid_to_EMC3_format(grid3d_plasma_core, "grid3D_plasma_CORE_order.dat",true,true);
+
+  ThreeDimGrid* grid3d_all_SOL_order=load_EMC3_format_3Dgrid_from_file("grid3D_all_SOL_order.dat");
+  ThreeDimGrid* grid3d_all_PFR_order=load_EMC3_format_3Dgrid_from_file("grid3D_all_PFR_order.dat");
+  ThreeDimGrid* grid3d_plasma_core_order=load_EMC3_format_3Dgrid_from_file("grid3D_plasma_CORE_order.dat");
+
+
+  write_PLATE_MAG_file_test(grid3d_all_SOL_order, nleft-1, 1, 1, "plate_SOL_order");
+  write_PLATE_MAG_file_test(grid3d_all_PFR_order, nleft-1, 1, 2, "plate_PFR_order");
+
+  write_BFIELD_file_default(grid3d_all_SOL_order,&test_magfield,"BFIELD_SOL_order");
+  write_BFIELD_file_default(grid3d_all_PFR_order,&test_magfield,"BFIELD_PFR_order");
+  write_BFIELD_file_default(grid3d_plasma_core_order,&test_magfield,"BFIELD_CORE_order");
+
+
+/******************************
+*  Write Additional surfaces  *
+*******************************/
+  write_axis_sys_surface_default(grid3d_all_SOL_order, sol_neu_left_ddl, true, "ADD_inner");
+  write_axis_sys_surface_default(grid3d_all_SOL_order, sol_neu_right_ddl, false, "ADD_outer");
 
 /**************************
 * Free parameters         *
 **************************/ 
+  free_3Dgrid(grid3d_all_SOL_order);
+  free_3Dgrid(grid3d_all_PFR_order);
+  free_3Dgrid(grid3d_plasma_core_order);
 
   free(distrb_l);
   
+  free_3Dgrid(grid3d_all_SOL);
+  free_3Dgrid(grid3d_all_PFR);
+  free_3Dgrid(grid3d_plasma_core);
+
   free_3Dgrid(grid3d_plasma_SOL);
   free_3Dgrid(grid3d_neu_SOL);
 

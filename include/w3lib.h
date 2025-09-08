@@ -35,5 +35,6 @@
 #include "tfi2Dgridgen.h"
 #include "tfi3Dgridgen.h"
 #include "utils.h"
+#include "emc3input.h"
 
 #endif
