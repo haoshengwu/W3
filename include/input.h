@@ -92,11 +92,14 @@ typedef struct {
     double guard_len_head[MAX_ZONES];
     double guard_len_tail[MAX_ZONES];
     double pasmin[MAX_ZONES];
+    int neu_expand_number[MAX_ZONES];
 
 } Grid2DConfig;
 
 typedef struct {
     char toroidal_file[256];
+    int toroidal_cell_number;
+    double toroidal_delta;
 } Grid3DConfig;
 
 typedef struct {

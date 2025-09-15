@@ -1125,7 +1125,7 @@ void EMC3_3D_grid_generation_test()
   double direction[3]={1.0,1.0,1.0};
   RKSolverData brk45_data;
 
-  double stepsize = 0.05;
+  double stepsize = 0.1;
 
   ode_function ode_func = {
     .ndim = 2,
@@ -1150,6 +1150,10 @@ void EMC3_3D_grid_generation_test()
   calc_grad_psi(&dtt_example, gradpsi, central_diff_2nd_2d);
   char name[32]="gradpsi";
   write_grad_psi(gradpsi, name);
+
+  printf("Press Enter to continue...");
+  getchar();
+  printf("Program continues...\n");
 
 // change the odf function for gradpsi line tracing
   ode_func.compute_f=ode_f_gradpsi_cubicherm;
@@ -1978,6 +1982,8 @@ void EMC3_neu_3D_grid_generation_test()
   *****************************************/
 
   ThreeDimGrid* grid3d_plasma_core=load_EMC3_format_3Dgrid_from_file("grid3D_CORE.dat");
+  
+  close_core_3Dgrid_test(grid3d_plasma_core);
 
   int pol_inner=trg->nptseg[1]-1; //inner leg cell number, not point number
   int ntor=grid3d_plasma_core->ntor;
@@ -2042,11 +2048,55 @@ void EMC3_neu_3D_grid_generation_test()
   write_BFIELD_file_default(grid3d_plasma_core_order,&test_magfield,"BFIELD_CORE_order");
 
 
+/***************************
+*  Write OMP and Target RZ *
+****************************/
+  write_RZ_along_radial_test(grid3d_plasma_core_order, 43,0,"RZ_OMP_CORE");
+  write_RZ_along_radial_test(grid3d_all_SOL_order, 99,0,"RZ_OMP_SOL");
+  write_RZ_along_radial_test(grid3d_all_SOL_order, 12,0,"RZ_OT_SOL");
+  write_RZ_along_radial_test(grid3d_all_SOL_order, 2,0,"RZ_IT_SOL");
+
 /******************************
 *  Write Additional surfaces  *
 *******************************/
-  write_axis_sys_surface_default(grid3d_all_SOL_order, sol_neu_left_ddl, true, "ADD_inner");
-  write_axis_sys_surface_default(grid3d_all_SOL_order, sol_neu_right_ddl, false, "ADD_outer");
+  int PFR_nr=grid3d_all_PFR_order->nrad;
+  int SOL_nr=grid3d_all_SOL_order->nrad;
+
+
+  int PFR_np=grid3d_all_PFR_order->npol;
+  int SOL_np=grid3d_all_SOL_order->npol;
+  int nt=grid3d_all_PFR_order->ntor;
+
+  DLListNode* add_outer=create_DLListNode(get_r_3Dgrid(grid3d_all_PFR_order,nt,PFR_nr-1,0),
+                                          get_z_3Dgrid(grid3d_all_PFR_order,nt,PFR_nr-1,0));
+
+  DLListNode* add_inner=create_DLListNode(get_r_3Dgrid(grid3d_all_PFR_order,PFR_np-1-1,PFR_nr-1,0),
+                                          get_z_3Dgrid(grid3d_all_PFR_order,PFR_np-1-1,PFR_nr-1,0));
+
+  DLListNode* add_outer_tail=add_outer;
+  DLListNode* add_inner_tail=add_inner;
+  for(int i=1;i<PFR_nr;i++)
+  {
+    add_DLListnode_at_tail(&add_outer_tail,get_r_3Dgrid(grid3d_all_PFR_order,nt,PFR_nr-1-i,0),
+                                           get_z_3Dgrid(grid3d_all_PFR_order,nt,PFR_nr-1-i,0));
+    add_DLListnode_at_tail(&add_inner_tail,get_r_3Dgrid(grid3d_all_PFR_order,PFR_np-1-1,PFR_nr-1-i,0),
+                                           get_z_3Dgrid(grid3d_all_PFR_order,PFR_np-1-1,PFR_nr-1-i,0));
+  }
+
+  for(int i=1;i<SOL_nr;i++)
+  {
+    add_DLListnode_at_tail(&add_outer_tail,get_r_3Dgrid(grid3d_all_SOL_order,nt,i,0),
+                                           get_z_3Dgrid(grid3d_all_SOL_order,nt,i,0));
+    add_DLListnode_at_tail(&add_inner_tail,get_r_3Dgrid(grid3d_all_SOL_order,SOL_np-1-1,i,0),
+                                           get_z_3Dgrid(grid3d_all_SOL_order,SOL_np-1-1,i,0));
+  }
+
+  write_DLList(add_inner,"add_inner_ddl");
+  write_DLList(add_outer,"add_outer_ddl");
+  write_axis_sys_surface_default(grid3d_all_SOL_order, add_inner, true, "ADD_inner");
+  write_axis_sys_surface_default(grid3d_all_SOL_order, add_outer, false, "ADD_outer");
+  free_DLList(add_inner);
+  free_DLList(add_outer);
 
 /**************************
 * Free parameters         *

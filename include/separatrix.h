@@ -6,6 +6,7 @@
 #include "equilibrium.h"
 #include "magneticfield.h"
 #include "ode.h"
+#include "config.h"
 
 
 

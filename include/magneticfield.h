@@ -10,7 +10,7 @@
 #include "datastructure.h"
 #include "mathbase.h"
 //mininum R range used for calculate magnetic field to avoid zero value;
-#define MIN_R 0.1 // unit(meter)
+#define MIN_R 0.001 // unit(meter)
 
 typedef struct{
   int nr;

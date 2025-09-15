@@ -150,7 +150,7 @@ void read_equilib_geqdsk(Equilibrium *equilib, const char *geqdsk_file)
 /********************************************
 *     Refine the original equlibrium
 *********************************************/
-  int M = 4; // uniform the r_tmp and z_tmp into M;
+  int M = 2 ; // uniform the r_tmp and z_tmp into M;
   int nr = nw + (M-1)*(nw-1);
   int nz = nh + (M-1)*(nh-1);
 

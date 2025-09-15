@@ -322,8 +322,11 @@ void generate_gradpsiline_bytracing(
       add_DLListnode_at_tail(&endnode, next_p[0], next_p[1]);
       fprintf(fp, "%.15f %.15f\n", next_p[0], next_p[1]);
     }
-    printf("WARNING: Arrive the Maxium Tracing numbr: %d.\n", tracing_counter);
-    printf("WARNING: Please DOUBLE CHECK the file %s.\n", filename);
+    if(tracing_counter==MAX_NUM_TRACING)
+    {
+      printf("WARNING: Arrive the Maxium Tracing numbr: %d.\n", tracing_counter);
+      printf("WARNING: Please DOUBLE CHECK the file %s.\n", filename);
+    }
 
     printf("Finish tracing of gradpsi line %d \n", i);
     fclose(fp);

@@ -182,17 +182,17 @@ void write_PLATE_MAG_file_test(ThreeDimGrid* grid, int n_neu_rad_cells, int pol_
         }
         else if (ir>=plasma_rad_range[0] && ir<=plasma_rad_range[1]) //plasma domain
         {
-          if(ip==0 || ip==ntcell-1)
+          if(ip==0 || ip==npcell-1)
           {
             fprintf(fp,fmt,idx_zone,ir,ip,2,0,ntcell-1);
           }
 
-          if(ip>=1&&ip<=ntcell-1+1)
+          if(ip>=1&&ip<=ntcell)
           { 
-            //POLOIDAL [0:ntcell-1] cells, 0-base idx
-            fprintf(fp,fmt,idx_zone,ir,ip,2,0,ntcell-1-ip-1);
+            //POLOIDAL [1:ntcell] cells, 0-base idx,[0] is to toroidal matching
+            fprintf(fp,fmt,idx_zone,ir,ip,2,0,ntcell-1-(ip-1));
           } 
-          else if (ip>=npcell-ntcell-1 && ip<=npcell-1-2)
+          else if (ip>=npcell-ntcell-1 && ip<=npcell-1-1)
           {
             //POLOIDAL [npcell-ntcell:npcell-1] cells, 0-base idx
             fprintf(fp,fmt,idx_zone,ir,ip,2,npcell-1-ip-1,ntcell-1);
@@ -268,5 +268,55 @@ void write_axis_sys_surface_default(ThreeDimGrid* grid, DLListNode* surface, boo
 
   free_DLList(surf_dll);
   free_curve(surf_curve);
+}
+
+void write_RZ_along_radial_test(ThreeDimGrid* grid, int ip_cell, int it, char* filename)
+{
+  if(!grid || !filename)
+  {
+    fprintf(stderr, "Error: Null inputs for write_axis_sys_surface_default.\n");
+    exit(EXIT_FAILURE);
+  }
+  int np=grid->npol;
+  int nr=grid->nrad;
+  int nt=grid->ntor;
+
+  if(ip_cell<0 || ip_cell>np-2)
+  {
+    fprintf(stderr, "Error: Null inputs for write_RZ_along_radial_test.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(it<0 || it>nt-1)
+  {
+    fprintf(stderr, "Error: it is out of range of toroidal range.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  FILE *fp = fopen(filename, "w");
+  if (!fp) 
+  {
+    fprintf(stderr, "Error: cannot open file \"%s\" \n",filename);
+    exit(EXIT_FAILURE);
+  }
+
+  for(int ir_cell=0; ir_cell<nr-1; ir_cell++)
+  {
+    double r=0.25*(get_r_3Dgrid(grid, ip_cell, ir_cell, it) +
+                   get_r_3Dgrid(grid, ip_cell+1, ir_cell, it) +
+                   get_r_3Dgrid(grid, ip_cell, ir_cell+1, it) + 
+                   get_r_3Dgrid(grid, ip_cell+1, ir_cell+1, it));
+
+    double z=0.25*(get_z_3Dgrid(grid, ip_cell, ir_cell, it) +
+                   get_z_3Dgrid(grid, ip_cell+1, ir_cell, it) +
+                   get_z_3Dgrid(grid, ip_cell, ir_cell+1, it) + 
+                   get_z_3Dgrid(grid, ip_cell+1, ir_cell+1, it));
+    
+    fprintf(fp, "%18.12f%18.12f\n", r,z);
+  }
+  fclose(fp);
+  #ifdef DEBUG
+  printf("Successfully write 3D GRID R Z along radial direction from %d poloidal cell at %d toroidal slice.\n",ip_cell, it);
+  #endif
 }
 

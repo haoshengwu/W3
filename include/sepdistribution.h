@@ -6,6 +6,8 @@
 #include "separatrix.h"
 #include "gridzoneinfo.h"
 #include "polsegminfo.h"
+#include "config.h"
+
 
 typedef struct EdgeSegment {
   DLListNode* tail;

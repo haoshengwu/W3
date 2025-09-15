@@ -43,4 +43,8 @@ void write_PLATE_MAG_file_test(ThreeDimGrid* grid, int n_neutral_cells, int pol_
 void write_axis_sys_surface_default(ThreeDimGrid* grid, DLListNode* surface, bool reverse, char* filename);
 
 
+// Wirte the ip-th (0-base) cell center along radial direction at ir torodial slice to filename
+void write_RZ_along_radial_test(ThreeDimGrid* grid, int ip_cell, int it, char* filename);
+
+
 #endif

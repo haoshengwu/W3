@@ -13,7 +13,7 @@
 #define TOR_TURN 10
 #define TOR_RESOLUTION 0.1
 #define TOR_FIELD 200
-#define MIN_R 0.1
+#define MIN_R 0.001
 
 
 typedef struct

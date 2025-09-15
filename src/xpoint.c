@@ -52,7 +52,7 @@ void find_xpoint(Equilibrium *equilib, int xpoint_number, double **est_xpoint_po
   xpC = malloc(sizeof(*xpC));
 //  xp = malloc(sizeof(*xp));
 
-  for (s = 2; s < 3; s++)
+  for (s = 2; s < 4; s++)
   {
     for (i = 1; i < equilib->nw - 1 - s; i++)
     {

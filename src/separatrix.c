@@ -3,6 +3,7 @@
 #include "ode.h"
 #include <assert.h>
 #include "mathbase.h"
+#include <stdbool.h>
 
 SeparatrixStr* init_separatrix_default(void)
 {
@@ -68,7 +69,7 @@ void generate_separatrix_bytracing(
   int ox, oy;
 
 //TODO: check there are four points with psi value in the line of xpt rectangular.
-  int nside=(cx2-cx1)*(cy2-cy1)*2;
+  int nside=2*((cx2-cx1) + (cy2-cy1));
   
 
   int np=0;
@@ -171,28 +172,38 @@ void generate_separatrix_bytracing(
     }
     
     level_tmp2=equ->psi[x][y];
-    if ((xpt_level>min(level_tmp1,level_tmp2))&&
-        (xpt_level<max(level_tmp1,level_tmp2)))
-    {
-      // printf("Find the psi point in Xpt Rec:\n");
-      // printf("ox: %d x: %d oy: %d y: %d\n", ox, x, oy, y);
 
+    //in some situation, the start point can be directly the point.
+    double f1 = level_tmp1 - xpt_level;
+    double f2 = level_tmp2 - xpt_level;
+    double eps = EPSILON_12;
+    
+    bool crosses = (f1 * f2 <= 0.0) && (fabs(f1) > eps || fabs(f2) > eps);
+  
+    if (crosses)
+    {
       //ensure x_tmp[0] < x_tmp[1] for interpolation
       if(x_tmp[0]>x_tmp[1])
       {
         swap_double(&x_tmp[0],&x_tmp[1]);
         swap_double(&fx_tmp[0],&fx_tmp[1]);
       }
-
       modify_cubicherm1D_data(interp->data, x_tmp, fx_tmp, NULL,2);
       Secant_Method(&second_p[np][dir],&xpt_level, interp);
 
       // printf("Second point: %.15f %.15f\n", second_p[np][0], second_p[np][1]);
+      printf("Find the psi point in Xpt Rec:\n");
+      printf("ox: %d x: %d oy: %d y: %d\n", ox, x, oy, y);
       printf("%.15f %.15f\n", second_p[np][0], second_p[np][1]);
-
       np++;
     }
     if(np==4) break; //find all four point
+  }
+
+  if(np!=4)
+  {
+    fprintf(stderr, "Unexpected error: don't find all the four points for separatrix lines.\n");
+    exit(EXIT_FAILURE);
   }
   //Begin to trace;
   //check the direction, because the direction should far away from X-point
@@ -268,8 +279,12 @@ void generate_separatrix_bytracing(
       add_DLListnode_at_tail(&endnode, next_p[0], next_p[1]);
       fprintf(fp, "%.15f %.15f\n", next_p[0], next_p[1]);
     }
-    printf("Arrive the Maxium Tracing numbr: %d.\n", tracing_counter);
-    printf("WARNING: Please DOUBLE CHECK the file %s.\n", filename);
+    if(tracing_counter==MAX_NUM_TRACING)
+    {
+      printf("Arrive the Maxium Tracing numbr: %d.\n", tracing_counter);
+      printf("WARNING: Please DOUBLE CHECK the file %s.\n", filename);
+    }
+
 
     //add the X-point again to make sure the sep lines for LCFS is closed.
 

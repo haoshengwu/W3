@@ -173,6 +173,13 @@ void poloidal_extend_for_toroidal_mapping_test(ThreeDimGrid* grid, int nstep,
                                                ode_function* func,ode_solver* solver);
 
 
+
+//This function accurately close the core 3D grid,
+//which menas grid[first_in_pol][:][:]=grid[last_in_pol][:][:].
+//It is a test function now, and future may be updated.
+void close_core_3Dgrid_test(ThreeDimGrid* grid);
+
+
 #endif
 
 

@@ -8,6 +8,7 @@
 #include "ode.h"
 #include "separatrix.h"
 #include "opoint.h"
+#include "config.h"
 
 typedef struct {
     int nr;         // Number of grid points in the r direction

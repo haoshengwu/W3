@@ -725,6 +725,7 @@ void radial_mapping_check_test(ThreeDimGrid* g1, int idx_r1, int idx_p1_s, int i
   }
 }
 
+
 void poloidal_extend_for_toroidal_mapping_test(ThreeDimGrid* grid, int n_tracing_step,
                                               ode_function* func,ode_solver* solver)
 {
@@ -854,4 +855,66 @@ void poloidal_extend_for_toroidal_mapping_test(ThreeDimGrid* grid, int n_tracing
     printf("The %d-th radial at inner portrain expend to %.12f %.12f.\n", ir, pt_tmp[0],pt_tmp[1]);
     #endif
   }
+}
+
+
+void close_core_3Dgrid_test(ThreeDimGrid* grid)
+{
+  if (!grid) 
+  {
+    fprintf(stderr, "Error: Null inputs for close_core_3Dgird_test.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  int np=grid->npol;
+  int nr=grid->nrad;
+  int nt=grid->ntor;
+
+  if(np<2||nr<2||nt<2)
+  {
+    fprintf(stderr, "Unexpected Error: The size of grid is illegal.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  for(int it=0;it<nt;it++)
+  {
+    for(int ir=0;ir<nr;ir++)
+    {
+      double r_first=get_r_3Dgrid(grid,0,ir,it);
+      double z_first=get_z_3Dgrid(grid,0,ir,it);
+      
+      double r_last=get_r_3Dgrid(grid,np-1,ir,it);
+      double z_last=get_z_3Dgrid(grid,np-1,ir,it);
+      if(fabs(r_first-r_last)<EPSILON_10 &&
+         fabs(z_first-z_last)<EPSILON_10)
+      {
+        set_r_3Dgrid(grid, np-1, ir, it, r_first);
+        set_z_3Dgrid(grid, np-1, ir, it, z_first);
+      }
+      else if(fabs(r_first-r_last)<1.0E-3 &&
+              fabs(z_first-z_last)<1.0E-3)
+      {
+        printf("The distance between the first and last points exceeds %.2e.\n"
+                "Details: |r0 - rN| = %.3e, |z0 - zN| = %.3e (npol=%d, ir=%d, it=%d)\n",
+                EPSILON_10,
+                fabs(r_first - r_last), fabs(z_first - z_last),
+                np, ir, it);
+        printf("The distance between the first and last points less than the error tolerance %.2e.\n",1.0E-3);
+        printf("WARING: Please becareful about the 3D grid.\n");
+        set_r_3Dgrid(grid, np-1, ir, it, r_first);
+        set_z_3Dgrid(grid, np-1, ir, it, z_first);
+        // exit(EXIT_FAILURE);
+      }
+      else
+      {
+        fprintf(stderr, "The distance between the first and last points exceeds %.2e.\n"
+                "Details: |r0 - rN| = %.3e, |z0 - zN| = %.3e (npol=%d, ir=%d, it=%d)\n",
+                1.0E-3,
+                fabs(r_first - r_last), fabs(z_first - z_last),
+                np, ir, it);
+        exit(EXIT_FAILURE);
+      }
+    }
+  }
+  return;
 }
