@@ -2016,7 +2016,7 @@ void EMC3_neu_3D_grid_generation_test()
                             grid3d_all_PFR, idx_r2, p2_s, p2_e);
 
   /***************************************************
-  *  Poloidal Expansion at inner and outer portions
+  *  Poloidal Expansion at inner and outer portions  *
   ****************************************************/
   int nsteps=10;
   poloidal_extend_for_toroidal_mapping_test(grid3d_all_SOL, nsteps, &ode_func, &brk45_solver);
@@ -2027,21 +2027,96 @@ void EMC3_neu_3D_grid_generation_test()
   write_EMC3_3Dgrid_to_EMC3_format(grid3d_all_PFR, "grid3D_all_PFR_polext.dat",false,false);
 
 
-  /***********************************
-  *   FOR T.LUNT EMC3 ORDER
+  /**********************************
+  *   FOR T.LUNT EMC3 ORDER         *
   ***********************************/
 
   write_EMC3_3Dgrid_to_EMC3_format(grid3d_all_SOL, "grid3D_all_SOL_order.dat",true,false);
   write_EMC3_3Dgrid_to_EMC3_format(grid3d_all_PFR, "grid3D_all_PFR_order.dat",true,false);
   write_EMC3_3Dgrid_to_EMC3_format(grid3d_plasma_core, "grid3D_plasma_CORE_order.dat",true,true);
 
+
+  /************************
+  *    READ 3DGIRD        *
+  *************************/
+
   ThreeDimGrid* grid3d_all_SOL_order=load_EMC3_format_3Dgrid_from_file("grid3D_all_SOL_order.dat");
   ThreeDimGrid* grid3d_all_PFR_order=load_EMC3_format_3Dgrid_from_file("grid3D_all_PFR_order.dat");
   ThreeDimGrid* grid3d_plasma_core_order=load_EMC3_format_3Dgrid_from_file("grid3D_plasma_CORE_order.dat");
 
+ /**************************
+  *    WRITE PLATE_MAG     *
+  **************************/
 
-  write_PLATE_MAG_file_test(grid3d_all_SOL_order, nleft_sol-1, 1, 1, "plate_SOL_order");
-  write_PLATE_MAG_file_test(grid3d_all_PFR_order, nleft_sol-1, 1, 2, "plate_PFR_order");
+  //OLD METHOD
+  // write_PLATE_MAG_file_test(grid3d_all_SOL_order, nleft_sol-1, 1, 1, "plate_SOL_order");
+  // write_PLATE_MAG_file_test(grid3d_all_PFR_order, nleft_sol-1, 1, 2, "plate_PFR_order");
+
+  //NEW METHOD FOR SOL
+  PlateCells* platecell_SOL=generate_platecells(grid3d_all_SOL_order, 1);
+  update_platecells_targets(platecell_SOL, grid3d_all_SOL_order);
+  update_platecells_radneu(platecell_SOL,w3config.grid2d_config.neu_expand_number[0]);
+
+  DLListNode* limiter_head=load_DLList_from_file("antenna.s_e");
+  double limiter_star_phi=0.0;
+  double limiter_end_phi=24.0;
+  update_platecells_limiter(platecell_SOL, grid3d_all_SOL_order,
+                            limiter_head, limiter_star_phi, limiter_end_phi);
+  
+
+  //NEW METHOD FOR PFR
+  PlateCells* platecell_PFR=generate_platecells(grid3d_all_PFR_order, 2);
+  update_platecells_targets(platecell_PFR, grid3d_all_PFR_order);
+  update_platecells_radneu(platecell_PFR,w3config.grid2d_config.neu_expand_number[1]);
+
+  
+  write_platecells(platecell_SOL,"plate_SOL_order_new");
+  write_platecells(platecell_PFR,"plate_PFR_order_new");
+
+
+  /*************************************************
+  *  ONLY FOR TOROIDAL-AXIS-SYSMMETRY LIMITER      *
+  **************************************************/
+  //WRITE ANTENAA S_E SURFACE
+  write_tor_axi_sym(grid3d_all_SOL_order, limiter_head, true, "ADD_antenna.s_e");
+
+
+
+
+  free_DLList(limiter_head);
+  free_platecells(platecell_SOL);
+
+  /*************************************************
+  *  ONLY FOR NON-TOROIDAL-AXIS-SYSMMETRY LIMITER  *
+  **************************************************/
+
+  //WRITE ANTENAA TOROIDAL SURFACE 
+  // DLListNode* limiter_inner_bnd=load_DLList_from_file("antenna.inner.bnd.modify");
+  // DLListNode* limiter_outer_bnd=load_DLList_from_file("antenna.outer.bnd.modify");
+
+  // double phi_delta=1.0E-4;
+
+  // write_non_tor_axi_sym(grid3d_all_SOL_order, limiter_head, false,
+  //                       limiter_star_phi, limiter_end_phi, "ADD_antenna.s_e.modify");
+
+  // write_non_tor_axi_sym_usr(limiter_head, false, limiter_star_phi,limiter_end_phi,
+  //                           0.5,  "ADD_antenna.s_e.refine");
+
+  // write_one_toroidal_surface(limiter_outer_bnd,limiter_star_phi-phi_delta,
+  //                            limiter_inner_bnd,limiter_star_phi, 
+  //                            false, "ADD_antenna.start.modify");
+  
+  // write_one_toroidal_surface(limiter_inner_bnd, limiter_end_phi,
+  //                            limiter_outer_bnd, limiter_end_phi+phi_delta,
+  //                            false, "ADD_antenna.end.modify");
+
+  // free_DLList(limiter_inner_bnd);
+  // free_DLList(limiter_outer_bnd);
+  
+
+ /***********************
+  *    WRITE BFIELD     *
+  ***********************/
 
   write_BFIELD_file_default(grid3d_all_SOL_order,&test_magfield,"BFIELD_SOL_order");
   write_BFIELD_file_default(grid3d_all_PFR_order,&test_magfield,"BFIELD_PFR_order");
@@ -2093,8 +2168,8 @@ void EMC3_neu_3D_grid_generation_test()
 
   write_DLList(add_inner,"add_inner_ddl");
   write_DLList(add_outer,"add_outer_ddl");
-  write_axis_sys_surface_default(grid3d_all_SOL_order, add_inner, true, "ADD_inner");
-  write_axis_sys_surface_default(grid3d_all_SOL_order, add_outer, false, "ADD_outer");
+  write_tor_axi_sym(grid3d_all_SOL_order, add_inner, true, "ADD_inner");
+  write_tor_axi_sym(grid3d_all_SOL_order, add_outer, false, "ADD_outer");
   free_DLList(add_inner);
   free_DLList(add_outer);
 

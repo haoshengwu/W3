@@ -114,6 +114,12 @@ typedef struct {
 //create a new curve which is connect n_curve curves.
 Curve* connect_curves_for_curve(CurveWithOptions* list, int n_curve);
 
+/*****************************************************
+ * Check point in a close strucutre formed by curves *
+*****************************************************/
 
+
+int is_point_on_edge(double x, double y, CurvePoint p1, CurvePoint p2);
+int is_point_inside(double x, double y, Curve** boundary, int n_boundary);
 
 #endif

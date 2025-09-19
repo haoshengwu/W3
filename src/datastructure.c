@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdbool.h>
-#define EPS_DATASTR 1.0E-12
+#define EPS_DATASTR 1.0E-10
 
 //************** Double linked list related ******************//
 DLListNode* create_DLListNode(double r, double z)
@@ -891,4 +891,61 @@ void write_3d_array(const int d1, const int d2, const int d3, double*** array,
     
     fclose(file);
     printf("Successfully wrote 3D array (%dx%dx%d) to file: %s with dim=%d\n", d1, d2, d3, filename, dim);
+}
+
+
+int*** allocate_3d_array_int(const int d1, const int d2, const int d3)
+{
+/*
+allocate dynamic 2D array and retunre the pointer
+d1: first dimension number
+d2: second dimension number
+d3: third dimension number
+*/
+  if (d1 <= 0 || d2 <= 0 || d3 <= 0)
+  {
+    fprintf(stderr, "Error: Invalid dimensions!\n");
+    return NULL;
+  }
+
+  int ***array = (int ***)malloc(d1 * sizeof(int **));
+  if (array == NULL)
+  {
+    fprintf(stderr, "Error: Memory allocation failed for pointer array!\n");
+    return NULL;
+  }
+
+  array[0] = (int **)malloc(d2 * d1 * sizeof(int *));
+  if (array[0] == NULL)
+  {
+    fprintf(stderr, "Error: Memory allocation failed for pointer array array[0]!\n");
+    free(array);
+    return NULL;
+  }
+
+  array[0][0] = (int *)calloc(d3 * d2 * d1, sizeof(int));
+  if (array[0][0] == NULL)
+  {
+    fprintf(stderr, "Error: Memory allocation failed for pointer array array[0][0]!\n");
+    free(array[0]); // Free the second dimension pointers
+    free(array);
+    return NULL;
+  }
+
+  for(int i=0; i<d1; i++)
+  {
+    array[i] = array[0] + i*d2;
+    for(int j=0; j<d2; j++)
+    {
+      array[i][j] = array[0][0] + (i*d2 + j)*d3;
+    }
+  }
+  return array;
+}
+
+void free_3d_array_int(int ***array)
+{
+  free(array[0][0]);
+  free(array[0]);
+  free(array);
 }

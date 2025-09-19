@@ -36,5 +36,6 @@
 #include "tfi3Dgridgen.h"
 #include "utils.h"
 #include "emc3input.h"
+#include "intersection_test.h"
 
 #endif

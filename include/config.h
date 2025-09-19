@@ -37,13 +37,14 @@
 #define NRELAX 3000
 
 /* ========== Precision Settings ========== */
+#define EPSILON_8 1.0E-8
 #define EPSILON_10 1.0E-10
 #define EPSILON_12 1.0E-12
 #define EPSILON_15 1.0E-15
 
 /* ========== 2DGRID and 3DGRID Settings ========== */
-#define DEFAULT_POL_MARGIN 20
-#define DEFAULT_RAD_MARGIN 20
+#define DEFAULT_POL_MARGIN 30
+#define DEFAULT_RAD_MARGIN 30
 #define DEFAULT_TOR_MARGIN 0
 
 

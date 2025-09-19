@@ -63,7 +63,7 @@ void write_BFIELD_file_default(ThreeDimGrid* grid, MagFieldTorSys* mag_field, ch
   #endif
 }
 
-void write_PLATE_MAG_file_test(ThreeDimGrid* grid, int n_neu_rad_cells, int pol_dir, int idx_zone, char* filename)
+void write_PLATE_MAG_file_test(ThreeDimGrid* grid, int n_neutral_cells, int pol_dir, int idx_zone, char* filename)
 {
   if(!grid || !filename)
   {
@@ -77,7 +77,7 @@ void write_PLATE_MAG_file_test(ThreeDimGrid* grid, int n_neu_rad_cells, int pol_
     printf("WARNING: ARE YOU SURE?\n");
   }
 
-  if(n_neu_rad_cells<0)
+  if(n_neutral_cells<0)
   {
     fprintf(stderr, "Error: Neutral region in the radial direction shoud >=0.\n");
     exit(EXIT_FAILURE);
@@ -98,7 +98,7 @@ void write_PLATE_MAG_file_test(ThreeDimGrid* grid, int n_neu_rad_cells, int pol_
   int plasma_rad_range[2];
   int neu_rad_range[2];
 
-  if (n_neu_rad_cells == 0) {
+  if (n_neutral_cells == 0) {
     // Special case: no neutral cells
     // → Plasma region covers all cells [0, nrcell-1]
     // → Neutral region is empty (set neu[0] > neu[1] to indicate an empty interval)
@@ -111,7 +111,7 @@ void write_PLATE_MAG_file_test(ThreeDimGrid* grid, int n_neu_rad_cells, int pol_
     // Plasma region: [0, nrcell - n_neutral_cells - 1]
     // Neutral region: [plasma_end + 1, nrcell - 1]
     plasma_rad_range[0] = 0;
-    plasma_rad_range[1] = nrcell - n_neu_rad_cells - 1;
+    plasma_rad_range[1] = nrcell - n_neutral_cells - 1;
     neu_rad_range[0]    = plasma_rad_range[1] + 1;
     neu_rad_range[1]    = nrcell - 1;
   }
@@ -219,11 +219,11 @@ void write_PLATE_MAG_file_test(ThreeDimGrid* grid, int n_neu_rad_cells, int pol_
 }
 
 
-void write_axis_sys_surface_default(ThreeDimGrid* grid, DLListNode* surface, bool reverse, char* filename)
+void write_tor_axi_sym(ThreeDimGrid* grid, DLListNode* surface, bool reverse, char* filename)
 {
   if(!grid || !filename || !surface)
   {
-    fprintf(stderr, "Error: Null inputs for write_axis_sys_surface_default.\n");
+    fprintf(stderr, "Error: Null inputs for write_tor_axi_sym.\n");
     exit(EXIT_FAILURE);
   }
   int nt=grid->ntor;
@@ -270,11 +270,245 @@ void write_axis_sys_surface_default(ThreeDimGrid* grid, DLListNode* surface, boo
   free_curve(surf_curve);
 }
 
+void write_non_tor_axi_sym(ThreeDimGrid* grid, DLListNode* surface, bool reverse, 
+                           double start_phi, double end_phi, char* filename)
+{
+  //check input
+  if(!grid || !filename || !surface)
+  {
+    fprintf(stderr, "Error: Null inputs for write_non_tor_axi_sym.\n");
+    exit(EXIT_FAILURE);
+  }
+  int nt=grid->ntor;
+
+  //check surface phi
+  int idx_start_phi=-1;
+  int idx_end_phi=-1;
+  for(int it=0;it<nt;it++)
+  {
+    double phi=get_phi_3Dgrid(grid,0,0,it);
+    if(fabs(start_phi-phi)<EPSILON_8)
+    {
+      idx_start_phi=it;
+    }
+    if(fabs(end_phi-phi)<EPSILON_8)
+    {
+      idx_end_phi=it;
+    }
+    if (idx_start_phi != -1 && idx_end_phi != -1) 
+    {
+      break;
+    }
+  }
+
+  if(idx_start_phi==-1 || idx_end_phi==-1)
+  {
+    fprintf(stderr, "Error: The start/end phi of surface is not match any phi in 3D grid in write_non_tor_axi_sym.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(idx_start_phi>=idx_end_phi)
+  {
+    fprintf(stderr, "The phi range of surface is wrong in write_non_tor_axi_sym.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  FILE *fp = fopen(filename, "w");
+  if (!fp) 
+  {
+    fprintf(stderr, "Error: cannot open file \"%s\" \n",filename);
+    exit(EXIT_FAILURE);
+  }
+
+  DLListNode* surf_dll=copy_DLList(surface);
+  if(reverse)
+  {
+    reverse_DLList(&surf_dll);
+  }
+
+  Curve* surf_curve=convert_ddl_to_curve(surf_dll);
+
+  //write the title
+  fprintf(fp,"#%s %f %f\n",filename, get_phi_3Dgrid(grid,0,0,idx_start_phi),get_phi_3Dgrid(grid,0,0,idx_end_phi));
+  int n_point=surf_curve->n_point;
+  fprintf(fp,"%6d%6d%6d%12.6f%12.6f\n",idx_end_phi-idx_start_phi+1, n_point, 1, 0.0, 0.0);
+  for(int it=idx_start_phi;it<=idx_end_phi;it++)
+  {
+    fprintf(fp,"%12.6f\n", get_phi_3Dgrid(grid,0,0,it));
+    for(int i=0;i<n_point;i++)
+    {
+      double r=surf_curve->points[i].x * 100; //FROM M to CM
+      double z=surf_curve->points[i].y * 100; //FROM M to CM
+      fprintf(fp,"%18.10f %18.10f\n",r,z);
+    }
+  }
+  
+  fclose(fp);
+  #ifdef DEBUG
+  printf("The Toroidal range of the surface is from %6.2f to %6.2f.\n",start_phi, end_phi);
+  printf("Successfully write Non Toroidal Axisymmetric Surface in: %s.\n",filename);
+  #endif
+
+  free_DLList(surf_dll);
+  free_curve(surf_curve);
+}
+
+void write_non_tor_axi_sym_usr(DLListNode* surface, bool reverse,
+                               double start_phi, double end_phi, double delta_phi, 
+                               char* filename)
+{
+  //check input
+  if(!filename || !surface)
+  {
+    fprintf(stderr, "Error: Null inputs for write_tor_axi_sym_usr.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(start_phi>end_phi-EPSILON_8)
+  {
+    fprintf(stderr, "Error: start phi must larger than end phi write_tor_axi_sym_usr.\n");
+    exit(EXIT_FAILURE);
+  }
+  double tmp = (end_phi-start_phi)/delta_phi;
+  
+  if (fabs(tmp - round(tmp)) > EPSILON_12) 
+  {
+    fprintf(stderr, "(end_phi-start_phi)/delta_phi must be an INT in write_tor_axi_sym_usr.\n");
+    exit(EXIT_FAILURE);
+  }
+  
+  int nt=(int)tmp+1;
+
+  FILE *fp = fopen(filename, "w");
+  if (!fp) 
+  {
+    fprintf(stderr, "Error: cannot open file \"%s\" \n",filename);
+    exit(EXIT_FAILURE);
+  }
+
+  DLListNode* surf_dll=copy_DLList(surface);
+  if(reverse)
+  {
+    reverse_DLList(&surf_dll);
+  }
+
+  Curve* surf_curve=convert_ddl_to_curve(surf_dll);
+
+    //write the title
+  fprintf(fp,"#%s %f %f\n",filename, start_phi,end_phi);
+  int n_point=surf_curve->n_point;
+
+  fprintf(fp,"%6d%6d%6d%12.6f%12.6f\n",nt, n_point, 1, 0.0, 0.0);
+
+  for(int it=0;it<nt;it++)
+  {
+    fprintf(fp,"%12.6f\n", start_phi+it*delta_phi);
+    for(int i=0;i<n_point;i++)
+    {
+      double r=surf_curve->points[i].x * 100; //FROM M to CM
+      double z=surf_curve->points[i].y * 100; //FROM M to CM
+      fprintf(fp,"%18.10f %18.10f\n",r,z);
+    }
+  }
+
+  fclose(fp);
+
+  #ifdef DEBUG
+  printf("Successfully write 360 degree Axisymmetric Surface in: %s.\n",filename);
+  #endif
+
+  free_DLList(surf_dll);
+  free_curve(surf_curve);
+}
+
+void write_one_toroidal_surface(DLListNode* surf_start, double phi_start,
+                                DLListNode* surf_end, double phi_end,
+                                bool reverse, char* filename)
+{
+  //check input
+  if(!surf_start || !surf_end)
+  {
+    fprintf(stderr, "Error: Null inputs for write_one_toroidal_surface.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(phi_start>phi_end)
+  {
+    fprintf(stderr, "Error: The start phi MUST be smaller than the end phi.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  if(phi_start<0.0 || phi_end>360.0 || phi_end<0.0 || phi_end>360.0)
+  {
+    fprintf(stderr, "Error: The phi is out of the range from %6.2f to %6.2f.\n", 0.0, 360.0);
+    exit(EXIT_FAILURE);
+  }
+
+  DLListNode* surf_s_dll=copy_DLList(surf_start);
+  DLListNode* surf_e_dll=copy_DLList(surf_end);
+
+  if(reverse)
+  {
+    reverse_DLList(&surf_s_dll);
+    reverse_DLList(&surf_e_dll);
+  }
+
+  Curve* surf_s_curve=convert_ddl_to_curve(surf_s_dll);
+  Curve* surf_e_curve=convert_ddl_to_curve(surf_e_dll);
+
+  if(surf_s_curve->n_point!=surf_e_curve->n_point)
+  {
+    fprintf(stderr, "Error: The size of surf_start and surf_end don't match in write_one_toroidal_surface.\n");
+    fprintf(stderr, "Please check the size of surfaces.\n");
+    exit(EXIT_FAILURE);
+  }
+
+//begin to write
+  FILE *fp = fopen(filename, "w");
+  if (!fp) 
+  {
+    fprintf(stderr, "Error: cannot open file \"%s\" \n",filename);
+    exit(EXIT_FAILURE);
+  }
+  fprintf(fp,"#%s %f %f\n",filename, phi_start, phi_end);
+  int n_point=surf_s_curve->n_point;
+  fprintf(fp,"%6d%6d%6d%12.6f%12.6f\n",2, n_point, 1, 0.0, 0.0);
+
+  //at phi_start
+  fprintf(fp,"%12.6f\n", phi_start);
+  for(int i=0;i<n_point;i++)
+  {
+    double r=surf_s_curve->points[i].x * 100; //FROM M to CM
+    double z=surf_s_curve->points[i].y * 100; //FROM M to CM
+    fprintf(fp,"%18.10f %18.10f\n",r,z);
+  }
+
+  //at phi_end
+  fprintf(fp,"%12.6f\n", phi_end);
+  for(int i=0;i<n_point;i++)
+  {
+    double r=surf_e_curve->points[i].x * 100; //FROM M to CM
+    double z=surf_e_curve->points[i].y * 100; //FROM M to CM
+    fprintf(fp,"%18.10f %18.10f\n",r,z);
+  }
+
+  fclose(fp);
+  #ifdef DEBUG
+  printf("Successfully write one toroidal surface in: %s.\n",filename);
+  #endif
+
+  free_DLList(surf_s_dll);
+  free_DLList(surf_e_dll);
+  free_curve(surf_s_curve);
+  free_curve(surf_e_curve);
+}
+
+
 void write_RZ_along_radial_test(ThreeDimGrid* grid, int ip_cell, int it, char* filename)
 {
   if(!grid || !filename)
   {
-    fprintf(stderr, "Error: Null inputs for write_axis_sys_surface_default.\n");
+    fprintf(stderr, "Error: Null inputs for write_tor_axi_sym.\n");
     exit(EXIT_FAILURE);
   }
   int np=grid->npol;

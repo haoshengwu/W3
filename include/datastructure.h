@@ -111,4 +111,8 @@ void free_3d_array(double ***array);
 // dim=2: write in d2-major order (j->i->k)
 void write_3d_array(const int d1, const int d2, const int d3, double*** array, 
                     const char* filename, int dim);
+
+int*** allocate_3d_array_int(const int d1, const int d2, const int d3);
+void free_3d_array_int(int ***array);
+
 #endif

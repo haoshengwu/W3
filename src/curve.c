@@ -1,7 +1,7 @@
 #include "curve.h"
 #include <stdio.h>
 #include <math.h>
-
+#include "config.h"
 
 #define TOL_CURVE 1.0E-8 // Tolerance for in-segment comparison
 #define EPS_CURVE 1.0E-8 // Tolerance for in-segment comparison
@@ -625,4 +625,63 @@ Curve* connect_curves_for_curve(CurveWithOptions* list, int n_curve)
     }
   }
   return result;
+}
+
+int is_point_on_edge(double x, double y, CurvePoint p1, CurvePoint p2) 
+{
+
+    double min_x = fmin(p1.x, p2.x);
+    double max_x = fmax(p1.x, p2.x);
+    double min_y = fmin(p1.y, p2.y);
+    double max_y = fmax(p1.y, p2.y);
+    
+    if (x < min_x - EPSILON_12 || x > max_x + EPSILON_12 || 
+        y < min_y - EPSILON_12 || y > max_y + EPSILON_12) 
+    {
+      return 0;
+    }
+    
+    double cross_product = (y - p1.y) * (p2.x - p1.x) - (x - p1.x) * (p2.y - p1.y);
+    return fabs(cross_product) <= EPSILON_12;
+}
+
+//check whether a point is inside a closed region which have ncurve curves or on the edge
+//if true, return 1, else retrun 0
+int is_point_inside(double x, double y, Curve** boundary, int n_boundary)
+{
+  int crossings = 0;
+  for(int c=0;c<n_boundary;c++)
+  {
+    int n_point  =boundary[c]->n_point;
+    for (int i=0;i<n_point-1;i++)
+    {
+      CurvePoint p1=boundary[c]->points[i];
+      CurvePoint p2=boundary[c]->points[i+1];
+      
+      //check whether is on the edge
+      if (is_point_on_edge(x, y, p1, p2)) 
+      {
+        return 1; 
+      }
+
+      if (p1.y > p2.y) 
+      {
+        CurvePoint tmp = p1;
+        p1 = p2;
+        p2 = tmp;
+      }
+      if (y > p1.y && (y < p2.y || fabs(y - p2.y) <= EPSILON_12)) 
+      {
+        if (fabs(p2.y - p1.y) > EPSILON_12) 
+        {
+          double x_inter = p1.x + (y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y);
+          if (x < x_inter) 
+          {
+            crossings++;
+          }
+        }
+      }
+    }
+  }
+  return crossings%2;
 }

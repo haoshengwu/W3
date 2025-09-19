@@ -38,9 +38,24 @@ void write_BFIELD_file_default(ThreeDimGrid* grid, MagFieldTorSys* magnetic, cha
 void write_PLATE_MAG_file_test(ThreeDimGrid* grid, int n_neutral_cells, int pol_dir, int idx_zone, char* filename);
 
 
+// This function create a toroidal Axisymmetric surface file, used to neutral in ADD
+void write_tor_axi_sym(ThreeDimGrid* grid, DLListNode* surface, bool reverse, char* filename);
+
+// This function create a non-toroidal Axisymmetric surface file, used to neutral in ADD
+// we assume the toroidal range are within the phi range of 3D grid.
+void write_non_tor_axi_sym(ThreeDimGrid* grid, DLListNode* surface, bool reverse, 
+                           double start_phi, double end_phi, char* filename);
 
 // This function create a toroidal Axisymmetric surface file, used to neutral in ADD
-void write_axis_sys_surface_default(ThreeDimGrid* grid, DLListNode* surface, bool reverse, char* filename);
+// The range of phi including start, end and delta is decided by the user.
+void write_non_tor_axi_sym_usr(DLListNode* surface, bool reverse,
+                               double start_phi, double end_phi, double delta_phi, 
+                               char* filename);
+
+//we assume surf_start and surf_end have same order: CW or CCW. We don't check this!
+void write_one_toroidal_surface(DLListNode* surf_start, double phi_start,
+                                DLListNode* surf_end, double phi_end,
+                                bool reverse, char* filename);
 
 
 // Wirte the ip-th (0-base) cell center along radial direction at ir torodial slice to filename
